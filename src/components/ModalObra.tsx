@@ -115,7 +115,10 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           <div className="flex items-center gap-2">
             {editingObra && onOpenViewActividades && (
               <button
-                onClick={() => onOpenViewActividades(editingObra)}
+                onClick={() => {
+                  onOpenViewActividades(editingObra);
+                  onClose();
+                }}
                 className="p-2 text-[#2D3436] hover:text-white hover:bg-[#2D3436] rounded-lg transition-all"
                 title="Ver notas de esta obra"
               >
