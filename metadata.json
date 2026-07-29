@@ -1,0 +1,6 @@
+{
+  "name": "CRM Fujitec",
+  "description": "CRM MVP para gestión comercial de obras nuevas de ascensores y montacargas Fujitec Argentina y Uruguay",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
