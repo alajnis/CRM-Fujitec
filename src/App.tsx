@@ -119,8 +119,8 @@ export default function App() {
   };
 
   const handleAddActividad = (obraId: string, descripcion: string) => {
-    setObras((prev) =>
-      prev.map((o) => {
+    setObras((prev) => {
+      const updated = prev.map((o) => {
         if (o.id === obraId) {
           const hoy = new Date().toISOString().split('T')[0];
           const newActividad = {
@@ -135,8 +135,16 @@ export default function App() {
           };
         }
         return o;
-      })
-    );
+      });
+      // Update selectedObraForActividad if it's the same obra
+      if (selectedObraForActividad?.id === obraId) {
+        const updatedObra = updated.find((o) => o.id === obraId);
+        if (updatedObra) {
+          setSelectedObraForActividad(updatedObra);
+        }
+      }
+      return updated;
+    });
   };
 
   const handleEditClienteContacts = (cliente: Cliente) => {
