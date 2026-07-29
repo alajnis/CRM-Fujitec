@@ -64,7 +64,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     return matchRegion && matchEquipment && matchStage && matchQuery;
   });
 
-  const stages: FunnelStage[] = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Pérdida'];
+  const stages: FunnelStage[] = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
 
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
@@ -148,7 +148,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             if (stage === 'Presentada') { headerBg = 'bg-amber-50/80 border-amber-200 text-amber-900'; dotColor = 'bg-amber-500'; }
             if (stage === 'En Negociación') { headerBg = 'bg-blue-50/80 border-blue-200 text-blue-900'; dotColor = 'bg-blue-500'; }
             if (stage === 'Adjudicada') { headerBg = 'bg-emerald-50/80 border-emerald-200 text-emerald-900'; dotColor = 'bg-emerald-500'; }
-            if (stage === 'Pérdida') { headerBg = 'bg-red-50/80 border-red-200 text-red-900'; dotColor = 'bg-red-400'; }
+            if (stage === 'Perdida') { headerBg = 'bg-red-50/80 border-red-200 text-red-900'; dotColor = 'bg-red-400'; }
 
             return (
               <div key={stage} className="flex flex-col rounded-2xl bg-white/40 backdrop-blur-md border border-[#E0E0E0] p-3.5 min-w-[270px] w-[270px] shrink-0 h-[calc(100vh-230px)] shadow-2xs snap-start">
@@ -315,7 +315,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                     if (obra.estado === 'Adjudicada') stageBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
                     if (obra.estado === 'En Negociación') stageBadge = 'bg-blue-100 text-blue-800 border-blue-300';
                     if (obra.estado === 'Presentada') stageBadge = 'bg-amber-100 text-amber-900 border-amber-300';
-                    if (obra.estado === 'Pérdida') stageBadge = 'bg-red-100 text-red-800 border-red-300';
+                    if (obra.estado === 'Perdida') stageBadge = 'bg-red-100 text-red-800 border-red-300';
 
                     return (
                       <tr 

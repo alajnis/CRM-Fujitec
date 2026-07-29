@@ -161,8 +161,6 @@ export default function App() {
           setActiveTab={setActiveTab}
           collapsed={sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
-          selectedRegion={selectedRegion}
-          setSelectedRegion={setSelectedRegion}
         />
       </div>
 

@@ -179,7 +179,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 <option value="Presentada">Presentada</option>
                 <option value="En Negociación">En Negociación</option>
                 <option value="Adjudicada">Adjudicada</option>
-                <option value="Pérdida">Pérdida</option>
+                <option value="Perdida">Perdida</option>
               </select>
             </div>
           </div>

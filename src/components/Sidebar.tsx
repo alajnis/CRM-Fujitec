@@ -6,27 +6,21 @@ import {
   FileCheck,
   ChevronLeft,
   ChevronRight,
-  MapPin,
   Settings
 } from 'lucide-react';
-import { Region } from '../types';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
-  selectedRegion: Region;
-  setSelectedRegion: (region: Region) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   collapsed,
-  setCollapsed,
-  selectedRegion,
-  setSelectedRegion
+  setCollapsed
 }) => {
   const menuItems = [
     {
@@ -97,35 +91,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Region Selector Badge in Sidebar */}
-        {!collapsed && (
-          <div className="mx-4 mt-4 p-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/15 text-white flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-white/80 font-medium">
-              <MapPin size={14} className="text-white/70" />
-              <span>Región:</span>
-            </div>
-            <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/10 text-xs font-semibold">
-              {(['Todas', 'Argentina', 'Uruguay'] as Region[]).map((reg) => {
-                const label = reg === 'Todas' ? 'ALL' : reg === 'Argentina' ? 'AR' : 'UY';
-                const isSelected = selectedRegion === reg;
-                return (
-                  <button
-                    key={reg}
-                    onClick={() => setSelectedRegion(reg)}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      isSelected 
-                        ? 'bg-white text-[#C8102E] font-bold shadow-xs' 
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                    id={`btn-region-sidebar-${label.toLowerCase()}`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Navigation Menu */}
         <nav className="p-4 space-y-2">

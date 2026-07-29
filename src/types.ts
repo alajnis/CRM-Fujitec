@@ -7,12 +7,12 @@ export type EquipmentType =
   | 'Alta Velocidad'
   | 'Escalera Mecánica / Rampa';
 
-export type FunnelStage = 
+export type FunnelStage =
   | 'Cotización'
   | 'Presentada'
   | 'En Negociación'
   | 'Adjudicada'
-  | 'Pérdida';
+  | 'Perdida';
 
 export interface HardwareSpecs {
   velocidadMS: number; // m/s
