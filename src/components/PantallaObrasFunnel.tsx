@@ -339,7 +339,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${stageBadge}`}>
+                          <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${stageBadge}`}>
                             {obra.estado}
                           </span>
                         </td>
