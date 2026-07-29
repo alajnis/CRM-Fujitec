@@ -1,6 +1,0 @@
-# Vercel build cache invalidation
-# This file forces Vercel to skip build cache
-.git
-node_modules
-.env.local
-.env.*.local
