@@ -98,13 +98,20 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#2D3436]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-6 space-y-4 my-8">
-        <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3">
-          <h3 className="text-lg font-extrabold text-[#2D3436]">
-            {editingObra ? `Editar Obra: ${editingObra.codigo}` : 'Registrar Nueva Obra Comercial'}
-          </h3>
-          <button onClick={onClose} className="text-[#B2BEC3] font-bold text-lg hover:text-[#2D3436]">✕</button>
+    <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
+      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-8 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-4">
+          <div>
+            <h3 className="text-xl font-black text-[#2D3436]">
+              {editingObra ? `Editar Obra: ${editingObra.codigo}` : 'Registrar Nueva Obra Comercial'}
+            </h3>
+            <p className="text-xs text-[#B2BEC3] font-semibold mt-1 uppercase tracking-wide">
+              {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -293,27 +300,28 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block font-bold text-[#2D3436] mb-1">Observaciones Comercial</label>
+          <div className="p-4 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0]">
+            <label className="block font-extrabold text-[#2D3436] mb-2 uppercase tracking-wide text-[11px]">Notas & Observaciones Comerciales</label>
             <textarea
-              rows={2}
+              rows={3}
+              placeholder="Agregar notas sobre la oportunidad, observaciones técnicas, o estado actual..."
               value={formObra.observaciones}
               onChange={(e) => setFormObra({...formObra, observaciones: e.target.value})}
-              className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl text-xs font-medium"
+              className="w-full p-3 bg-white border border-[#E0E0E0] rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-[#F1F3F5]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-[#F1F3F5]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-bold text-[#2D3436]"
+              className="px-5 py-2.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-bold text-[#2D3436] text-sm"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl font-extrabold text-white shadow-xs hover:bg-[#A60D26] transition-all"
+              className="px-6 py-2.5 rounded-lg font-extrabold text-white shadow-md hover:bg-[#A60D26] transition-all text-sm"
               style={{ backgroundColor: '#C8102E' }}
               id="btn-save-obra-modal"
             >
