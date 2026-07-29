@@ -56,7 +56,7 @@ export const ModalActividad: React.FC<ModalActividadProps> = ({
                 {[...obra.actividades].reverse().map((act) => (
                   <div key={act.id} className="p-3 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0] text-xs space-y-1.5">
                     <div className="flex justify-between items-center text-[10px] text-[#636E72] font-semibold">
-                      <span className="flex items-center gap-1"><User size={12} /> {act.responsable}</span>
+                      <span className="flex items-center gap-1"><User size={12} /> {act.autor}</span>
                       <span className="flex items-center gap-1"><Calendar size={12} /> {act.fecha}</span>
                     </div>
                     <p className="text-[#2D3436] leading-relaxed whitespace-pre-wrap">{act.descripcion}</p>
