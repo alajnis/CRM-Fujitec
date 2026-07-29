@@ -1,22 +1,11 @@
 {
-  "buildCommand": "npm run build && echo $RANDOM > dist/.build-id",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "env": {
     "VITE_ENV": "production",
-    "NODE_ENV": "production",
-    "VERCEL_ENV": "production"
+    "NODE_ENV": "production"
   },
   "cleanUrls": true,
   "trailingSlash": false,
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    }
-  ]
+  "skipGitignore": true
 }
