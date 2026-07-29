@@ -1,12 +1,11 @@
 import React from 'react';
-import { 
-  Search, 
-  Plus, 
-  Sparkles, 
-  Globe, 
-  Filter, 
-  CheckCircle2, 
-  DollarSign, 
+import {
+  Search,
+  Plus,
+  Globe,
+  Filter,
+  CheckCircle2,
+  DollarSign,
   Bell,
   Building
 } from 'lucide-react';
@@ -21,7 +20,6 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onOpenNewObraModal: () => void;
-  onOpenAiAssistant: () => void;
   alertaCount: number;
 }
 
@@ -34,7 +32,6 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   onOpenNewObraModal,
-  onOpenAiAssistant,
   alertaCount
 }) => {
   const getTabTitle = () => {
@@ -147,8 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Alert Indicator Badge if stagnant projects exist */}
         {alertaCount > 0 && (
-          <div 
-            onClick={onOpenAiAssistant}
+          <div
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold cursor-pointer hover:bg-amber-100 transition-all shadow-2xs"
             title={`${alertaCount} obra(s) con más de 7 días sin actualización`}
             id="badge-temporal-alert-header"

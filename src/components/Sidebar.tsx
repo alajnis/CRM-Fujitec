@@ -1,14 +1,13 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  FileCheck, 
-  ChevronLeft, 
-  ChevronRight, 
-  Layers,
-  Sparkles,
-  MapPin
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  FileCheck,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Settings
 } from 'lucide-react';
 import { Region } from '../types';
 
@@ -19,7 +18,6 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   selectedRegion: Region;
   setSelectedRegion: (region: Region) => void;
-  onOpenAiAssistant: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,8 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   setCollapsed,
   selectedRegion,
-  setSelectedRegion,
-  onOpenAiAssistant
+  setSelectedRegion
 }) => {
   const menuItems = [
     {
@@ -163,39 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div>
-        {/* AI Assistant Quick Trigger Card */}
-        {!collapsed ? (
-          <div className="p-4 mx-4 mb-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white shadow-sm space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-white text-[#C8102E] rounded-lg shadow-xs font-black text-xs">
-                <Sparkles size={14} />
-              </div>
-              <span className="text-xs font-extrabold tracking-wide">Asistente IA Fujitec</span>
-            </div>
-            <p className="text-[11px] text-white/80 leading-relaxed">
-              Analiza cotizaciones, destraba obras congeladas y optimiza cartas oferta.
-            </p>
-            <button
-              onClick={onOpenAiAssistant}
-              className="w-full text-xs font-bold py-2 px-3 rounded-xl bg-white text-[#C8102E] hover:bg-white/90 transition-all shadow-md text-center"
-              id="btn-open-ai-sidebar"
-            >
-              Consultar Asistente
-            </button>
-          </div>
-        ) : (
-          <div className="p-2 mb-2 flex justify-center">
-            <button
-              onClick={onOpenAiAssistant}
-              className="p-3 rounded-xl bg-white/15 text-white hover:bg-white/25 transition-all shadow-xs backdrop-blur-md border border-white/20"
-              title="Asistente Comercial IA"
-              id="btn-open-ai-sidebar-icon"
-            >
-              <Sparkles size={18} />
-            </button>
-          </div>
-        )}
-
         {/* Footer Info */}
         <div className="p-4 border-t border-white/10 text-xs text-white/60 flex items-center justify-between">
           {!collapsed ? (

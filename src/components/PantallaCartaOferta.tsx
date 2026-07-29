@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FileCheck, 
-  Sparkles, 
-  Printer, 
-  Download, 
-  Share2, 
-  ShieldCheck, 
-  Clock, 
-  DollarSign, 
-  CheckCircle2, 
-  Building2, 
-  User, 
-  Layers, 
+import {
+  FileCheck,
+  Printer,
+  Download,
+  Share2,
+  ShieldCheck,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+  Building2,
+  User,
+  Layers,
   Cpu, 
   FileText,
   HardDrive,
@@ -54,12 +53,11 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
   const [notasTecnicas, setNotasTecnicas] = useState<string>(
     'Equipos con tecnología japonesa Fujitec Eco-Drive, variador de frecuencia VVVF de alta precisión, maniobra duplex regenerativa y cabina con diseño exclusivo en acero inoxidable.'
   );
-  const [resumenEjecutivo, setResumenEjecutivo] = useState<string>(
+  const [resumenEjecutivo] = useState<string>(
     'Fujitec Argentina / Uruguay se complace en presentar la propuesta comercial para el suministro, montaje y puesta en servicio del sistema de transporte vertical solicitado. Nuestra tecnología ofrece máxima durabilidad, seguridad activa y óptimo confort de viaje.'
   );
 
-  // States for AI polish & Document Generation
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  // States for Document Generation
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
   const [isDriveSaving, setIsDriveSaving] = useState(false);
@@ -71,38 +69,6 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
       setMontoNetoUSD(selectedObra.montoUSD);
     }
   }, [selectedObraId]);
-
-  // AI Assistant trigger to refine proposal text
-  const handleEnhanceWithAI = async () => {
-    if (!selectedObra) return;
-    setIsAiLoading(true);
-
-    try {
-      const response = await fetch('/api/gemini/assist-offer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombreObra: selectedObra.nombre,
-          cliente: selectedCliente?.razonSocial,
-          montoUSD: montoNetoUSD,
-          cantidadEquipos: selectedObra.cantidadEquipos,
-          modelo: selectedObra.hardwareSpecs.modelo,
-          velocidad: selectedObra.hardwareSpecs.velocidadMS,
-          paradas: selectedObra.hardwareSpecs.paradas,
-          garantiaAnos: garantiaAnos
-        })
-      });
-
-      const data = await response.json();
-      if (data.success && data.result) {
-        setResumenEjecutivo(data.result);
-      }
-    } catch (err) {
-      console.error('Error in AI enhance:', err);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   // Botón de Acción Principal: "Generar Carta Oferta"
   const handleGenerarCartaOferta = () => {
@@ -307,19 +273,6 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
               />
             </div>
 
-            {/* AI Text Enhancement Trigger */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleEnhanceWithAI}
-                disabled={isAiLoading}
-                className="w-full py-2.5 px-3 rounded-xl bg-[#2D3436] text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors disabled:opacity-50 shadow-2xs"
-                id="btn-enhance-ai-offer"
-              >
-                <Sparkles size={15} className="text-amber-400" />
-                <span>{isAiLoading ? 'Optimizando con IA...' : '✨ Mejorar Propuesta Comercial con IA'}</span>
-              </button>
-            </div>
           </div>
 
           {/* BOTÓN DE ACCIÓN PRINCIPAL DESTACADO EN WING RED (#C8102E) */}

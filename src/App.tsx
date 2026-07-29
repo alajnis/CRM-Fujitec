@@ -12,7 +12,6 @@ import { PantallaObrasFunnel } from './components/PantallaObrasFunnel';
 import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
 import { PantallaCartaOferta } from './components/PantallaCartaOferta';
 import { ModalObra } from './components/ModalObra';
-import { AiAssistantDrawer } from './components/AiAssistantDrawer';
 
 import { 
   Obra, 
@@ -49,7 +48,6 @@ export default function App() {
   const [isModalObraOpen, setIsModalObraOpen] = useState<boolean>(false);
   const [editingObra, setEditingObra] = useState<Obra | null>(null);
   const [selectedObraForOffer, setSelectedObraForOffer] = useState<Obra | undefined>(undefined);
-  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState<boolean>(false);
 
   // Count total obras requiring temporal alert (> 7 days without update)
   const alertaCount = obras.filter((o) => tieneAlertaTemporal(o)).length;
@@ -124,7 +122,6 @@ export default function App() {
           setCollapsed={setSidebarCollapsed}
           selectedRegion={selectedRegion}
           setSelectedRegion={setSelectedRegion}
-          onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
         />
       </div>
 
@@ -141,7 +138,6 @@ export default function App() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             onOpenNewObraModal={handleOpenNewObraModal}
-            onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
             alertaCount={alertaCount}
           />
         </div>
@@ -200,13 +196,6 @@ export default function App() {
         onSaveObra={handleSaveObra}
         clientes={clientes}
         editingObra={editingObra}
-      />
-
-      {/* AI Assistant Drawer */}
-      <AiAssistantDrawer
-        isOpen={isAiAssistantOpen}
-        onClose={() => setIsAiAssistantOpen(false)}
-        obras={obras}
       />
     </div>
   );
