@@ -1,11 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".output",
-  "env": {
-    "VITE_ENV": "production",
-    "NODE_ENV": "production"
-  },
   "cleanUrls": true,
-  "trailingSlash": false,
-  "skipGitignore": true
+  "trailingSlash": false
 }
