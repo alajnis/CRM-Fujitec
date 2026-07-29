@@ -46,6 +46,7 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState<Region>('Todas');
   const [selectedEquipmentType, setSelectedEquipmentType] = useState<EquipmentType>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // App Data Collections
   const [obras, setObras] = useState<Obra[]>(INITIAL_OBRAS);
@@ -183,6 +184,8 @@ export default function App() {
             setSearchQuery={setSearchQuery}
             onOpenNewObraModal={handleOpenNewObraModal}
             alertaCount={alertaCount}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
           />
         </div>
 

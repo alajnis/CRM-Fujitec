@@ -21,6 +21,8 @@ interface HeaderProps {
   setSearchQuery: (q: string) => void;
   onOpenNewObraModal: () => void;
   alertaCount: number;
+  selectedYear: number;
+  setSelectedYear: (year: number) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,7 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   onOpenNewObraModal,
-  alertaCount
+  alertaCount,
+  selectedYear,
+  setSelectedYear
 }) => {
   const getTabTitle = () => {
     switch (activeTab) {
@@ -126,6 +130,24 @@ export const Header: React.FC<HeaderProps> = ({
                 {t}
               </option>
             ))}
+          </select>
+        </div>
+
+        {/* Global Filter: Year */}
+        <div className="flex items-center bg-white/90 rounded-xl p-1 border border-[#E0E0E0] shadow-2xs text-xs">
+          <span className="text-[#636E72] font-bold px-2 flex items-center gap-1">
+            📅 Año:
+          </span>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="bg-[#F8F9FA] text-[#2D3436] font-bold py-1.5 px-3 rounded-lg border border-[#E0E0E0] focus:outline-none cursor-pointer"
+            id="select-global-year"
+          >
+            <option value={2024}>2024</option>
+            <option value={2025}>2025</option>
+            <option value={2026}>2026</option>
+            <option value={2027}>2027</option>
           </select>
         </div>
 
