@@ -11,7 +11,10 @@ import { PantallaDashboard } from './components/PantallaDashboard';
 import { PantallaObrasFunnel } from './components/PantallaObrasFunnel';
 import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
 import { PantallaCartaOferta } from './components/PantallaCartaOferta';
+import { PantallaAdmin } from './components/PantallaAdmin';
 import { ModalObra } from './components/ModalObra';
+import { ModalActividad } from './components/ModalActividad';
+import { ModalCliente } from './components/ModalCliente';
 
 import { 
   Obra, 
@@ -48,6 +51,10 @@ export default function App() {
   const [isModalObraOpen, setIsModalObraOpen] = useState<boolean>(false);
   const [editingObra, setEditingObra] = useState<Obra | null>(null);
   const [selectedObraForOffer, setSelectedObraForOffer] = useState<Obra | undefined>(undefined);
+  const [isModalActividadOpen, setIsModalActividadOpen] = useState<boolean>(false);
+  const [selectedObraForActividad, setSelectedObraForActividad] = useState<Obra | null>(null);
+  const [isModalClienteOpen, setIsModalClienteOpen] = useState<boolean>(false);
+  const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
 
   // Count total obras requiring temporal alert (> 7 days without update)
   const alertaCount = obras.filter((o) => tieneAlertaTemporal(o)).length;
@@ -109,6 +116,32 @@ export default function App() {
       setSearchQuery(target.codigo);
     }
     setActiveTab('obras');
+  };
+
+  const handleAddActividad = (obraId: string, descripcion: string) => {
+    setObras((prev) =>
+      prev.map((o) => {
+        if (o.id === obraId) {
+          const hoy = new Date().toISOString().split('T')[0];
+          const newActividad = {
+            id: `act-${Date.now()}`,
+            descripcion,
+            fecha: hoy,
+            autor: 'Usuario'
+          };
+          return {
+            ...o,
+            actividades: [newActividad, ...(o.actividades || [])]
+          };
+        }
+        return o;
+      })
+    );
+  };
+
+  const handleEditClienteContacts = (cliente: Cliente) => {
+    setSelectedClienteForEdit(cliente);
+    setIsModalClienteOpen(true);
   };
 
   return (
@@ -175,6 +208,11 @@ export default function App() {
               selectedRegion={selectedRegion}
               onSelectObraForOffer={handleGenerarOferta}
               onSaveCliente={handleSaveCliente}
+              onOpenEditClienteContacts={handleEditClienteContacts}
+              onOpenViewActividades={(obra) => {
+                setSelectedObraForActividad(obra);
+                setIsModalActividadOpen(true);
+              }}
             />
           )}
 
@@ -184,6 +222,12 @@ export default function App() {
               clientes={clientes}
               selectedObraInitial={selectedObraForOffer}
               onSaveCartaOferta={handleSaveCartaOferta}
+            />
+          )}
+
+          {activeTab === 'admin' && (
+            <PantallaAdmin
+              onSaveBudgetConfig={() => {}}
             />
           )}
         </main>
@@ -197,6 +241,31 @@ export default function App() {
         clientes={clientes}
         editingObra={editingObra}
       />
+
+      {/* Actividad Modal */}
+      {selectedObraForActividad && (
+        <ModalActividad
+          isOpen={isModalActividadOpen}
+          onClose={() => setIsModalActividadOpen(false)}
+          obra={selectedObraForActividad}
+          onAddActividad={handleAddActividad}
+        />
+      )}
+
+      {/* Cliente Modal */}
+      {selectedClienteForEdit && (
+        <ModalCliente
+          isOpen={isModalClienteOpen}
+          onClose={() => setIsModalClienteOpen(false)}
+          cliente={selectedClienteForEdit}
+          onSaveCliente={(updatedCliente) => {
+            setClientes((prev) =>
+              prev.map((c) => (c.id === updatedCliente.id ? updatedCliente : c))
+            );
+            setIsModalClienteOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

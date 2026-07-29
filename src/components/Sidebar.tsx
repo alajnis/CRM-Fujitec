@@ -52,6 +52,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: '4. Carta Oferta',
       sublabel: 'Motor Documental Formal',
       icon: FileCheck
+    },
+    {
+      id: 'admin',
+      label: '5. Configuración',
+      sublabel: 'Variables de Presupuesto & CRM',
+      icon: Settings
     }
   ];
 

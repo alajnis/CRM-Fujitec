@@ -22,6 +22,14 @@ export interface HardwareSpecs {
   modelo: string; // Ej: Fujitec ZEXIA, VIRIDIS, REXIA, ELIGHT
 }
 
+export interface ClienteContact {
+  id: string;
+  nombre: string;
+  cargo: string;
+  email: string;
+  telefono: string;
+}
+
 export interface Cliente {
   id: string;
   razonSocial: string;
@@ -32,6 +40,21 @@ export interface Cliente {
   direccion: string;
   region: 'Argentina' | 'Uruguay';
   cuitRut: string;
+  contactos?: ClienteContact[];
+}
+
+export interface Actividad {
+  id: string;
+  descripcion: string;
+  fecha: string; // YYYY-MM-DD
+  autor: string;
+}
+
+export interface ObraEquipment {
+  id: string;
+  tipo: EquipmentType;
+  cantidad: number;
+  especificaciones: string;
 }
 
 export interface Obra {
@@ -50,6 +73,8 @@ export interface Obra {
   responsable: string;
   hardwareSpecs: HardwareSpecs;
   rentabilidadEstimada?: number; // % de rentabilidad
+  actividades?: Actividad[];
+  equipments?: ObraEquipment[];
 }
 
 export interface CartaOferta {

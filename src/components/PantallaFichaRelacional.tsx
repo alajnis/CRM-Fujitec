@@ -26,6 +26,8 @@ interface PantallaFichaRelacionalProps {
   selectedRegion: Region;
   onSelectObraForOffer: (obra: Obra) => void;
   onSaveCliente: (cliente: Cliente) => void;
+  onOpenEditClienteContacts?: (cliente: Cliente) => void;
+  onOpenViewActividades?: (obra: Obra) => void;
 }
 
 export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = ({
