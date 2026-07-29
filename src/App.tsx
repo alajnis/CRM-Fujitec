@@ -199,6 +199,10 @@ export default function App() {
               selectedEquipmentType={selectedEquipmentType}
               onNavigateToObra={handleNavigateToObra}
               onNavigateToFunnel={() => setActiveTab('obras')}
+              onOpenViewActividades={(obra) => {
+                setSelectedObraForActividad(obra);
+                setIsModalActividadOpen(true);
+              }}
             />
           )}
 
@@ -212,6 +216,10 @@ export default function App() {
               onGenerarOferta={handleGenerarOferta}
               onUpdateObraState={handleUpdateObraState}
               onOpenNewObraModal={handleOpenNewObraModal}
+              onOpenViewActividades={(obra) => {
+                setSelectedObraForActividad(obra);
+                setIsModalActividadOpen(true);
+              }}
             />
           )}
 
