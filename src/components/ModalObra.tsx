@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MessageSquare } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs } from '../types';
 
 interface ModalObraProps {
@@ -7,6 +8,7 @@ interface ModalObraProps {
   onSaveObra: (obra: Obra) => void;
   clientes: Cliente[];
   editingObra?: Obra | null;
+  onOpenViewActividades?: (obra: Obra) => void;
 }
 
 export const ModalObra: React.FC<ModalObraProps> = ({
@@ -14,7 +16,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onClose,
   onSaveObra,
   clientes,
-  editingObra
+  editingObra,
+  onOpenViewActividades
 }) => {
   const [formObra, setFormObra] = useState<Partial<Obra>>({
     codigo: 'A-5300',
@@ -109,9 +112,20 @@ export const ModalObra: React.FC<ModalObraProps> = ({
               {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {editingObra && onOpenViewActividades && (
+              <button
+                onClick={() => onOpenViewActividades(editingObra)}
+                className="p-2 text-[#2D3436] hover:text-white hover:bg-[#2D3436] rounded-lg transition-all"
+                title="Ver notas de esta obra"
+              >
+                <MessageSquare size={20} />
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">

@@ -262,6 +262,10 @@ export default function App() {
         onSaveObra={handleSaveObra}
         clientes={clientes}
         editingObra={editingObra}
+        onOpenViewActividades={(obra) => {
+          setSelectedObraForActividad(obra);
+          setIsModalActividadOpen(true);
+        }}
       />
 
       {/* Actividad Modal */}
