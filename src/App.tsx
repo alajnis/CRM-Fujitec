@@ -5,7 +5,11 @@
  * Cache Buster: v1.0.1
  */
 
+import { BUILD_VERSION } from './BUILD_INFO';
 import React, { useState } from 'react';
+
+// Ensure build info is included in bundle
+console.log('Build version:', BUILD_VERSION);
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { PantallaDashboard } from './components/PantallaDashboard';
