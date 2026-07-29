@@ -2,6 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * Last Updated: 2026-07-29 - Complete MVP Implementation
+ * Cache Buster: v1.0.1
  */
 
 import React, { useState } from 'react';

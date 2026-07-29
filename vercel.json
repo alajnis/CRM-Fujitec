@@ -2,6 +2,16 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "env": {
-    "VITE_ENV": "production"
+    "VITE_ENV": "production",
+    "VERCEL_SUPPRESS_BEST_PRACTICE_WARNING": "true",
+    "BUILD_TIMESTAMP": "@now"
+  },
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "cacheMaxAge": 0,
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30
+    }
   }
 }
