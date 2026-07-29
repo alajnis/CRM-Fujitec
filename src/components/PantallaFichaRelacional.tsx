@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  Cpu, 
-  Search, 
-  Plus, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Building2, 
-  FileSpreadsheet, 
-  Check, 
+import {
+  Users,
+  Cpu,
+  Search,
+  Plus,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  FileSpreadsheet,
+  Check,
   ChevronRight,
   Gauge,
   Layers,
   ShieldCheck,
   Zap,
-  ArrowRight
+  ArrowRight,
+  UserPlus,
+  MessageSquare
 } from 'lucide-react';
 import { Cliente, Obra, HardwareSpecs, Region } from '../types';
 import { formatUSD } from '../utils/semaforo';
@@ -218,10 +220,11 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                     {onOpenEditClienteContacts && (
                       <button
                         onClick={() => onOpenEditClienteContacts(activeCliente)}
-                        className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26]"
+                        className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26] flex items-center gap-1.5"
                         style={{ backgroundColor: '#C8102E' }}
                         id="btn-editar-contactos"
                       >
+                        <UserPlus size={14} />
                         Editar Contactos
                       </button>
                     )}
@@ -297,11 +300,12 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                             {onOpenViewActividades && (
                               <button
                                 onClick={() => onOpenViewActividades(obra)}
-                                className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-blue-600"
+                                className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-blue-600 flex items-center gap-1.5"
                                 style={{ backgroundColor: '#2D3436' }}
                                 id={`btn-ver-actividades-${obra.id}`}
                                 title="Ver notas y actividades"
                               >
+                                <MessageSquare size={14} />
                                 Notas
                               </button>
                             )}

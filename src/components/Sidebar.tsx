@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
             {/* Fujitec White Emblem Logo */}
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center font-black text-[#C8102E] text-2xl shrink-0 shadow-lg">
+            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center font-black text-[#C8102E] text-4xl shrink-0 shadow-lg">
               F
             </div>
             {!collapsed && (
