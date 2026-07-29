@@ -35,7 +35,9 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
   obras,
   selectedRegion,
   onSelectObraForOffer,
-  onSaveCliente
+  onSaveCliente,
+  onOpenEditClienteContacts,
+  onOpenViewActividades
 }) => {
   const [activeTab, setActiveTab] = useState<'clientes' | 'hardware'>('clientes');
   const [selectedClienteId, setSelectedClienteId] = useState<string>(clientes[0]?.id || '');
@@ -212,9 +214,21 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                       CUIT/RUT: {activeCliente.cuitRut} | Región: {activeCliente.region}
                     </p>
                   </div>
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#2D3436] text-white self-start sm:self-auto shadow-2xs">
-                    {activeClienteObras.length} Obras Asignadas
-                  </span>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {onOpenEditClienteContacts && (
+                      <button
+                        onClick={() => onOpenEditClienteContacts(activeCliente)}
+                        className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26]"
+                        style={{ backgroundColor: '#C8102E' }}
+                        id="btn-editar-contactos"
+                      >
+                        Editar Contactos
+                      </button>
+                    )}
+                    <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#2D3436] text-white shadow-2xs">
+                      {activeClienteObras.length} Obras Asignadas
+                    </span>
+                  </div>
                 </div>
 
                 {/* Key Customer Contact Fields */}
@@ -276,17 +290,28 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="font-black text-[#2D3436] text-sm">
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            <span className="font-black text-[#2D3436] text-sm whitespace-nowrap">
                               {formatUSD(obra.montoUSD)}
                             </span>
+                            {onOpenViewActividades && (
+                              <button
+                                onClick={() => onOpenViewActividades(obra)}
+                                className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-blue-600"
+                                style={{ backgroundColor: '#2D3436' }}
+                                id={`btn-ver-actividades-${obra.id}`}
+                                title="Ver notas y actividades"
+                              >
+                                Notas
+                              </button>
+                            )}
                             <button
                               onClick={() => onSelectObraForOffer(obra)}
                               className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs flex items-center gap-1 transition-all hover:bg-[#A60D26]"
                               style={{ backgroundColor: '#C8102E' }}
                               id={`btn-generar-oferta-relacional-${obra.id}`}
                             >
-                              <span>Carta Oferta</span>
+                              <span>Oferta</span>
                               <ChevronRight size={14} />
                             </button>
                           </div>
