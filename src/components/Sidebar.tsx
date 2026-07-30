@@ -65,10 +65,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            {/* Fujitec White Emblem Logo */}
-            <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center font-black text-[#C8102E] text-5xl shrink-0 shadow-lg">
-              F
-            </div>
+            {/* Fujitec Logo - Only show when not collapsed */}
+            {!collapsed && (
+              <img
+                src="/assets/fujitec-logo.png"
+                alt="Fujitec Logo"
+                className="w-16 h-16 shrink-0 shadow-lg rounded-lg"
+              />
+            )}
             {!collapsed && (
               <div className="flex flex-col truncate">
                 <span className="font-extrabold text-white tracking-tight text-lg leading-tight uppercase">
@@ -136,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {!collapsed ? (
             <div className="flex flex-col">
               <span className="font-bold text-white/90">CRM Fujitec</span>
-              <span className="text-[10px] text-white/50">Impruvia v1.0 • USD</span>
+              <span className="text-[10px] text-white/50">Powered by Impruvia</span>
             </div>
           ) : (
             <div className="w-full text-center text-[10px] font-bold text-white/60">

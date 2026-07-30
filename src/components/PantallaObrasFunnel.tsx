@@ -31,6 +31,10 @@ interface PantallaObrasFunnelProps {
   onGenerarOferta: (obra: Obra) => void;
   onUpdateObraState: (obraId: string, nuevoEstado: FunnelStage) => void;
   onOpenNewObraModal: () => void;
+  selectedYear?: number;
+  onOpenViewActividades?: (obra: Obra) => void;
+  showOnlyAlerts?: boolean;
+  onCloseAlertFilter?: () => void;
 }
 
 export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
@@ -41,7 +45,11 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   onEditObra,
   onGenerarOferta,
   onUpdateObraState,
-  onOpenNewObraModal
+  onOpenNewObraModal,
+  selectedYear = new Date().getFullYear(),
+  onOpenViewActividades,
+  showOnlyAlerts = false,
+  onCloseAlertFilter
 }) => {
   // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban, Sub-view 3: Cronograma Línea de Tiempo
   const [subView, setSubView] = useState<'lista' | 'kanban' | 'cronograma'>('kanban');
@@ -54,14 +62,17 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
     const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
     const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
+    const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
+    const matchYear = obraYear === selectedYear;
     const q = searchQuery.toLowerCase();
-    const matchQuery = !q || 
-      obra.codigo.toLowerCase().includes(q) || 
-      obra.nombre.toLowerCase().includes(q) || 
+    const matchQuery = !q ||
+      obra.codigo.toLowerCase().includes(q) ||
+      obra.nombre.toLowerCase().includes(q) ||
       obra.responsable.toLowerCase().includes(q) ||
       obra.hardwareSpecs.modelo.toLowerCase().includes(q);
+    const matchAlert = !showOnlyAlerts || tieneAlertaTemporal(obra);
 
-    return matchRegion && matchEquipment && matchStage && matchQuery;
+    return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert;
   });
 
   const stages: FunnelStage[] = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
@@ -134,6 +145,24 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Alert Filter Active Badge */}
+      {showOnlyAlerts && (
+        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span className="text-sm font-bold text-amber-900">
+              Mostrando {filteredObras.length} obra(s) que requieren atención (sin actualizar por más de 7 días)
+            </span>
+          </div>
+          <button
+            onClick={onCloseAlertFilter}
+            className="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition-all"
+          >
+            Limpiar filtro
+          </button>
+        </div>
+      )}
 
       {/* SUB-VIEW 1: VISTA FUNNEL KANBAN */}
       {subView === 'kanban' && (

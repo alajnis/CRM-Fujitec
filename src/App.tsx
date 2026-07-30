@@ -47,6 +47,7 @@ export default function App() {
   const [selectedEquipmentType, setSelectedEquipmentType] = useState<EquipmentType>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [showOnlyAlerts, setShowOnlyAlerts] = useState<boolean>(false);
 
   // App Data Collections
   const [obras, setObras] = useState<Obra[]>(INITIAL_OBRAS);
@@ -158,6 +159,11 @@ export default function App() {
     setIsModalClienteOpen(true);
   };
 
+  const handleClickAlertaBadge = () => {
+    setShowOnlyAlerts(true);
+    setActiveTab('obras');
+  };
+
   return (
     <div className="flex h-screen bg-[#F1F3F5] font-sans text-[#2D3436] overflow-hidden">
       {/* Sidebar Navigation */}
@@ -186,6 +192,7 @@ export default function App() {
             alertaCount={alertaCount}
             selectedYear={selectedYear}
             setSelectedYear={setSelectedYear}
+            onClickAlertaBadge={handleClickAlertaBadge}
           />
         </div>
 
@@ -199,6 +206,7 @@ export default function App() {
               selectedEquipmentType={selectedEquipmentType}
               onNavigateToObra={handleNavigateToObra}
               onNavigateToFunnel={() => setActiveTab('obras')}
+              selectedYear={selectedYear}
               onOpenViewActividades={(obra) => {
                 setSelectedObraForActividad(obra);
                 setIsModalActividadOpen(true);
@@ -216,6 +224,9 @@ export default function App() {
               onGenerarOferta={handleGenerarOferta}
               onUpdateObraState={handleUpdateObraState}
               onOpenNewObraModal={handleOpenNewObraModal}
+              selectedYear={selectedYear}
+              showOnlyAlerts={showOnlyAlerts}
+              onCloseAlertFilter={() => setShowOnlyAlerts(false)}
               onOpenViewActividades={(obra) => {
                 setSelectedObraForActividad(obra);
                 setIsModalActividadOpen(true);

@@ -23,6 +23,7 @@ interface HeaderProps {
   alertaCount: number;
   selectedYear: number;
   setSelectedYear: (year: number) => void;
+  onClickAlertaBadge?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -36,7 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNewObraModal,
   alertaCount,
   selectedYear,
-  setSelectedYear
+  setSelectedYear,
+  onClickAlertaBadge
 }) => {
   const getTabTitle = () => {
     switch (activeTab) {
@@ -86,9 +88,6 @@ export const Header: React.FC<HeaderProps> = ({
           <h1 className="text-2xl font-bold text-[#2D3436] tracking-tight">
             {title}
           </h1>
-          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-[#F1F3F5] text-[#636E72] border border-[#E0E0E0]">
-            USD Base
-          </span>
         </div>
         <p className="text-sm text-[#636E72] font-medium mt-0.5">
           {subtitle}
@@ -166,14 +165,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Alert Indicator Badge if stagnant projects exist */}
         {alertaCount > 0 && (
-          <div
+          <button
+            onClick={onClickAlertaBadge}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold cursor-pointer hover:bg-amber-100 transition-all shadow-2xs"
             title={`${alertaCount} obra(s) con más de 7 días sin actualización`}
             id="badge-temporal-alert-header"
           >
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             <span>{alertaCount} Alerta{alertaCount > 1 ? 's' : ''} &gt;7d</span>
-          </div>
+          </button>
         )}
 
         {/* Wing Red Action Button: Nueva Obra */}

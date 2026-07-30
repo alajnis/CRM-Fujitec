@@ -36,6 +36,8 @@ interface PantallaDashboardProps {
   selectedEquipmentType: EquipmentType;
   onNavigateToObra: (obraId: string) => void;
   onNavigateToFunnel: () => void;
+  selectedYear?: number;
+  onOpenViewActividades?: (obra: Obra) => void;
 }
 
 export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
@@ -44,13 +46,17 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   selectedRegion,
   selectedEquipmentType,
   onNavigateToObra,
-  onNavigateToFunnel
+  onNavigateToFunnel,
+  selectedYear = new Date().getFullYear(),
+  onOpenViewActividades
 }) => {
-  // Filter obras based on selectedRegion & selectedEquipmentType
+  // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
     const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
-    return matchRegion && matchEquipment;
+    const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
+    const matchYear = obraYear === selectedYear;
+    return matchRegion && matchEquipment && matchYear;
   });
 
   // Calculate Key Performance Metrics (Indicadores Operacionales según PDF)
