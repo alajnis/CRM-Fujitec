@@ -34,6 +34,7 @@ interface PantallaDashboardProps {
   monthlyData: MonthlySalesData[];
   selectedRegion: Region;
   selectedEquipmentType: EquipmentType;
+  searchQuery?: string;
   onNavigateToObra: (obraId: string) => void;
   onNavigateToFunnel: () => void;
   selectedYear?: number;
@@ -45,18 +46,25 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   monthlyData,
   selectedRegion,
   selectedEquipmentType,
+  searchQuery = '',
   onNavigateToObra,
   onNavigateToFunnel,
   selectedYear = new Date().getFullYear(),
   onOpenViewActividades
 }) => {
-  // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear
+  // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
     const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
-    return matchRegion && matchEquipment && matchYear;
+    const q = searchQuery.toLowerCase();
+    const matchQuery = !q ||
+      obra.codigo.toLowerCase().includes(q) ||
+      obra.nombre.toLowerCase().includes(q) ||
+      obra.responsable.toLowerCase().includes(q) ||
+      obra.hardwareSpecs.modelo.toLowerCase().includes(q);
+    return matchRegion && matchEquipment && matchYear && matchQuery;
   });
 
   // Calculate Key Performance Metrics (Indicadores Operacionales según PDF)

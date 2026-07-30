@@ -204,6 +204,7 @@ export default function App() {
               monthlyData={MONTHLY_SALES_DATA}
               selectedRegion={selectedRegion}
               selectedEquipmentType={selectedEquipmentType}
+              searchQuery={searchQuery}
               onNavigateToObra={handleNavigateToObra}
               onNavigateToFunnel={() => setActiveTab('obras')}
               selectedYear={selectedYear}
@@ -239,6 +240,7 @@ export default function App() {
               clientes={clientes}
               obras={obras}
               selectedRegion={selectedRegion}
+              searchQuery={searchQuery}
               onSelectObraForOffer={handleGenerarOferta}
               onSaveCliente={handleSaveCliente}
               onOpenEditClienteContacts={handleEditClienteContacts}
@@ -254,6 +256,7 @@ export default function App() {
               obras={obras}
               clientes={clientes}
               selectedObraInitial={selectedObraForOffer}
+              searchQuery={searchQuery}
               onSaveCartaOferta={handleSaveCartaOferta}
             />
           )}

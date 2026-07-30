@@ -75,6 +75,8 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert;
   });
 
+  console.log('PantallaObrasFunnel - searchQuery:', searchQuery, 'filteredObras:', filteredObras.length, 'totalObras:', obras.length);
+
   const stages: FunnelStage[] = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
 
   return (

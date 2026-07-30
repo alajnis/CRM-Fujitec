@@ -26,6 +26,7 @@ interface PantallaFichaRelacionalProps {
   clientes: Cliente[];
   obras: Obra[];
   selectedRegion: Region;
+  searchQuery?: string;
   onSelectObraForOffer: (obra: Obra) => void;
   onSaveCliente: (cliente: Cliente) => void;
   onOpenEditClienteContacts?: (cliente: Cliente) => void;
@@ -36,6 +37,7 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
   clientes,
   obras,
   selectedRegion,
+  searchQuery: globalSearchQuery = '',
   onSelectObraForOffer,
   onSaveCliente,
   onOpenEditClienteContacts,
@@ -43,7 +45,8 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
 }) => {
   const [activeTab, setActiveTab] = useState<'clientes' | 'hardware'>('clientes');
   const [selectedClienteId, setSelectedClienteId] = useState<string>(clientes[0]?.id || '');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [localSearchQuery, setLocalSearchQuery] = useState<string>('');
+  const searchQuery = globalSearchQuery || localSearchQuery;
 
   // Modal State for New Client
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
@@ -71,6 +74,17 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
 
   const activeCliente = clientes.find((c) => c.id === selectedClienteId) || clientes[0];
   const activeClienteObras = activeCliente ? obras.filter((o) => o.clienteId === activeCliente.id) : [];
+
+  const filteredObras = obras.filter((o) => {
+    const matchRegion = selectedRegion === 'Todas' || o.region === selectedRegion;
+    const q = searchQuery.toLowerCase();
+    const matchQ = !q ||
+      o.codigo.toLowerCase().includes(q) ||
+      o.nombre.toLowerCase().includes(q) ||
+      o.hardwareSpecs.modelo.toLowerCase().includes(q) ||
+      o.responsable.toLowerCase().includes(q);
+    return matchRegion && matchQ;
+  });
 
   const handleCreateCliente = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +173,7 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                 type="text"
                 placeholder="Filtrar por razón social, contacto..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3.5 py-2 bg-white border border-[#E0E0E0] text-xs rounded-xl focus:outline-none font-medium shadow-2xs"
                 id="input-filter-clientes"
               />
@@ -348,7 +362,7 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {obras.map((obra) => {
+            {filteredObras.map((obra) => {
               const spec = obra.hardwareSpecs;
               return (
                 <div key={obra.id} className="bg-white/90 backdrop-blur-md rounded-2xl p-5 border border-[#E0E0E0] shadow-xs space-y-4 relative overflow-hidden">

@@ -140,7 +140,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {!collapsed ? (
             <div className="flex flex-col">
               <span className="font-bold text-white/90">CRM Fujitec</span>
-              <span className="text-[10px] text-white/50">Powered by Impruvia</span>
+              <span className="text-[10px] text-white/50">
+                Powered by{' '}
+                <a
+                  href="https://impruvia.netlify.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/80 hover:text-white underline transition-colors"
+                >
+                  Impruvia
+                </a>
+              </span>
             </div>
           ) : (
             <div className="w-full text-center text-[10px] font-bold text-white/60">

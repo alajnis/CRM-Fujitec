@@ -25,6 +25,7 @@ interface PantallaCartaOfertaProps {
   obras: Obra[];
   clientes: Cliente[];
   selectedObraInitial?: Obra;
+  searchQuery?: string;
   onSaveCartaOferta: (carta: CartaOferta) => void;
 }
 
@@ -32,6 +33,7 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
   obras,
   clientes,
   selectedObraInitial,
+  searchQuery = '',
   onSaveCartaOferta
 }) => {
   // Active selected Obra
