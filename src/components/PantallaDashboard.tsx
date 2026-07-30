@@ -176,7 +176,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-[#B2BEC3]">
               A) Cumplimiento Equipos
             </span>
-            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${semaforoEquipos.badgeBg}`}>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border whitespace-nowrap ${semaforoEquipos.badgeBg}`}>
               {semaforoEquipos.badgeText}
             </span>
           </div>
@@ -218,7 +218,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-[#B2BEC3]">
               B) Cumplimiento Ventas
             </span>
-            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${semaforoVentas.badgeBg}`}>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border whitespace-nowrap ${semaforoVentas.badgeBg}`}>
               {semaforoVentas.badgeText}
             </span>
           </div>
@@ -260,7 +260,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-[#B2BEC3]">
               C) Cumplimiento Margen
             </span>
-            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${semaforoRentabilidad.badgeBg}`}>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border whitespace-nowrap ${semaforoRentabilidad.badgeBg}`}>
               {semaforoRentabilidad.badgeText}
             </span>
           </div>
@@ -470,7 +470,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                 <AlertTriangle size={16} className="text-amber-500" />
                 Alertas Temporales (&gt;7d)
               </h3>
-              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap">
                 {obrasAlertas.length} requeridos
               </span>
             </div>
