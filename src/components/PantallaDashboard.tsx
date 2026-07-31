@@ -122,7 +122,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   ];
 
   // Stage Breakdown for Funnel summary
-  const etapas = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Pérdida'];
+  const etapas = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
   const conteoPorEtapa = etapas.map(etapa => {
     const arr = filteredObras.filter(o => o.estado === etapa);
     return {
@@ -398,7 +398,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
 
                 let badgeColor = 'bg-[#F1F3F5] text-[#2D3436]';
                 if (item.etapa === 'Adjudicada') badgeColor = 'bg-emerald-100 text-emerald-800';
-                if (item.etapa === 'Pérdida') badgeColor = 'bg-red-50 text-red-700';
+                if (item.etapa === 'Perdida') badgeColor = 'bg-red-50 text-red-700';
                 if (item.etapa === 'En Negociación') badgeColor = 'bg-blue-100 text-blue-800';
 
                 return (

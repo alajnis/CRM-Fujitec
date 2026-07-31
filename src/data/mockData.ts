@@ -200,7 +200,7 @@ export const INITIAL_OBRAS: Obra[] = [
     montoUSD: 320000,
     tipoEquipo: 'Ascensor de Carga / Montacargas',
     cantidadEquipos: 4,
-    estado: 'Pérdida',
+    estado: 'Perdida',
     fechaIngreso: '2026-02-10',
     fechaUltimaActualizacion: '2026-06-01',
     observaciones: 'Perdida por precio frente a competidor local. Mantener contacto para mantenimiento futuro.',

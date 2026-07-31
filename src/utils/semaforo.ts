@@ -62,7 +62,7 @@ export function getDiasSinActualizar(fechaISO: string): number {
  * Comprueba si una obra requiere alerta temporal por llevar más de 7 días sin actualización
  */
 export function tieneAlertaTemporal(obra: Obra): boolean {
-  if (obra.estado === 'Adjudicada' || obra.estado === 'Pérdida') {
+  if (obra.estado === 'Adjudicada' || obra.estado === 'Perdida') {
     return false; // Obras cerradas no generan alerta
   }
   const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
