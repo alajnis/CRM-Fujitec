@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare } from 'lucide-react';
-import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs } from '../types';
+import { MessageSquare, History } from 'lucide-react';
+import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, EtapaLog } from '../types';
 
 interface ModalObraProps {
   isOpen: boolean;
@@ -8,6 +8,8 @@ interface ModalObraProps {
   onSaveObra: (obra: Obra) => void;
   clientes: Cliente[];
   editingObra?: Obra | null;
+  proximoCodigoObra: string;
+  onUpdateProximoCodigo: (codigo: string) => void;
   onOpenViewActividades?: (obra: Obra) => void;
 }
 
@@ -17,6 +19,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onSaveObra,
   clientes,
   editingObra,
+  proximoCodigoObra,
+  onUpdateProximoCodigo,
   onOpenViewActividades
 }) => {
   const [formObra, setFormObra] = useState<Partial<Obra>>({
@@ -44,7 +48,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
       setFormObra(editingObra);
     } else {
       setFormObra({
-        codigo: `A-${Math.floor(4500 + Math.random() * 1000)}`,
+        codigo: proximoCodigoObra,
         nombre: '',
         region: 'Argentina',
         clienteId: clientes[0]?.id || '',
@@ -63,9 +67,18 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         }
       });
     }
-  }, [editingObra, isOpen]);
+  }, [editingObra, isOpen, proximoCodigoObra]);
 
   if (!isOpen) return null;
+
+  const generateNextCodigoObra = (currentCodigo: string): string => {
+    const match = currentCodigo.match(/^([A-Z])-(\d+)$/);
+    if (!match) return currentCodigo;
+
+    const [, letra, numero] = match;
+    const nextNumber = parseInt(numero, 10) + 1;
+    return `${letra}-${nextNumber}`;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +110,11 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     };
 
     onSaveObra(obraFinal);
+
+    if (!editingObra) {
+      onUpdateProximoCodigo(generateNextCodigoObra(proximoCodigoObra));
+    }
+
     onClose();
   };
 
@@ -327,6 +345,47 @@ export const ModalObra: React.FC<ModalObraProps> = ({
               className="w-full p-3 bg-white border border-[#E0E0E0] rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             />
           </div>
+
+          {/* Log de Cambios de Etapa */}
+          {editingObra && editingObra.etapaLogs && editingObra.etapaLogs.length > 0 && (
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
+              <div className="flex items-center gap-2">
+                <History size={16} className="text-blue-600" />
+                <label className="block font-extrabold text-[#2D3436] uppercase tracking-wide text-[11px]">Historial de Acciones</label>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {editingObra.etapaLogs.map((log: EtapaLog) => (
+                  <div key={log.id} className="bg-white p-2.5 rounded-lg border border-blue-100 text-xs">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {log.accion === 'cambio_etapa' && (
+                          <p className="font-bold text-[#2D3436]">
+                            Cambio a: <span className="text-blue-600">{log.etapa}</span>
+                          </p>
+                        )}
+                        {log.accion === 'nota_agregada' && (
+                          <p className="font-bold text-[#2D3436]">
+                            <span className="text-green-600">📝 Nota agregada</span>
+                          </p>
+                        )}
+                        {log.accion === 'edicion_obra' && (
+                          <p className="font-bold text-[#2D3436]">
+                            <span className="text-orange-600">✏️ Obra editada</span>
+                          </p>
+                        )}
+                        <p className="text-[#636E72] text-[10px] mt-0.5">
+                          {log.fechaCambio}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-[#B2BEC3] font-semibold">
+                        {log.usuarioId.substring(0, 8)}...
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t border-[#F1F3F5]">
             <button

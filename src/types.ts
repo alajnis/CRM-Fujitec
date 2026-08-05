@@ -75,6 +75,7 @@ export interface Obra {
   rentabilidadEstimada?: number; // % de rentabilidad
   actividades?: Actividad[];
   equipments?: ObraEquipment[];
+  etapaLogs?: EtapaLog[];
 }
 
 export interface CartaOferta {

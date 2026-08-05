@@ -86,20 +86,37 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
     return matchRegion && matchQ;
   });
 
+  const isValidEmail = (email: string): boolean => {
+    if (!email || email.trim() === '') return false;
+    if (email.includes('@empresa.com') || email.includes('ejemplo') || email.includes('test@')) return false;
+    return email.includes('@');
+  };
+
+  const isValidPhone = (telefono: string): boolean => {
+    if (!telefono || telefono.trim() === '') return false;
+    if (telefono.includes('0000') || telefono.includes('1111') || telefono.includes('ejemplo')) return false;
+    return telefono.trim().length >= 8;
+  };
+
+  const hasValidContact = (email: string, telefono: string): boolean => {
+    return isValidEmail(email) || isValidPhone(telefono);
+  };
+
   const handleCreateCliente = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClienteForm.razonSocial || !newClienteForm.contactoPrincipal) return;
+    if (!hasValidContact(newClienteForm.email || '', newClienteForm.telefono || '')) return;
 
     const clienteCreado: Cliente = {
       id: `cli-${Date.now()}`,
       razonSocial: newClienteForm.razonSocial || '',
       contactoPrincipal: newClienteForm.contactoPrincipal || '',
       cargo: newClienteForm.cargo || 'Director de Proyecto',
-      email: newClienteForm.email || 'contacto@empresa.com',
-      telefono: newClienteForm.telefono || '+54 11 0000-0000',
+      email: newClienteForm.email || '',
+      telefono: newClienteForm.telefono || '',
       direccion: newClienteForm.direccion || 'Buenos Aires',
       region: (newClienteForm.region as 'Argentina' | 'Uruguay') || 'Argentina',
-      cuitRut: newClienteForm.cuitRut || '30-00000000-0'
+      cuitRut: newClienteForm.cuitRut || ''
     };
 
     onSaveCliente(clienteCreado);
@@ -445,6 +462,11 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
             </div>
 
             <form onSubmit={handleCreateCliente} className="space-y-3.5 text-xs">
+              {!hasValidContact(newClienteForm.email || '', newClienteForm.telefono || '') && (newClienteForm.email !== '' || newClienteForm.telefono !== '') && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  <span>⚠️ Ingresa un Email o Teléfono válido</span>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-[#2D3436] mb-1">Razón Social *</label>
                 <input
@@ -551,7 +573,8 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-bold text-white shadow-xs hover:bg-[#A60D26] transition-colors"
+                  disabled={!newClienteForm.razonSocial || !newClienteForm.contactoPrincipal || !hasValidContact(newClienteForm.email || '', newClienteForm.telefono || '')}
+                  className="px-4 py-2 rounded-xl font-bold text-white shadow-xs hover:bg-[#A60D26] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#C8102E' }}
                   id="btn-save-new-cliente"
                 >

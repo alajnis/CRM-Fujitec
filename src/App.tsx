@@ -40,6 +40,8 @@ import {
 import { tieneAlertaTemporal } from './utils/semaforo';
 
 function AppContent() {
+  const { usuarioActual } = useAuth();
+
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -55,6 +57,7 @@ function AppContent() {
   const [obras, setObras] = useState<Obra[]>(INITIAL_OBRAS);
   const [clientes, setClientes] = useState<Cliente[]>(INITIAL_CLIENTES);
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
+  const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
 
   // Modal & Slide-over Drawer States
   const [isModalObraOpen, setIsModalObraOpen] = useState<boolean>(false);
@@ -82,10 +85,36 @@ function AppContent() {
   const handleSaveObra = (savedObra: Obra) => {
     setObras((prev) => {
       const exists = prev.some((o) => o.id === savedObra.id);
+      let obraFinal = savedObra;
+
       if (exists) {
-        return prev.map((o) => (o.id === savedObra.id ? savedObra : o));
+        const obraAnterior = prev.find((o) => o.id === savedObra.id);
+        if (obraAnterior) {
+          const existingLogs = obraAnterior.etapaLogs || [];
+
+          if (obraAnterior.estado !== savedObra.estado && usuarioActual) {
+            const hoyISO = new Date().toISOString().split('T')[0];
+            const nuevoLog = {
+              id: `log-${Date.now()}`,
+              etapa: savedObra.estado,
+              fechaCambio: hoyISO,
+              usuarioId: usuarioActual.id,
+              accion: 'cambio_etapa' as const
+            };
+            obraFinal = {
+              ...savedObra,
+              etapaLogs: [...existingLogs, nuevoLog]
+            };
+          } else {
+            obraFinal = {
+              ...savedObra,
+              etapaLogs: existingLogs
+            };
+          }
+        }
+        return prev.map((o) => (o.id === savedObra.id ? obraFinal : o));
       } else {
-        return [savedObra, ...prev];
+        return [obraFinal, ...prev];
       }
     });
   };
@@ -93,11 +122,24 @@ function AppContent() {
   const handleUpdateObraState = (obraId: string, nuevoEstado: FunnelStage) => {
     const hoyISO = new Date().toISOString().split('T')[0];
     setObras((prev) =>
-      prev.map((o) =>
-        o.id === obraId
-          ? { ...o, estado: nuevoEstado, fechaUltimaActualizacion: hoyISO }
-          : o
-      )
+      prev.map((o: Obra) => {
+        if (o.id === obraId && usuarioActual) {
+          const nuevoLog = {
+            id: `log-${Date.now()}`,
+            etapa: nuevoEstado,
+            fechaCambio: hoyISO,
+            usuarioId: usuarioActual.id,
+            accion: 'cambio_etapa' as const
+          };
+          return {
+            ...o,
+            estado: nuevoEstado,
+            fechaUltimaActualizacion: hoyISO,
+            etapaLogs: [...(o.etapaLogs || []), nuevoLog]
+          };
+        }
+        return o;
+      })
     );
   };
 
@@ -136,11 +178,19 @@ function AppContent() {
             id: `act-${Date.now()}`,
             descripcion,
             fecha: hoy,
-            autor: 'Usuario'
+            autor: usuarioActual?.nombre || 'Usuario'
           };
+          const newLog = usuarioActual ? {
+            id: `log-${Date.now()}`,
+            etapa: o.estado,
+            fechaCambio: hoy,
+            usuarioId: usuarioActual.id,
+            accion: 'nota_agregada' as const
+          } : null;
           return {
             ...o,
-            actividades: [newActividad, ...(o.actividades || [])]
+            actividades: [newActividad, ...(o.actividades || [])],
+            etapaLogs: newLog ? [...(o.etapaLogs || []), newLog] : o.etapaLogs
           };
         }
         return o;
@@ -278,6 +328,8 @@ function AppContent() {
         onSaveObra={handleSaveObra}
         clientes={clientes}
         editingObra={editingObra}
+        proximoCodigoObra={proximoCodigoObra}
+        onUpdateProximoCodigo={setProximoCodigoObra}
         onOpenViewActividades={(obra) => {
           setSelectedObraForActividad(obra);
           setIsModalActividadOpen(true);

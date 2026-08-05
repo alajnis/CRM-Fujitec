@@ -92,7 +92,7 @@ export const INITIAL_OBRAS: Obra[] = [
     cantidadEquipos: 6,
     estado: 'En Negociación',
     fechaIngreso: '2026-03-15',
-    fechaUltimaActualizacion: '2026-07-26', // 2 días atrás
+    fechaUltimaActualizacion: '2026-07-26',
     observaciones: 'Reunión presencial en Punta del Este. Cliente solicitó bonificación en plazo de garantía.',
     responsable: 'Lic. Martín Gómez (AR/UY)',
     hardwareSpecs: {
@@ -101,7 +101,30 @@ export const INITIAL_OBRAS: Obra[] = [
       tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
       capacidadKg: 1000,
       modelo: 'Fujitec ZEXIA MRL'
-    }
+    },
+    etapaLogs: [
+      {
+        id: 'log-1',
+        etapa: 'Cotización',
+        fechaCambio: '2026-03-15',
+        usuarioId: 'usr-superadmin',
+        accion: 'cambio_etapa'
+      },
+      {
+        id: 'log-2',
+        etapa: 'Presentada',
+        fechaCambio: '2026-04-10',
+        usuarioId: 'usr-vendedor',
+        accion: 'cambio_etapa'
+      },
+      {
+        id: 'log-3',
+        etapa: 'En Negociación',
+        fechaCambio: '2026-06-05',
+        usuarioId: 'usr-superadmin',
+        accion: 'cambio_etapa'
+      }
+    ]
   },
   {
     id: 'obr-2',

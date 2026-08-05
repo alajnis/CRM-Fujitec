@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Plus, Trash2, Mail, Phone, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Trash2, Mail, Phone, UserCheck, AlertCircle } from 'lucide-react';
 import { Cliente, ClienteContact } from '../types';
 
 interface ModalClienteProps {
@@ -22,15 +22,48 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
     email: '',
     telefono: ''
   });
+  const [validationError, setValidationError] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormCliente({ ...cliente });
+      setValidationError('');
+      setNewContact({ nombre: '', cargo: '', email: '', telefono: '' });
+    }
+  }, [cliente, isOpen]);
 
   if (!isOpen) return null;
 
+  const isValidEmail = (email: string): boolean => {
+    if (!email || email.trim() === '') return false;
+    if (email.includes('@empresa.com') || email.includes('ejemplo') || email.includes('test@')) return false;
+    return email.includes('@');
+  };
+
+  const isValidPhone = (telefono: string): boolean => {
+    if (!telefono || telefono.trim() === '') return false;
+    if (telefono.includes('0000') || telefono.includes('1111') || telefono.includes('ejemplo')) return false;
+    return telefono.trim().length >= 8;
+  };
+
+  const hasContactMethod = (email: string, telefono: string): boolean => {
+    return isValidEmail(email) || isValidPhone(telefono);
+  };
+
   const handleAddContact = () => {
-    if (!newContact.nombre || !newContact.email) return;
+    setValidationError('');
+    if (!newContact.nombre) {
+      setValidationError('El nombre del contacto es obligatorio');
+      return;
+    }
+    if (!hasContactMethod(newContact.email || '', newContact.telefono || '')) {
+      setValidationError('El contacto debe tener al menos un email o teléfono');
+      return;
+    }
     const contacts = formCliente.contacts || [];
     setFormCliente({
       ...formCliente,
-      contacts: [...contacts, newContact as ClienteContact]
+      contacts: [...contacts, { ...newContact, id: `contact-${Date.now()}` } as ClienteContact]
     });
     setNewContact({ nombre: '', cargo: '', email: '', telefono: '' });
   };
@@ -42,6 +75,13 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError('');
+
+    if (!hasContactMethod(formCliente.email, formCliente.telefono)) {
+      setValidationError('El contacto principal debe tener al menos un email o teléfono');
+      return;
+    }
+
     onSaveCliente(formCliente);
     onClose();
   };
@@ -58,6 +98,14 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Validation Error */}
+          {validationError && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+              <AlertCircle size={16} />
+              {validationError}
+            </div>
+          )}
+
           {/* Contacto Principal */}
           <div className="bg-[#F1F3F5] p-4 rounded-xl border border-[#E0E0E0] space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-[#2D3436]">
@@ -181,7 +229,7 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
             <button
               type="button"
               onClick={handleAddContact}
-              disabled={!newContact.nombre || !newContact.email}
+              disabled={!newContact.nombre || !hasContactMethod(newContact.email || '', newContact.telefono || '')}
               className="w-full py-2 px-3 rounded-lg bg-[#C8102E] text-white font-bold text-xs hover:bg-[#A60D26] disabled:opacity-40 transition-colors"
             >
               + Agregar Contacto
