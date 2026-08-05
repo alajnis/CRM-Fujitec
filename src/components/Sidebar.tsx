@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: '5. Equipos Fujitec',
       sublabel: 'Gestión de Catálogo de Equipos',
       icon: Cpu,
-      requiereAdmin: true
+      requiereAdmin: false
     },
     {
       id: 'admin',
