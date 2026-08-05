@@ -24,39 +24,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   setCollapsed
 }) => {
-  const { logout, usuarioActual } = useAuth();
-  const menuItems = [
+  const { logout, usuarioActual, isSuperuser } = useAuth();
+  const allMenuItems = [
     {
       id: 'dashboard',
       label: '1. Dashboard Gerencial',
       sublabel: 'Panel de Control Anual & KPIs',
-      icon: LayoutDashboard
+      icon: LayoutDashboard,
+      requiereAdmin: false
     },
     {
       id: 'obras',
       label: '2. Obras y Embudo (Funnel)',
       sublabel: 'Lista Tradicional & Kanban',
-      icon: Building2
+      icon: Building2,
+      requiereAdmin: false
     },
     {
       id: 'ficha',
       label: '3. Ficha Relacional',
       sublabel: 'Clientes & Hardware Elevadores',
-      icon: Users
+      icon: Users,
+      requiereAdmin: false
     },
     {
       id: 'oferta',
       label: '4. Carta Oferta',
       sublabel: 'Motor Documental Formal',
-      icon: FileCheck
+      icon: FileCheck,
+      requiereAdmin: false
     },
     {
       id: 'admin',
       label: '5. Configuración',
       sublabel: 'Variables de Presupuesto & CRM',
-      icon: Settings
+      icon: Settings,
+      requiereAdmin: true
     }
   ];
+
+  const menuItems = allMenuItems.filter(item => !item.requiereAdmin || isSuperuser());
 
   return (
     <aside 

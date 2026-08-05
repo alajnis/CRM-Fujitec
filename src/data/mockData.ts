@@ -1,4 +1,4 @@
-import { Cliente, Obra, MonthlySalesData, CartaOferta } from '../types';
+import { Cliente, Obra, MonthlySalesData, CartaOferta, Equipo } from '../types';
 
 export const INITIAL_CLIENTES: Cliente[] = [
   {
@@ -287,5 +287,63 @@ export const INITIAL_CARTAS_OFERTA: CartaOferta[] = [
     resumenEjecutivoIA: 'Propuesta comercial para 6 ascensores Fujitec ZEXIA MRL de 2.5 m/s para la Torre Chateau PDE T3. Tecnología japonesa de máxima eficiencia energética y cumplimiento normativo en Uruguay.',
     fechaGeneracion: '2026-07-26',
     generadaPor: 'Lic. Martín Gómez'
+  }
+];
+
+export const INITIAL_EQUIPOS: Equipo[] = [
+  {
+    id: 'eqp-1',
+    codigoUnico: 'FJT-ZEXIA-MRL-2.5',
+    nombre: 'Fujitec ZEXIA MRL 2.5m/s',
+    tipo: 'Ascensor de Pasajeros',
+    velocidadMS: 2.5,
+    paradas: 20,
+    tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
+    capacidadKg: 1000,
+    modelo: 'Fujitec ZEXIA MRL'
+  },
+  {
+    id: 'eqp-2',
+    codigoUnico: 'FJT-VIRIDIS-1.6',
+    nombre: 'Fujitec VIRIDIS 1.6m/s',
+    tipo: 'Ascensor de Pasajeros',
+    velocidadMS: 1.6,
+    paradas: 15,
+    tipoSalaMaquinas: 'Con Sala de Máquinas',
+    capacidadKg: 1000,
+    modelo: 'Fujitec VIRIDIS'
+  },
+  {
+    id: 'eqp-3',
+    codigoUnico: 'FJT-REXIA-2.0-CARGA',
+    nombre: 'Fujitec REXIA 2.0m/s Carga',
+    tipo: 'Ascensor de Carga / Montacargas',
+    velocidadMS: 2.0,
+    paradas: 10,
+    tipoSalaMaquinas: 'Con Sala de Máquinas',
+    capacidadKg: 2500,
+    modelo: 'Fujitec REXIA'
+  },
+  {
+    id: 'eqp-4',
+    codigoUnico: 'FJT-ELIGHT-3.0',
+    nombre: 'Fujitec ELIGHT 3.0m/s Alta Velocidad',
+    tipo: 'Alta Velocidad',
+    velocidadMS: 3.0,
+    paradas: 30,
+    tipoSalaMaquinas: 'Con Sala de Máquinas',
+    capacidadKg: 1000,
+    modelo: 'Fujitec ELIGHT'
+  },
+  {
+    id: 'eqp-5',
+    codigoUnico: 'FJT-ESCALERA-1.0',
+    nombre: 'Escalera Mecánica Fujitec',
+    tipo: 'Escalera Mecánica / Rampa',
+    velocidadMS: 0.5,
+    paradas: 1,
+    tipoSalaMaquinas: 'Con Sala de Máquinas',
+    capacidadKg: 1500,
+    modelo: 'Fujitec Escalera Mecánica'
   }
 ];

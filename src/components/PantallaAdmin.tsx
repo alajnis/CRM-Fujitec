@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Settings, DollarSign, Target, TrendingUp, Save } from 'lucide-react';
+import { Settings, DollarSign, Target, TrendingUp, Save, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface BudgetConfig {
   montoAnualUSD: number;
@@ -16,6 +17,25 @@ interface PantallaAdminProps {
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ onSaveBudgetConfig }) => {
+  const { isSuperuser } = useAuth();
+
+  if (!isSuperuser()) {
+    return (
+      <div className="p-8 bg-[#F1F3F5] min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-12 text-center space-y-4 max-w-md shadow-lg border border-[#E0E0E0]">
+          <Lock size={48} className="text-red-500 mx-auto" />
+          <h2 className="text-2xl font-bold text-[#2D3436]">Acceso Restringido</h2>
+          <p className="text-[#636E72] text-sm">
+            La sección de Configuración solo está disponible para superusuarios.
+          </p>
+          <p className="text-[#B2BEC3] text-xs">
+            Contacta con tu administrador si necesitas acceso.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const initialMesesUSD = Array(12).fill(708333);
   const initialUnidadesMeses = Array(12).fill(7);
 
