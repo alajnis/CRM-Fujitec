@@ -58,6 +58,16 @@ function AppContent() {
   const [clientes, setClientes] = useState<Cliente[]>(INITIAL_CLIENTES);
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
+  const [budgetConfigs, setBudgetConfigs] = useState<any[]>([
+    {
+      año: new Date().getFullYear(),
+      montoAnualUSD: 8500000,
+      mesesUSD: Array(12).fill(708333),
+      unidadesAnual: 80,
+      unidadesMeses: Array(12).fill(7),
+      rentabilidadPorcentaje: 22
+    }
+  ]);
 
   // Modal & Slide-over Drawer States
   const [isModalObraOpen, setIsModalObraOpen] = useState<boolean>(false);
@@ -211,6 +221,17 @@ function AppContent() {
     setIsModalClienteOpen(true);
   };
 
+  const handleSaveBudgetConfig = (config: any) => {
+    setBudgetConfigs((prev) => {
+      const exists = prev.some((c) => c.año === config.año);
+      if (exists) {
+        return prev.map((c) => (c.año === config.año ? config : c));
+      } else {
+        return [...prev, config];
+      }
+    });
+  };
+
   const handleClickAlertaBadge = () => {
     setShowOnlyAlerts(true);
     setActiveTab('obras');
@@ -315,7 +336,8 @@ function AppContent() {
 
           {activeTab === 'admin' && (
             <PantallaAdmin
-              onSaveBudgetConfig={() => {}}
+              budgetConfigs={budgetConfigs}
+              onSaveBudgetConfig={handleSaveBudgetConfig}
             />
           )}
         </main>

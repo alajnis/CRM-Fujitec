@@ -59,13 +59,38 @@ export function getDiasSinActualizar(fechaISO: string): number {
 }
 
 /**
- * Comprueba si una obra requiere alerta temporal por llevar más de 7 días sin actualización
+ * Comprueba si una obra requiere alerta temporal por llevar más de 7 días sin acción
+ * Considera: cambio de etapa, notas agregadas, o ediciones de obra
  */
 export function tieneAlertaTemporal(obra: Obra): boolean {
   if (obra.estado === 'Adjudicada' || obra.estado === 'Perdida') {
     return false; // Obras cerradas no generan alerta
   }
-  const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
+
+  // Recolectar todas las fechas de acciones
+  const fechas: string[] = [obra.fechaUltimaActualizacion];
+
+  // Agregar fechas de etapaLogs
+  if (obra.etapaLogs && obra.etapaLogs.length > 0) {
+    const maxLogFecha = obra.etapaLogs
+      .map((log) => log.fechaCambio)
+      .sort()
+      .reverse()[0];
+    if (maxLogFecha) fechas.push(maxLogFecha);
+  }
+
+  // Agregar fechas de actividades
+  if (obra.actividades && obra.actividades.length > 0) {
+    const maxActividadFecha = obra.actividades
+      .map((act) => act.fecha)
+      .sort()
+      .reverse()[0];
+    if (maxActividadFecha) fechas.push(maxActividadFecha);
+  }
+
+  // Usar la fecha más reciente de todas las acciones
+  const fechaMasReciente = fechas.filter(Boolean).sort().reverse()[0];
+  const dias = getDiasSinActualizar(fechaMasReciente);
   return dias > 7;
 }
 

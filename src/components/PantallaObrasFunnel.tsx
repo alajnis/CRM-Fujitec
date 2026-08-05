@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Obra, FunnelStage, Region, EquipmentType } from '../types';
 import { formatUSD, formatDateES, getDiasSinActualizar, tieneAlertaTemporal } from '../utils/semaforo';
+import { StageTooltip } from './StageTooltip';
 
 interface PantallaObrasFunnelProps {
   obras: Obra[];
@@ -186,10 +187,12 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                 {/* Stage Header */}
                 <div className={`p-3.5 rounded-xl border ${headerBg} mb-3 shadow-2xs backdrop-blur-sm`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
-                      {stage}
-                    </span>
+                    <StageTooltip stage={stage}>
+                      <span className="font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-help">
+                        <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+                        {stage}
+                      </span>
+                    </StageTooltip>
                     <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#E0E0E0] text-[#2D3436]">
                       {stageObras.length}
                     </span>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, DollarSign, Target, TrendingUp, Save, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface BudgetConfig {
+  año: number;
   montoAnualUSD: number;
   mesesUSD: number[];
   unidadesAnual: number;
@@ -11,12 +12,13 @@ interface BudgetConfig {
 }
 
 interface PantallaAdminProps {
+  budgetConfigs: BudgetConfig[];
   onSaveBudgetConfig: (config: BudgetConfig) => void;
 }
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ onSaveBudgetConfig }) => {
+export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onSaveBudgetConfig }) => {
   const { isSuperuser } = useAuth();
 
   if (!isSuperuser()) {
@@ -36,18 +38,30 @@ export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ onSaveBudgetConfig
     );
   }
 
+  const currentYear = new Date().getFullYear();
+  const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [isSaving, setIsSaving] = useState(false);
+
   const initialMesesUSD = Array(12).fill(708333);
   const initialUnidadesMeses = Array(12).fill(7);
 
-  const [config, setConfig] = useState<BudgetConfig>({
+  const defaultConfig: BudgetConfig = {
+    año: selectedYear,
     montoAnualUSD: 8500000,
     mesesUSD: initialMesesUSD,
     unidadesAnual: 80,
     unidadesMeses: initialUnidadesMeses,
     rentabilidadPorcentaje: 22
-  });
+  };
 
-  const [isSaving, setIsSaving] = useState(false);
+  const currentConfig = budgetConfigs.find(c => c.año === selectedYear) || { ...defaultConfig, año: selectedYear };
+  const [config, setConfig] = useState<BudgetConfig>(currentConfig);
+
+  useEffect(() => {
+    setConfig(currentConfig);
+  }, [selectedYear]);
 
   // Calcular suma de meses
   const totalFromMeses = config.mesesUSD.reduce((sum, val) => sum + val, 0);
@@ -120,11 +134,32 @@ export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ onSaveBudgetConfig
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Settings size={28} className="text-[#C8102E]" />
-        <div>
-          <h1 className="text-3xl font-black text-[#2D3436]">Panel de Administración</h1>
-          <p className="text-sm text-[#636E72] font-medium mt-0.5">Configuración de Variables de Presupuesto</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Settings size={28} className="text-[#C8102E]" />
+          <div>
+            <h1 className="text-3xl font-black text-[#2D3436]">Panel de Administración</h1>
+            <p className="text-sm text-[#636E72] font-medium mt-0.5">Configuración de Variables de Presupuesto</p>
+          </div>
+        </div>
+
+        {/* Year Selector */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-bold text-[#636E72]">Año Fiscal:</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => {
+              const newYear = parseInt(e.target.value);
+              setSelectedYear(newYear);
+              const existingConfig = budgetConfigs.find(c => c.año === newYear);
+              setConfig(existingConfig || { ...defaultConfig, año: newYear });
+            }}
+            className="px-3 py-2 bg-white border border-[#E0E0E0] rounded-lg font-bold text-[#2D3436] focus:outline-none focus:border-[#C8102E]"
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
       </div>
 
