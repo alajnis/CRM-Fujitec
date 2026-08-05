@@ -42,6 +42,29 @@ import {
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
 
+const getMonthlyDataWithCurrentMonth = (baseData: typeof MONTHLY_SALES_DATA) => {
+  const currentMonth = new Date().getMonth();
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  return baseData.map((data, index) => {
+    const mesNombre = meses[index];
+    let label = mesNombre;
+
+    if (index < currentMonth) {
+      label = `${mesNombre} (YTD)`;
+    } else if (index === currentMonth) {
+      label = `${mesNombre} (YTD)`;
+    } else {
+      label = `${mesNombre} (Proy)`;
+    }
+
+    return {
+      ...data,
+      mes: label
+    };
+  });
+};
+
 function AppContent() {
   const { usuarioActual } = useAuth();
 
@@ -293,7 +316,7 @@ function AppContent() {
           {activeTab === 'dashboard' && (
             <PantallaDashboard
               obras={obras}
-              monthlyData={MONTHLY_SALES_DATA}
+              monthlyData={getMonthlyDataWithCurrentMonth(MONTHLY_SALES_DATA)}
               selectedRegion={selectedRegion}
               selectedEquipmentType={selectedEquipmentType}
               searchQuery={searchQuery}
