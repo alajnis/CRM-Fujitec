@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   TrendingUp, 
   Building2, 
@@ -52,6 +52,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   selectedYear = new Date().getFullYear(),
   onOpenViewActividades
 }) => {
+  const [showEquipos, setShowEquipos] = useState(false);
+
   // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
@@ -161,7 +163,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
           Estadísticas Comerciales: Indicador Comercial de Obras Nuevas
         </h2>
         <p className="text-xs text-[#636E72]">
-          Cumplimiento acumulado del plan anual respecto a órdenes recibidas (Ventas Informadas)
+          Cumplimiento acumulado del plan anual respecto a órdenes recibidas (Ventas Vendidas)
         </p>
       </div>
 
@@ -189,7 +191,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
 
           <div className="space-y-1.5 text-[11px] text-[#636E72] border-t border-[#F1F3F5] pt-3 mt-2">
             <div className="flex justify-between">
-              <span>(4) Equipos Informados:</span>
+              <span>(4) Equipos Vendidos:</span>
               <span className="font-bold text-[#2D3436]">{equiposVendidosTotal} un.</span>
             </div>
             <div className="flex justify-between">
@@ -295,16 +297,25 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
 
       {/* SECTION 2: CENTRAL ACCUMULATED EVOLUTION CHART */}
       <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F1F3F5] pb-4">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F1F3F5] pb-4">
+          <div className="flex-1">
             <h2 className="text-base font-bold text-[#2D3436] flex items-center gap-2">
               <TrendingUp size={18} style={{ color: '#C8102E' }} />
-              Evolución Mensual Acumulada de Ventas de Equipos Nuevos (USD)
+              Evolución Mensual Acumulada de Ventas de Equipos Nuevos ({showEquipos ? 'Unidades' : 'USD'})
             </h2>
             <p className="text-xs text-[#636E72]">
               Comparativa de ventas reales acumuladas vs plan presupuestario anual fiscal
             </p>
           </div>
+
+          {/* Toggle for Evolution Chart */}
+          <button
+            onClick={() => setShowEquipos(!showEquipos)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] text-xs font-bold text-[#2D3436] transition-all border border-[#E0E0E0] whitespace-nowrap"
+            title={showEquipos ? 'Ver en USD' : 'Ver en Equipos'}
+          >
+            <span>{showEquipos ? '📦 Equipos' : '💵 USD'}</span>
+          </button>
 
           <div className="flex items-center gap-4 text-xs font-bold">
             <div className="flex items-center gap-1.5">
@@ -334,38 +345,38 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#636E72' }} />
-              <YAxis 
-                tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                tick={{ fontSize: 11, fill: '#636E72' }} 
+              <YAxis
+                tickFormatter={(value) => showEquipos ? `${value} un.` : `$${(value / 1000000).toFixed(1)}M`}
+                tick={{ fontSize: 11, fill: '#636E72' }}
               />
-              <Tooltip 
-                formatter={(value: any) => [formatUSD(Number(value)), '']}
-                contentStyle={{ 
-                  backgroundColor: '#FFFFFF', 
-                  borderRadius: '12px', 
+              <Tooltip
+                formatter={(value: any) => showEquipos ? [`${value} unidades`, ''] : [formatUSD(Number(value)), '']}
+                contentStyle={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '12px',
                   borderColor: '#E0E0E0',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
                   fontSize: '12px'
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="ventasAcumuladasUSD" 
-                name="Ventas Acumuladas USD" 
-                stroke="#C8102E" 
-                strokeWidth={3} 
-                fillOpacity={1} 
-                fill="url(#colorVentas)" 
+              <Area
+                type="monotone"
+                dataKey={showEquipos ? "equiposVendidos" : "ventasAcumuladasUSD"}
+                name={showEquipos ? "Equipos Vendidos" : "Ventas Acumuladas USD"}
+                stroke="#C8102E"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorVentas)"
               />
-              <Area 
-                type="monotone" 
-                dataKey="planAcumuladoUSD" 
-                name="Plan Acumulado USD" 
-                stroke="#B2BEC3" 
-                strokeWidth={2} 
+              <Area
+                type="monotone"
+                dataKey={showEquipos ? "equiposPlan" : "planAcumuladoUSD"}
+                name={showEquipos ? "Plan Anual (Equipos)" : "Plan Acumulado USD"}
+                stroke="#B2BEC3"
+                strokeWidth={2}
                 strokeDasharray="4 4"
-                fillOpacity={1} 
-                fill="url(#colorPlan)" 
+                fillOpacity={1}
+                fill="url(#colorPlan)"
               />
             </AreaChart>
           </ResponsiveContainer>
