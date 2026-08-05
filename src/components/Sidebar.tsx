@@ -115,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 
         {/* Navigation Menu */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-3 space-y-1 overflow-y-auto flex-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full text-left rounded-xl transition-all duration-200 flex items-center gap-3.5 p-3.5 relative group ${
+                className={`w-full text-left rounded-lg transition-all duration-200 flex items-center gap-2.5 p-2.5 relative group ${
                   isActive
                     ? 'bg-white/20 text-white font-bold backdrop-blur-md border border-white/25 shadow-md'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -132,16 +132,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={collapsed ? item.label : undefined}
                 id={`nav-item-${item.id}`}
               >
-                <Icon 
-                  size={20} 
+                <Icon
+                  size={18}
                   className={`shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'text-white' : 'text-white/80'}`}
                 />
                 {!collapsed && (
-                  <div className="flex flex-col truncate">
-                    <span className="text-sm font-bold tracking-wide">
+                  <div className="flex flex-col truncate min-w-0">
+                    <span className="text-xs font-bold tracking-wide leading-tight">
                       {item.label}
                     </span>
-                    <span className="text-[11px] text-white/60 font-normal truncate">
+                    <span className="text-[10px] text-white/60 font-normal truncate">
                       {item.sublabel}
                     </span>
                   </div>
