@@ -152,7 +152,7 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
                     <td className="px-6 py-4 text-sm font-bold text-[#2D3436]">{equipo.nombre}</td>
                     <td className="px-6 py-4 text-sm text-[#636E72]">{equipo.modelo}</td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 whitespace-nowrap inline-block">
                         {equipo.tipo}
                       </span>
                     </td>
