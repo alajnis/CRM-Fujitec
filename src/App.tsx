@@ -23,19 +23,21 @@ import { ModalObra } from './components/ModalObra';
 import { ModalActividad } from './components/ModalActividad';
 import { ModalCliente } from './components/ModalCliente';
 
-import { 
-  Obra, 
-  Cliente, 
-  CartaOferta, 
-  Region, 
-  EquipmentType, 
-  FunnelStage 
+import {
+  Obra,
+  Cliente,
+  CartaOferta,
+  Region,
+  EquipmentType,
+  FunnelStage,
+  Equipo
 } from './types';
-import { 
-  INITIAL_OBRAS, 
-  INITIAL_CLIENTES, 
-  INITIAL_CARTAS_OFERTA, 
-  MONTHLY_SALES_DATA 
+import {
+  INITIAL_OBRAS,
+  INITIAL_CLIENTES,
+  INITIAL_CARTAS_OFERTA,
+  MONTHLY_SALES_DATA,
+  INITIAL_EQUIPOS
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
 
@@ -57,6 +59,7 @@ function AppContent() {
   const [obras, setObras] = useState<Obra[]>(INITIAL_OBRAS);
   const [clientes, setClientes] = useState<Cliente[]>(INITIAL_CLIENTES);
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
+  const [equipos, setEquipos] = useState<Equipo[]>(INITIAL_EQUIPOS);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
   const [budgetConfigs, setBudgetConfigs] = useState<any[]>([
     {
@@ -232,6 +235,21 @@ function AppContent() {
     });
   };
 
+  const handleSaveEquipo = (equipo: Equipo) => {
+    setEquipos((prev) => {
+      const exists = prev.some((e) => e.id === equipo.id);
+      if (exists) {
+        return prev.map((e) => (e.id === equipo.id ? equipo : e));
+      } else {
+        return [...prev, equipo];
+      }
+    });
+  };
+
+  const handleDeleteEquipo = (equipoId: string) => {
+    setEquipos((prev) => prev.filter((e) => e.id !== equipoId));
+  };
+
   const handleClickAlertaBadge = () => {
     setShowOnlyAlerts(true);
     setActiveTab('obras');
@@ -338,6 +356,9 @@ function AppContent() {
             <PantallaAdmin
               budgetConfigs={budgetConfigs}
               onSaveBudgetConfig={handleSaveBudgetConfig}
+              equipos={equipos}
+              onSaveEquipo={handleSaveEquipo}
+              onDeleteEquipo={handleDeleteEquipo}
             />
           )}
         </main>
@@ -349,6 +370,7 @@ function AppContent() {
         onClose={() => setIsModalObraOpen(false)}
         onSaveObra={handleSaveObra}
         clientes={clientes}
+        equipos={equipos}
         editingObra={editingObra}
         proximoCodigoObra={proximoCodigoObra}
         onUpdateProximoCodigo={setProximoCodigoObra}

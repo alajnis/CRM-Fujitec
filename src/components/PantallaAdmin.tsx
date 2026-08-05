@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, DollarSign, Target, TrendingUp, Save, Lock } from 'lucide-react';
+import { Settings, DollarSign, Target, TrendingUp, Save, Lock, Plus, Trash2, Edit3, Cpu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Equipo } from '../types';
+import { ModalEquipo } from './ModalEquipo';
 
 interface BudgetConfig {
   año: number;
@@ -14,11 +16,14 @@ interface BudgetConfig {
 interface PantallaAdminProps {
   budgetConfigs: BudgetConfig[];
   onSaveBudgetConfig: (config: BudgetConfig) => void;
+  equipos: Equipo[];
+  onSaveEquipo: (equipo: Equipo) => void;
+  onDeleteEquipo: (equipoId: string) => void;
 }
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onSaveBudgetConfig }) => {
+export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onSaveBudgetConfig, equipos, onSaveEquipo, onDeleteEquipo }) => {
   const { isSuperuser } = useAuth();
 
   if (!isSuperuser()) {
@@ -43,6 +48,8 @@ export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onS
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [isSaving, setIsSaving] = useState(false);
+  const [isModalEquipoOpen, setIsModalEquipoOpen] = useState(false);
+  const [editingEquipo, setEditingEquipo] = useState<Equipo | null>(null);
 
   const initialMesesUSD = Array(12).fill(708333);
   const initialUnidadesMeses = Array(12).fill(7);
@@ -295,6 +302,67 @@ export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onS
         </div>
       </div>
 
+      {/* EQUIPOS SECTION */}
+      <div className="bg-white rounded-2xl border border-[#E0E0E0] shadow-md p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cpu size={20} className="text-[#C8102E]" />
+            <h3 className="text-lg font-extrabold text-[#2D3436]">Gestión de Equipos Fujitec</h3>
+          </div>
+          <button
+            onClick={() => {
+              setEditingEquipo(null);
+              setIsModalEquipoOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C8102E] text-white font-bold text-xs hover:bg-[#A60D26] transition-all"
+          >
+            <Plus size={14} />
+            Nuevo Equipo
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {equipos.length === 0 ? (
+            <p className="text-xs text-[#B2BEC3] italic">No hay equipos registrados.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2">
+              {equipos.map((eq) => (
+                <div key={eq.id} className="flex items-center justify-between p-3 bg-[#F1F3F5] rounded-lg border border-[#E0E0E0]">
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-[#2D3436]">{eq.nombre}</p>
+                    <div className="flex gap-4 text-xs text-[#636E72] mt-1">
+                      <span>Modelo: {eq.modelo}</span>
+                      <span>Vel: {eq.velocidadMS} m/s</span>
+                      <span>Cap: {eq.capacidadKg} kg</span>
+                      <span className="text-[#C8102E] font-semibold">{eq.codigoUnico}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingEquipo(eq);
+                        setIsModalEquipoOpen(true);
+                      }}
+                      className="p-2 text-[#636E72] hover:text-[#C8102E] hover:bg-white rounded-lg transition-all"
+                      title="Editar equipo"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteEquipo(eq.id)}
+                      className="p-2 text-[#636E72] hover:text-red-600 hover:bg-white rounded-lg transition-all"
+                      title="Eliminar equipo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="flex justify-end gap-3">
         <button
@@ -307,6 +375,17 @@ export const PantallaAdmin: React.FC<PantallaAdminProps> = ({ budgetConfigs, onS
           {isSaving ? 'Guardando...' : 'Guardar Configuración'}
         </button>
       </div>
+
+      {/* Modal Equipo */}
+      <ModalEquipo
+        isOpen={isModalEquipoOpen}
+        onClose={() => setIsModalEquipoOpen(false)}
+        equipo={editingEquipo}
+        onSaveEquipo={(eq) => {
+          onSaveEquipo(eq);
+          setIsModalEquipoOpen(false);
+        }}
+      />
 
       {/* Info Box */}
       <div className="bg-green-50 border border-green-300 rounded-xl p-4 text-xs text-green-900 font-medium space-y-1">

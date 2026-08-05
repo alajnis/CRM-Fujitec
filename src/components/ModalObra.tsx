@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, History } from 'lucide-react';
-import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, EtapaLog } from '../types';
+import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, EtapaLog, Equipo } from '../types';
 
 interface ModalObraProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveObra: (obra: Obra) => void;
   clientes: Cliente[];
+  equipos: Equipo[];
   editingObra?: Obra | null;
   proximoCodigoObra: string;
   onUpdateProximoCodigo: (codigo: string) => void;
@@ -18,6 +19,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onClose,
   onSaveObra,
   clientes,
+  equipos,
   editingObra,
   proximoCodigoObra,
   onUpdateProximoCodigo,
@@ -232,16 +234,33 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-[#2D3436] mb-1">Tipo de Equipo</label>
+              <label className="block font-bold text-[#2D3436] mb-1">Equipo Fujitec</label>
               <select
                 value={formObra.tipoEquipo}
-                onChange={(e) => setFormObra({...formObra, tipoEquipo: e.target.value as any})}
+                onChange={(e) => {
+                  const selectedEquipo = equipos.find((eq) => eq.nombre === e.target.value);
+                  if (selectedEquipo) {
+                    setFormObra({
+                      ...formObra,
+                      tipoEquipo: selectedEquipo.tipo,
+                      hardwareSpecs: {
+                        velocidadMS: selectedEquipo.velocidadMS,
+                        paradas: selectedEquipo.paradas,
+                        tipoSalaMaquinas: selectedEquipo.tipoSalaMaquinas,
+                        capacidadKg: selectedEquipo.capacidadKg,
+                        modelo: selectedEquipo.modelo
+                      }
+                    });
+                  }
+                }}
                 className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-semibold text-[#2D3436]"
               >
-                <option value="Ascensor de Pasajeros">Ascensor de Pasajeros</option>
-                <option value="Ascensor de Carga / Montacargas">Ascensor de Carga / Montacargas</option>
-                <option value="Alta Velocidad">Alta Velocidad</option>
-                <option value="Escalera Mecánica / Rampa">Escalera Mecánica / Rampa</option>
+                <option value="">-- Seleccionar Equipo --</option>
+                {equipos.map((eq) => (
+                  <option key={eq.id} value={eq.nombre}>
+                    {eq.nombre} ({eq.codigoUnico})
+                  </option>
+                ))}
               </select>
             </div>
 
