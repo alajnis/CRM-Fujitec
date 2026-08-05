@@ -7,7 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
-  LogOut
+  LogOut,
+  Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,8 +56,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       requiereAdmin: false
     },
     {
+      id: 'equipos',
+      label: '5. Equipos Fujitec',
+      sublabel: 'Gestión de Catálogo de Equipos',
+      icon: Cpu,
+      requiereAdmin: true
+    },
+    {
       id: 'admin',
-      label: '5. Configuración',
+      label: '6. Configuración',
       sublabel: 'Variables de Presupuesto & CRM',
       icon: Settings,
       requiereAdmin: true

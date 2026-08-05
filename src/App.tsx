@@ -19,6 +19,7 @@ import { PantallaObrasFunnel } from './components/PantallaObrasFunnel';
 import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
 import { PantallaCartaOferta } from './components/PantallaCartaOferta';
 import { PantallaAdmin } from './components/PantallaAdmin';
+import { PantallaEquipos } from './components/PantallaEquipos';
 import { ModalObra } from './components/ModalObra';
 import { ModalActividad } from './components/ModalActividad';
 import { ModalCliente } from './components/ModalCliente';
@@ -349,6 +350,14 @@ function AppContent() {
               selectedObraInitial={selectedObraForOffer}
               searchQuery={searchQuery}
               onSaveCartaOferta={handleSaveCartaOferta}
+            />
+          )}
+
+          {activeTab === 'equipos' && (
+            <PantallaEquipos
+              equipos={equipos}
+              onSaveEquipo={handleSaveEquipo}
+              onDeleteEquipo={handleDeleteEquipo}
             />
           )}
 
