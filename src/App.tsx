@@ -50,11 +50,9 @@ const getMonthlyDataWithCurrentMonth = (baseData: typeof MONTHLY_SALES_DATA) => 
     const mesNombre = meses[index];
     let label = mesNombre;
 
-    if (index < currentMonth) {
+    if (index === currentMonth) {
       label = `${mesNombre} (YTD)`;
-    } else if (index === currentMonth) {
-      label = `${mesNombre} (YTD)`;
-    } else {
+    } else if (index > currentMonth) {
       label = `${mesNombre} (Proy)`;
     }
 
