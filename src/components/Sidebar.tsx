@@ -6,8 +6,10 @@ import {
   FileCheck,
   ChevronLeft,
   ChevronRight,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   setCollapsed
 }) => {
+  const { logout, usuarioActual } = useAuth();
   const menuItems = [
     {
       id: 'dashboard',
@@ -134,7 +137,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      <div>
+      <div className="space-y-2">
+        {/* User Info */}
+        {usuarioActual && (
+          <div className="px-4 py-2 border-b border-white/10 text-[10px]">
+            <p className="text-white/70 font-semibold">{usuarioActual.nombre}</p>
+            <p className="text-white/50 text-[9px]">{usuarioActual.rol === 'superusuario' ? 'Superusuario' : 'Usuario'}</p>
+          </div>
+        )}
+
+        {/* Logout Button */}
+        <button
+          onClick={logout}
+          className="mx-4 w-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all text-[11px] font-bold"
+          title="Cerrar sesión"
+        >
+          <LogOut size={14} />
+          {!collapsed && 'Salir'}
+        </button>
+
         {/* Footer Info */}
         <div className="p-4 border-t border-white/10 text-xs text-white/60 flex items-center justify-between">
           {!collapsed ? (

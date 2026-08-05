@@ -107,3 +107,46 @@ export interface KpiSummary {
   montoTotalCotizadoUSD: number;
   montoPlanAnualUSD: number;
 }
+
+export type UserRole = 'superusuario' | 'usuario';
+
+export interface Usuario {
+  id: string;
+  email: string;
+  nombre: string;
+  rol: UserRole;
+  activo: boolean;
+  passwordHash?: string; // No enviar en frontend
+}
+
+export interface EtapaLog {
+  id: string;
+  etapa: FunnelStage;
+  fechaCambio: string; // YYYY-MM-DD HH:mm:ss
+  usuarioId: string;
+  accion: 'cambio_etapa' | 'nota_agregada' | 'edicion_obra';
+}
+
+export interface Equipo {
+  id: string;
+  codigoUnico: string;
+  nombre: string;
+  velocidadMS: number;
+  paradas: number;
+  tipoSalaMaquinas: 'Con Sala de Máquinas' | 'Sin Sala de Máquinas (MRL)';
+  capacidadKg: number;
+  modelo: string;
+  tipo: EquipmentType;
+}
+
+export interface PlanAnual {
+  id: string;
+  año: number;
+  montoUSDPlan: number;
+  equiposPlan: number;
+}
+
+export interface ConfiguracionApp {
+  proximoCodigoObra: string; // Ej: A-5100
+  planAnualActual: number;
+}

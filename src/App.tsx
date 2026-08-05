@@ -10,6 +10,8 @@ import React, { useState } from 'react';
 
 // Ensure build info is included in bundle
 console.log('Build version:', BUILD_VERSION);
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginScreen } from './components/LoginScreen';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { PantallaDashboard } from './components/PantallaDashboard';
@@ -37,7 +39,7 @@ import {
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
 
-export default function App() {
+function AppContent() {
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -307,5 +309,23 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+function AppWithAuth() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
+  return <AppContent />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
   );
 }
