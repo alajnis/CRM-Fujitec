@@ -1,0 +1,1 @@
+export { useSupabaseData } from './useSupabaseData';

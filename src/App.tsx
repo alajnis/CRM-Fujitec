@@ -6,7 +6,7 @@
  */
 
 import { BUILD_VERSION } from './BUILD_INFO';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Ensure build info is included in bundle
 console.log('Build version:', BUILD_VERSION);
@@ -44,6 +44,9 @@ import {
   INITIAL_EQUIPOS
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
+import { useSupabaseData } from './hooks/useSupabaseData';
+import { supabaseAdapter } from './adapters/supabaseAdapter';
+import { obrasService, clientesService } from './services';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -117,6 +120,9 @@ function AppContent() {
   const getNombreUsuario = (usuarioId?: string): string =>
     usuariosAuth.find((u) => u.id === usuarioId)?.nombre || 'Sin asignar';
 
+  // Load data from Supabase
+  const { obras: obrasFromSupabase, clientes: clientesFromSupabase, equipos: equiposFromSupabase, isLoading } = useSupabaseData();
+
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -128,11 +134,20 @@ function AppContent() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [showOnlyAlerts, setShowOnlyAlerts] = useState<boolean>(false);
 
-  // App Data Collections
+  // App Data Collections - Use Supabase data if loaded, otherwise use mock data
   const [obras, setObras] = useState<Obra[]>(INITIAL_OBRAS);
   const [clientes, setClientes] = useState<Cliente[]>(INITIAL_CLIENTES);
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
   const [equipos, setEquipos] = useState<Equipo[]>(INITIAL_EQUIPOS);
+
+  // Update state when Supabase data is loaded
+  useEffect(() => {
+    if (!isLoading && obrasFromSupabase.length > 0) {
+      setObras(obrasFromSupabase);
+      setClientes(clientesFromSupabase);
+      setEquipos(equiposFromSupabase);
+    }
+  }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading]);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
   const [budgetConfigs, setBudgetConfigs] = useState<any[]>([
     {
@@ -177,6 +192,19 @@ function AppContent() {
   };
 
   const handleSaveObra = (savedObra: Obra) => {
+    // Save to Supabase asynchronously
+    const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
+
+    if (savedObra.id && savedObra.id.length > 0) {
+      // Update existing
+      obrasService.updateObra(savedObra.id, supabaseData as any)
+        .catch(err => console.error('Error updating obra in Supabase:', err));
+    } else {
+      // Create new
+      obrasService.createObra(supabaseData as any)
+        .catch(err => console.error('Error creating obra in Supabase:', err));
+    }
+
     setObras((prev) => {
       const exists = prev.some((o) => o.id === savedObra.id);
       let obraFinal = savedObra;
@@ -228,7 +256,23 @@ function AppContent() {
   };
 
   const handleSaveCliente = (newCliente: Cliente) => {
-    setClientes((prev) => [newCliente, ...prev]);
+    // Save to Supabase
+    const supabaseData = supabaseAdapter.toSupabaseCliente(newCliente);
+    if (newCliente.id && newCliente.id.length > 0) {
+      clientesService.updateCliente(newCliente.id, supabaseData as any)
+        .catch(err => console.error('Error updating cliente in Supabase:', err));
+    } else {
+      clientesService.createCliente(supabaseData as any)
+        .catch(err => console.error('Error creating cliente in Supabase:', err));
+    }
+
+    setClientes((prev) => {
+      const exists = prev.some((c) => c.id === newCliente.id);
+      if (exists) {
+        return prev.map((c) => (c.id === newCliente.id ? newCliente : c));
+      }
+      return [newCliente, ...prev];
+    });
   };
 
   const handleSaveCartaOferta = (nuevaCarta: CartaOferta) => {
