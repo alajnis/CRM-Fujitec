@@ -85,8 +85,8 @@ export const supabaseAdapter = {
     return {
       id: supabaseCliente.id,
       razonSocial: supabaseCliente.nombre,
-      contactoPrincipal: '',
-      cargo: '',
+      contactoPrincipal: (supabaseCliente as any).contacto_principal || '',
+      cargo: (supabaseCliente as any).cargo || '',
       email: supabaseCliente.email || '',
       telefono: supabaseCliente.telefono || '',
       direccion: supabaseCliente.direccion || '',
@@ -99,6 +99,8 @@ export const supabaseAdapter = {
   toSupabaseCliente(appCliente: Cliente) {
     return {
       nombre: appCliente.razonSocial,
+      contacto_principal: appCliente.contactoPrincipal || '',
+      cargo: appCliente.cargo || '',
       email: appCliente.email || '',
       telefono: appCliente.telefono || '',
       direccion: appCliente.direccion || '',

@@ -6,12 +6,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  Building2,
-  FileSpreadsheet,
-  Check,
   ChevronRight,
   ChevronDown,
-  UserPlus,
   MessageSquare,
   Trash2,
   X
@@ -285,17 +281,6 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                         id="btn-editar-cliente"
                       >
                         ✏️ Editar Cliente
-                      </button>
-                    )}
-                    {onOpenEditClienteContacts && (
-                      <button
-                        onClick={() => onOpenEditClienteContacts(activeCliente)}
-                        className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26] flex items-center gap-1.5"
-                        style={{ backgroundColor: '#C8102E' }}
-                        id="btn-editar-contactos"
-                      >
-                        <UserPlus size={14} />
-                        Editar Contactos
                       </button>
                     )}
                     {isSuperuser() && (
