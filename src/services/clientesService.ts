@@ -7,10 +7,13 @@ export const clientesService = {
       .from('clientes')
       .select('*')
       .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('fecha_creacion', { ascending: false });
 
-    if (error) throw error;
-    return data as Cliente[];
+    if (error) {
+      console.error('Error in getClientes:', error);
+      throw error;
+    }
+    return (data || []) as Cliente[];
   },
 
   async getClienteById(id: string) {

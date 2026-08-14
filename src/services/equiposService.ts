@@ -9,8 +9,11 @@ export const equiposService = {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as Equipo[];
+    if (error) {
+      console.error('Error in getEquipos:', error);
+      throw error;
+    }
+    return (data || []) as Equipo[];
   },
 
   async getEquipoById(id: string) {
@@ -33,7 +36,7 @@ export const equiposService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Equipo[];
+    return (data || []) as Equipo[];
   },
 
   async getEquiposByTipo(tipo: 'Ascensor' | 'Escalera' | 'Rampa') {
@@ -45,7 +48,7 @@ export const equiposService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Equipo[];
+    return (data || []) as Equipo[];
   },
 
   async createEquipo(equipo: Omit<Equipo, 'id' | 'created_at' | 'updated_at'>) {

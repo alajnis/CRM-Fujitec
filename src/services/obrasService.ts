@@ -9,8 +9,11 @@ export const obrasService = {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as Obra[];
+    if (error) {
+      console.error('Error in getObras:', error);
+      throw error;
+    }
+    return (data || []) as Obra[];
   },
 
   async getObraById(id: string) {
@@ -33,7 +36,7 @@ export const obrasService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Obra[];
+    return (data || []) as Obra[];
   },
 
   async getObrasByEstapa(etapa: string) {
@@ -45,7 +48,7 @@ export const obrasService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Obra[];
+    return (data || []) as Obra[];
   },
 
   async createObra(obra: Omit<Obra, 'id' | 'created_at' | 'updated_at'>) {
