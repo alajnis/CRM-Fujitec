@@ -47,6 +47,7 @@ import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
 import { obrasService, clientesService, equiposService, actividadesService } from './services';
+import { seedActividades } from './utils/seedActividades';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -139,6 +140,16 @@ function AppContent() {
   const [clientes, setClientes] = useState<Cliente[]>(INITIAL_CLIENTES);
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
   const [equipos, setEquipos] = useState<Equipo[]>(INITIAL_EQUIPOS);
+
+  // Seed activities on first load
+  useEffect(() => {
+    const seeded = sessionStorage.getItem('actividades_seeded');
+    if (!seeded) {
+      seedActividades().then(() => {
+        sessionStorage.setItem('actividades_seeded', 'true');
+      });
+    }
+  }, []);
 
   // Update state when Supabase data is loaded
   useEffect(() => {

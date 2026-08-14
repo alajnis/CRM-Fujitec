@@ -15,6 +15,18 @@ const mapEtapaToFunnelStage = (etapa: string | undefined): FunnelStage => {
   return mapping[etapa || ''] || 'Solicitud';
 };
 
+const mapSupabaseEtapaToFunnelStage = (etapa: string | undefined): FunnelStage => {
+  const mapping: Record<string, FunnelStage> = {
+    'prospeccion': 'Solicitud',
+    'evaluacion': 'En estudio de proyecto',
+    'propuesta': 'Estimado',
+    'negociacion': 'Cotización',
+    'orden': 'Contratadas',
+    'cierre': 'Finalizadas'
+  };
+  return mapping[etapa || ''] || 'Solicitud';
+};
+
 const mapFunnelStageToEtapa = (stage: FunnelStage): string => {
   const mapping: Record<FunnelStage, string> = {
     'Solicitud': 'prospeccion',
@@ -134,7 +146,7 @@ export const supabaseAdapter = {
   toAppActividadPorEtapa(supabaseActividad: any): ActividadPorEtapa {
     return {
       id: supabaseActividad.id,
-      etapa: supabaseActividad.etapa || 'Solicitud',
+      etapa: mapSupabaseEtapaToFunnelStage(supabaseActividad.etapa),
       descripcion: supabaseActividad.descripcion || '',
       completada: supabaseActividad.estado === 'completada',
       fechaCompletada: supabaseActividad.fecha_completacion,
@@ -150,7 +162,8 @@ export const supabaseAdapter = {
       estado: appActividad.completada ? 'completada' : 'pendiente',
       fecha_completacion: appActividad.completada ? appActividad.fechaCompletada : null,
       usuario_asignado: appActividad.completadaPor,
-      tipo: 'tarea'
+      tipo: 'tarea',
+      etapa: mapFunnelStageToEtapa(appActividad.etapa)
     };
   }
 };
