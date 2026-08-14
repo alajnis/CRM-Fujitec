@@ -249,12 +249,18 @@ function AppContent() {
       prev.map((o: Obra) => {
         if (o.id === obraId && usuarioActual && o.estado !== nuevoEstado) {
           let obraLogged = logCambioEstado(o, o.estado, nuevoEstado, usuarioActual.nombre, 'dropdown');
-          obraLogged = {
+          const updatedObra = {
             ...obraLogged,
             estado: nuevoEstado,
             fechaUltimaActualizacion: new Date().toISOString().split('T')[0]
           };
-          return obraLogged;
+
+          // Save to Supabase asynchronously
+          const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
+          obrasService.updateObra(obraId, supabaseData as any)
+            .catch(err => console.error('Error updating obra state in Supabase:', err));
+
+          return updatedObra;
         }
         return o;
       })
