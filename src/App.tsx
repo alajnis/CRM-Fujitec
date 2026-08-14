@@ -456,6 +456,12 @@ function AppContent() {
           const eq = equipos.find((e) => e.id === id);
           if (eq) obraLogged = logEquipoRemovido(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
         });
+
+        // Save to Supabase asynchronously
+        const supabaseData = supabaseAdapter.toSupabaseObra(obraLogged);
+        obrasService.updateObra(obraId, supabaseData as any)
+          .catch(err => console.error('Error updating obra equipos in Supabase:', err));
+
         return obraLogged;
       })
     );
@@ -508,6 +514,10 @@ function AppContent() {
   };
 
   const handleDeleteEquipo = (equipoId: string) => {
+    // Soft delete to Supabase
+    equiposService.softDeleteEquipo(equipoId)
+      .catch(err => console.error('Error deleting equipo in Supabase:', err));
+
     setEquipos((prev) => prev.filter((e) => e.id !== equipoId));
   };
 
@@ -677,6 +687,11 @@ function AppContent() {
           onClose={() => setIsModalClienteOpen(false)}
           cliente={selectedClienteForEdit}
           onSaveCliente={(updatedCliente) => {
+            // Save to Supabase
+            const supabaseData = supabaseAdapter.toSupabaseCliente(updatedCliente);
+            clientesService.updateCliente(updatedCliente.id, supabaseData as any)
+              .catch(err => console.error('Error updating cliente in Supabase:', err));
+
             setClientes((prev) =>
               prev.map((c) => (c.id === updatedCliente.id ? updatedCliente : c))
             );
