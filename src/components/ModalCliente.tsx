@@ -52,12 +52,8 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
 
   const handleAddContact = () => {
     setValidationError('');
-    if (!newContact.nombre) {
+    if (!newContact.nombre || newContact.nombre.trim() === '') {
       setValidationError('El nombre del contacto es obligatorio');
-      return;
-    }
-    if (!hasContactMethod(newContact.email || '', newContact.telefono || '')) {
-      setValidationError('El contacto debe tener al menos un email o teléfono');
       return;
     }
     const contacts = formCliente.contactos || [];
@@ -229,7 +225,7 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
             <button
               type="button"
               onClick={handleAddContact}
-              disabled={!newContact.nombre || !hasContactMethod(newContact.email || '', newContact.telefono || '')}
+              disabled={!newContact.nombre}
               className="w-full py-2 px-3 rounded-lg bg-[#C8102E] text-white font-bold text-xs hover:bg-[#A60D26] disabled:opacity-40 transition-colors"
             >
               + Agregar Contacto
