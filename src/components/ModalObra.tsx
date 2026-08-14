@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, History } from 'lucide-react';
-import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, EtapaLog, Equipo } from '../types';
+import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { ComponenteActividades } from './ComponenteActividades';
+import { obtenerObraDeEquipo } from '../utils/equipoUtils';
 
 interface ModalObraProps {
   isOpen: boolean;
@@ -8,10 +11,13 @@ interface ModalObraProps {
   onSaveObra: (obra: Obra) => void;
   clientes: Cliente[];
   equipos: Equipo[];
+  obras?: Obra[];
   editingObra?: Obra | null;
   proximoCodigoObra: string;
   onUpdateProximoCodigo: (codigo: string) => void;
   onOpenViewActividades?: (obra: Obra) => void;
+  onToggleActividad?: (obraId: string, actividadId: string, completada: boolean) => void;
+  onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
 }
 
 export const ModalObra: React.FC<ModalObraProps> = ({
@@ -20,11 +26,16 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onSaveObra,
   clientes,
   equipos,
+  obras = [],
   editingObra,
   proximoCodigoObra,
   onUpdateProximoCodigo,
-  onOpenViewActividades
+  onOpenViewActividades,
+  onToggleActividad,
+  onUpdateObraEquipos
 }) => {
+  const { usuarios, usuarioActual } = useAuth();
+  const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
   const [formObra, setFormObra] = useState<Partial<Obra>>({
     codigo: 'A-5300',
     nombre: '',
@@ -33,8 +44,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     montoUSD: 500000,
     tipoEquipo: 'Ascensor de Pasajeros',
     cantidadEquipos: 4,
-    estado: 'Cotización',
-    responsable: 'Lic. Martín Gómez',
+    estado: 'Solicitud',
+    usuarioAsignado: usuarioActual?.id,
     observaciones: '',
     hardwareSpecs: {
       velocidadMS: 1.75,
@@ -47,7 +58,11 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 
   useEffect(() => {
     if (editingObra) {
-      setFormObra(editingObra);
+      // Obras legacy sin usuarioAsignado quedan asignadas a quien las edita
+      setFormObra({
+        ...editingObra,
+        usuarioAsignado: editingObra.usuarioAsignado || usuarioActual?.id
+      });
     } else {
       setFormObra({
         codigo: proximoCodigoObra,
@@ -57,8 +72,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         montoUSD: 650000,
         tipoEquipo: 'Ascensor de Pasajeros',
         cantidadEquipos: 4,
-        estado: 'Cotización',
-        responsable: 'Lic. Martín Gómez',
+        estado: 'Solicitud',
+        usuarioAsignado: usuarioActual?.id,
         observaciones: 'Nueva oportunidad comercial ingresada al CRM.',
         hardwareSpecs: {
           velocidadMS: 2.0,
@@ -69,7 +84,10 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         }
       });
     }
-  }, [editingObra, isOpen, proximoCodigoObra]);
+    // Reset only when the modal opens or a different obra is loaded — not on every
+    // live update to `editingObra` (e.g. toggling an activity checkbox while open),
+    // which would otherwise clobber unsaved edits to other fields.
+  }, [editingObra?.id, isOpen, proximoCodigoObra, usuarioActual]);
 
   if (!isOpen) return null;
 
@@ -82,6 +100,48 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     return `${letra}-${nextNumber}`;
   };
 
+  // Los equipos se asignan/quitan de inmediato (no quedan "en borrador" hasta Guardar),
+  // igual que en la pantalla de Equipos y en la Ficha de Cliente, porque un equipo solo
+  // puede pertenecer a una obra a la vez y esa relación necesita resolverse de forma
+  // atómica contra el resto de las obras.
+  const equipoIdsActuales = editingObra?.equipoIds || [];
+
+  const handleAddEquipo = (equipoId: string) => {
+    if (!editingObra || !onUpdateObraEquipos) return;
+    if (equipoIdsActuales.includes(equipoId)) return;
+
+    const equipo = equipos.find((eq) => eq.id === equipoId);
+    const obraActual = obtenerObraDeEquipo(equipoId, obras, editingObra.id);
+    if (obraActual && equipo) {
+      const confirmado = window.confirm(
+        `Este equipo ya está asignado a ${obraActual.codigo} - ${obraActual.nombre}.\n\nUn equipo solo puede estar en una obra a la vez. ¿Confirmás moverlo a esta obra?`
+      );
+      if (!confirmado) return;
+      onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
+    }
+    onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
+    setEquipoSearchQuery('');
+  };
+
+  const handleRemoveEquipo = (equipoId: string) => {
+    if (!editingObra || !onUpdateObraEquipos) return;
+    onUpdateObraEquipos(editingObra.id, equipoIdsActuales.filter((id) => id !== equipoId));
+  };
+
+  const equiposDisponibles = equipos.filter((eq) =>
+    !equipoIdsActuales.includes(eq.id) &&
+    !eq.isDeleted &&
+    (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+      eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+      eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
+  );
+
+  const tipoIcono: Record<string, string> = {
+    'Ascensor': '🛗',
+    'Escalera': '🪜',
+    'Rampa': '♿'
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formObra.nombre) return;
@@ -89,19 +149,24 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     const hoyISO = new Date().toISOString().split('T')[0];
 
     const obraFinal: Obra = {
+      // Preserve every field not covered by this form (actividadesPorEtapa, historialLog,
+      // notas, equipoIds, etapaLogs, isDeleted, etc. — equipoIds/historialLog are already
+      // up to date here since equipo asignación escribe directo al estado global, no a
+      // formObra) — only the fields below are explicitly overridden here.
+      ...(editingObra || {}),
       id: editingObra ? editingObra.id : `obr-${Date.now()}`,
       codigo: formObra.codigo || 'A-5000',
       nombre: formObra.nombre || '',
       region: (formObra.region as 'Argentina' | 'Uruguay') || 'Argentina',
       clienteId: formObra.clienteId || clientes[0]?.id || 'cli-1',
       montoUSD: Number(formObra.montoUSD) || 500000,
-      tipoEquipo: (formObra.tipoEquipo as EquipmentType) || 'Ascensor de Pasajeros',
-      cantidadEquipos: Number(formObra.cantidadEquipos) || 1,
-      estado: (formObra.estado as FunnelStage) || 'Cotización',
+      estado: (formObra.estado as FunnelStage) || 'Solicitud',
       fechaIngreso: editingObra ? editingObra.fechaIngreso : hoyISO,
-      fechaUltimaActualizacion: hoyISO,
+      // No se pisa aquí: editar datos generales no reinicia el contador de días sin
+      // acción (solo lo hace un cambio de estadio, gestionado en App.tsx vía logCambioEstado).
+      fechaUltimaActualizacion: editingObra ? editingObra.fechaUltimaActualizacion : hoyISO,
       observaciones: formObra.observaciones || '',
-      responsable: formObra.responsable || 'Lic. Martín Gómez',
+      usuarioAsignado: formObra.usuarioAsignado || usuarioActual?.id || 'user-1',
       hardwareSpecs: formObra.hardwareSpecs || {
         velocidadMS: 1.75,
         paradas: 10,
@@ -121,37 +186,41 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
-      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-8 space-y-5 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-4">
-          <div>
-            <h3 className="text-xl font-black text-[#2D3436]">
-              {editingObra ? `Editar Obra: ${editingObra.codigo}` : 'Registrar Nueva Obra Comercial'}
-            </h3>
-            <p className="text-xs text-[#B2BEC3] font-semibold mt-1 uppercase tracking-wide">
-              {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {editingObra && onOpenViewActividades && (
-              <button
-                onClick={() => {
-                  onOpenViewActividades(editingObra);
-                  onClose();
-                }}
-                className="p-2 text-[#2D3436] hover:text-white hover:bg-[#2D3436] rounded-lg transition-all"
-                title="Ver notas de esta obra"
-              >
-                <MessageSquare size={20} />
+    <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full flex flex-col max-h-[calc(100vh-32px)] my-auto">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-black text-[#2D3436]">
+                {editingObra ? `Editar Obra: ${editingObra.codigo}` : 'Registrar Nueva Obra Comercial'}
+              </h3>
+              <p className="text-xs text-[#B2BEC3] font-semibold mt-1 uppercase tracking-wide">
+                {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {editingObra && onOpenViewActividades && (
+                <button
+                  onClick={() => {
+                    onOpenViewActividades(editingObra);
+                    onClose();
+                  }}
+                  className="p-2 text-[#2D3436] hover:text-white hover:bg-[#2D3436] rounded-lg transition-all"
+                  title="Ver notas de esta obra"
+                >
+                  <MessageSquare size={20} />
+                </button>
+              )}
+              <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-            )}
-            <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        {/* Content - Scrollable */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
           {/* Obra Basic Info */}
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -193,16 +262,27 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-[#2D3436] mb-1">Cliente Asignado</label>
+              <label className="block font-bold text-[#2D3436] mb-1">
+                Cliente Asignado {editingObra && editingObra.clienteId !== formObra.clienteId && '⚠️'}
+              </label>
               <select
                 value={formObra.clienteId}
                 onChange={(e) => setFormObra({...formObra, clienteId: e.target.value})}
-                className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-bold text-[#2D3436]"
+                className={`w-full p-2.5 bg-white border rounded-xl font-bold text-[#2D3436] ${
+                  editingObra && editingObra.clienteId !== formObra.clienteId
+                    ? 'border-amber-400 ring-1 ring-amber-200'
+                    : 'border-[#E0E0E0]'
+                }`}
               >
                 {clientes.map((c) => (
                   <option key={c.id} value={c.id}>{c.razonSocial}</option>
                 ))}
               </select>
+              {editingObra && editingObra.clienteId !== formObra.clienteId && (
+                <p className="text-xs text-amber-600 font-semibold mt-1">
+                  Se reasignará de {clientes.find(c => c.id === editingObra.clienteId)?.razonSocial || 'cliente anterior'} a {clientes.find(c => c.id === formObra.clienteId)?.razonSocial}
+                </p>
+              )}
             </div>
 
             <div>
@@ -212,147 +292,150 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 onChange={(e) => setFormObra({...formObra, estado: e.target.value as any})}
                 className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-bold text-[#2D3436]"
               >
+                <option value="Solicitud">Solicitud</option>
+                <option value="En estudio de proyecto">En estudio de proyecto</option>
+                <option value="Estimado">Estimado</option>
                 <option value="Cotización">Cotización</option>
-                <option value="Presentada">Presentada</option>
-                <option value="En Negociación">En Negociación</option>
-                <option value="Adjudicada">Adjudicada</option>
-                <option value="Perdida">Perdida</option>
+                <option value="Contratadas">Contratadas</option>
+                <option value="Finalizadas">Finalizadas</option>
+                <option value="Rechazadas">Rechazadas</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block font-bold text-[#2D3436] mb-1">Monto Presupuesto (USD) *</label>
-              <input
-                type="number"
-                required
-                value={formObra.montoUSD}
-                onChange={(e) => setFormObra({...formObra, montoUSD: Number(e.target.value)})}
-                className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-extrabold text-[#2D3436]"
-              />
-            </div>
 
             <div>
-              <label className="block font-bold text-[#2D3436] mb-1">Equipo Fujitec</label>
+              <label className="block font-bold text-[#2D3436] mb-1">Usuario Asignado *</label>
               <select
-                value={formObra.tipoEquipo}
-                onChange={(e) => {
-                  const selectedEquipo = equipos.find((eq) => eq.nombre === e.target.value);
-                  if (selectedEquipo) {
-                    setFormObra({
-                      ...formObra,
-                      tipoEquipo: selectedEquipo.tipo,
-                      hardwareSpecs: {
-                        velocidadMS: selectedEquipo.velocidadMS,
-                        paradas: selectedEquipo.paradas,
-                        tipoSalaMaquinas: selectedEquipo.tipoSalaMaquinas,
-                        capacidadKg: selectedEquipo.capacidadKg,
-                        modelo: selectedEquipo.modelo
-                      }
-                    });
-                  }
-                }}
-                className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-semibold text-[#2D3436]"
+                required
+                value={formObra.usuarioAsignado || usuarioActual?.id || ''}
+                onChange={(e) => setFormObra({...formObra, usuarioAsignado: e.target.value})}
+                className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-bold text-[#2D3436]"
               >
-                <option value="">-- Seleccionar Equipo --</option>
-                {equipos.map((eq) => (
-                  <option key={eq.id} value={eq.nombre}>
-                    {eq.nombre} ({eq.codigoUnico})
-                  </option>
+                {usuarios.filter(u => u.activo).map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
                 ))}
               </select>
             </div>
+          </div>
 
-            <div>
-              <label className="block font-bold text-[#2D3436] mb-1">Cantidad de Unidades</label>
+          <div>
+            <label className="block font-bold text-[#2D3436] mb-1">Monto Presupuesto (USD) *</label>
+            <input
+              type="number"
+              required
+              value={formObra.montoUSD}
+              onChange={(e) => setFormObra({...formObra, montoUSD: Number(e.target.value)})}
+              className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-extrabold text-[#2D3436]"
+            />
+          </div>
+
+          {/* Equipos Asignados a la Obra */}
+          <div className="p-4 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0] space-y-3">
+            <label className="block font-extrabold text-[#2D3436] uppercase tracking-wide text-[11px]">
+              Equipos Asignados ({equipoIdsActuales.length})
+            </label>
+
+            {!editingObra ? (
+              <p className="text-[11px] text-[#B2BEC3] italic">Guardá la obra primero para poder asignarle equipos.</p>
+            ) : (
+            <>
+            {/* Currently assigned equipos */}
+            {equipoIdsActuales.length === 0 ? (
+              <p className="text-[11px] text-[#B2BEC3] italic">Sin equipos asignados todavía. Buscá y agregá abajo.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {equipoIdsActuales.map((equipoId) => {
+                  const eq = equipos.find((e) => e.id === equipoId);
+                  if (!eq) return null;
+                  return (
+                    <div key={equipoId} className="flex items-center justify-between gap-2 p-2.5 bg-white rounded-lg border border-[#E0E0E0]">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base shrink-0">{tipoIcono[eq.tipo] || '⚙️'}</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#2D3436] truncate">{eq.nombre}</p>
+                          <p className="text-[10px] text-[#636E72] truncate">{eq.codigoUnico} · {eq.modelo}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEquipo(equipoId)}
+                        className="p-1.5 text-[#636E72] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                        title="Quitar equipo de la obra"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Search & add */}
+            <div className="pt-2 border-t border-[#E0E0E0] space-y-2">
               <input
-                type="number"
-                value={formObra.cantidadEquipos}
-                onChange={(e) => setFormObra({...formObra, cantidadEquipos: Number(e.target.value)})}
-                className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-extrabold text-[#2D3436]"
+                type="text"
+                placeholder="Buscar equipo por nombre, modelo o código..."
+                value={equipoSearchQuery}
+                onChange={(e) => setEquipoSearchQuery(e.target.value)}
+                className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-medium text-[#2D3436]"
+              />
+              {equipoSearchQuery && (
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {equiposDisponibles.length === 0 ? (
+                    <p className="text-[11px] text-[#B2BEC3] italic p-1">Sin resultados</p>
+                  ) : (
+                    equiposDisponibles.slice(0, 8).map((eq) => {
+                      const obraDeEquipo = editingObra ? obtenerObraDeEquipo(eq.id, obras, editingObra.id) : undefined;
+                      return (
+                      <button
+                        key={eq.id}
+                        type="button"
+                        onClick={() => handleAddEquipo(eq.id)}
+                        className="w-full flex items-center justify-between gap-2 p-2 bg-white hover:bg-blue-50 rounded-lg border border-[#E0E0E0] transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-base shrink-0">{tipoIcono[eq.tipo] || '⚙️'}</span>
+                          <div className="min-w-0">
+                            <p className="font-bold text-[#2D3436] truncate">{eq.nombre}</p>
+                            <p className="text-[10px] text-[#636E72] truncate">
+                              {eq.codigoUnico} · {eq.modelo}
+                              {obraDeEquipo && (
+                                <span className="ml-1.5 text-amber-700 font-bold">⚠️ En {obraDeEquipo.codigo}</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-[#C8102E] shrink-0">
+                          {obraDeEquipo ? 'Mover acá' : '+ Agregar'}
+                        </span>
+                      </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+            </>
+            )}
+          </div>
+
+          {/* Actividades por Etapa (checkboxes) */}
+          {editingObra && editingObra.actividadesPorEtapa && editingObra.actividadesPorEtapa.length > 0 && (
+            <div className="p-4 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0]">
+              <label className="block font-extrabold text-[#2D3436] mb-2 uppercase tracking-wide text-[11px]">
+                Actividades por Etapa
+              </label>
+              <ComponenteActividades
+                actividadesPorEtapa={editingObra.actividadesPorEtapa}
+                etapaActual={editingObra.estado}
+                onToggleActividad={(actividadId, completada) => {
+                  if (onToggleActividad) {
+                    onToggleActividad(editingObra.id, actividadId, completada);
+                  }
+                }}
+                expanded={true}
               />
             </div>
-          </div>
-
-          {/* HARDWARE SPECS SUB-FORM */}
-          <div className="p-3.5 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0] space-y-2">
-            <span className="font-black text-[#2D3436] uppercase tracking-wider text-[11px] block">
-              Ficha Técnica de Hardware Elevador (Fujitec)
-            </span>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="block font-bold text-[#636E72] mb-1">Modelo Fujitec</label>
-                <input
-                  type="text"
-                  value={formObra.hardwareSpecs?.modelo}
-                  onChange={(e) => setFormObra({
-                    ...formObra,
-                    hardwareSpecs: { ...formObra.hardwareSpecs!, modelo: e.target.value }
-                  })}
-                  className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-extrabold text-[#2D3436]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#636E72] mb-1">Velocidad (m/s)</label>
-                <input
-                  type="number"
-                  step="0.25"
-                  value={formObra.hardwareSpecs?.velocidadMS}
-                  onChange={(e) => setFormObra({
-                    ...formObra,
-                    hardwareSpecs: { ...formObra.hardwareSpecs!, velocidadMS: Number(e.target.value) }
-                  })}
-                  className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-extrabold text-[#2D3436]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#636E72] mb-1">Paradas</label>
-                <input
-                  type="number"
-                  value={formObra.hardwareSpecs?.paradas}
-                  onChange={(e) => setFormObra({
-                    ...formObra,
-                    hardwareSpecs: { ...formObra.hardwareSpecs!, paradas: Number(e.target.value) }
-                  })}
-                  className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-extrabold text-[#2D3436]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div>
-                <label className="block font-bold text-[#636E72] mb-1">Tipo Sala Máquinas</label>
-                <select
-                  value={formObra.hardwareSpecs?.tipoSalaMaquinas}
-                  onChange={(e) => setFormObra({
-                    ...formObra,
-                    hardwareSpecs: { ...formObra.hardwareSpecs!, tipoSalaMaquinas: e.target.value as any }
-                  })}
-                  className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-bold text-[#2D3436]"
-                >
-                  <option value="Sin Sala de Máquinas (MRL)">Sin Sala de Máquinas (MRL)</option>
-                  <option value="Con Sala de Máquinas">Con Sala de Máquinas</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#636E72] mb-1">Capacidad (Kg)</label>
-                <input
-                  type="number"
-                  value={formObra.hardwareSpecs?.capacidadKg}
-                  onChange={(e) => setFormObra({
-                    ...formObra,
-                    hardwareSpecs: { ...formObra.hardwareSpecs!, capacidadKg: Number(e.target.value) }
-                  })}
-                  className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-extrabold text-[#2D3436]"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="p-4 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0]">
             <label className="block font-extrabold text-[#2D3436] mb-2 uppercase tracking-wide text-[11px]">Notas & Observaciones Comerciales</label>
@@ -365,39 +448,29 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             />
           </div>
 
-          {/* Log de Cambios de Etapa */}
-          {editingObra && editingObra.etapaLogs && editingObra.etapaLogs.length > 0 && (
+          {/* Log de Auditoría de la Obra */}
+          {editingObra && editingObra.historialLog && editingObra.historialLog.length > 0 && (
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
               <div className="flex items-center gap-2">
                 <History size={16} className="text-blue-600" />
-                <label className="block font-extrabold text-[#2D3436] uppercase tracking-wide text-[11px]">Historial de Acciones</label>
+                <label className="block font-extrabold text-[#2D3436] uppercase tracking-wide text-[11px]">
+                  Historial de Acciones ({editingObra.historialLog.length})
+                </label>
               </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {editingObra.etapaLogs.map((log: EtapaLog) => (
+              <div className="space-y-2 max-h-52 overflow-y-auto">
+                {[...editingObra.historialLog].reverse().map((log) => (
                   <div key={log.id} className="bg-white p-2.5 rounded-lg border border-blue-100 text-xs">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {log.accion === 'cambio_etapa' && (
-                          <p className="font-bold text-[#2D3436]">
-                            Cambio a: <span className="text-blue-600">{log.etapa}</span>
-                          </p>
-                        )}
-                        {log.accion === 'nota_agregada' && (
-                          <p className="font-bold text-[#2D3436]">
-                            <span className="text-green-600">📝 Nota agregada</span>
-                          </p>
-                        )}
-                        {log.accion === 'edicion_obra' && (
-                          <p className="font-bold text-[#2D3436]">
-                            <span className="text-orange-600">✏️ Obra editada</span>
-                          </p>
-                        )}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#2D3436] leading-snug">
+                          {log.descripcion}
+                        </p>
                         <p className="text-[#636E72] text-[10px] mt-0.5">
-                          {log.fechaCambio}
+                          {log.fecha} · {log.usuario}
                         </p>
                       </div>
-                      <span className="text-[10px] text-[#B2BEC3] font-semibold">
-                        {log.usuarioId.substring(0, 8)}...
+                      <span className="text-[9px] text-[#B2BEC3] font-semibold uppercase shrink-0 bg-[#F1F3F5] px-1.5 py-0.5 rounded">
+                        {log.tipo.replace(/_/g, ' ')}
                       </span>
                     </div>
                   </div>
@@ -406,24 +479,27 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-[#F1F3F5]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-bold text-[#2D3436] text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-lg font-extrabold text-white shadow-md hover:bg-[#A60D26] transition-all text-sm"
-              style={{ backgroundColor: '#C8102E' }}
-              id="btn-save-obra-modal"
-            >
-              Guardar Obra
-            </button>
-          </div>
         </form>
+
+        {/* Footer - Fixed */}
+        <div className="flex-shrink-0 p-6 border-t border-[#F1F3F5] bg-white rounded-b-3xl flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-bold text-[#2D3436] text-sm"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            className="px-6 py-2.5 rounded-lg font-extrabold text-white shadow-md hover:bg-[#A60D26] transition-all text-sm"
+            style={{ backgroundColor: '#C8102E' }}
+            id="btn-save-obra-modal"
+          >
+            Guardar Obra
+          </button>
+        </div>
       </div>
     </div>
   );

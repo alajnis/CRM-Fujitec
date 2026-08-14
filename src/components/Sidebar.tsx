@@ -6,7 +6,6 @@ import {
   FileCheck,
   ChevronLeft,
   ChevronRight,
-  Settings,
   LogOut,
   Cpu
 } from 'lucide-react';
@@ -36,38 +35,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'obras',
-      label: '2. Obras y Embudo (Funnel)',
-      sublabel: 'Lista Tradicional & Kanban',
+      label: '2. Funnel Obras',
+      sublabel: 'Embudo de Ventas & Kanban',
       icon: Building2,
       requiereAdmin: false
     },
     {
       id: 'ficha',
-      label: '3. Ficha Relacional',
-      sublabel: 'Clientes & Hardware Elevadores',
+      label: '3. Clientes',
+      sublabel: 'Gestión de Clientes & Contactos',
       icon: Users,
       requiereAdmin: false
     },
     {
-      id: 'oferta',
-      label: '4. Carta Oferta',
-      sublabel: 'Motor Documental Formal',
-      icon: FileCheck,
-      requiereAdmin: false
-    },
-    {
       id: 'equipos',
-      label: '5. Equipos Fujitec',
+      label: '4. Equipos Fujitec',
       sublabel: 'Gestión de Catálogo de Equipos',
       icon: Cpu,
       requiereAdmin: false
     },
     {
-      id: 'admin',
-      label: '6. Configuración',
-      sublabel: 'Variables de Presupuesto & CRM',
-      icon: Settings,
-      requiereAdmin: true
+      id: 'oferta',
+      label: '5. Propuesta técnico-económica',
+      sublabel: 'Motor Documental Formal',
+      icon: FileCheck,
+      requiereAdmin: false
     }
   ];
 

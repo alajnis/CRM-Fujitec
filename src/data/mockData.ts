@@ -1,10 +1,80 @@
-import { Cliente, Obra, MonthlySalesData, CartaOferta, Equipo } from '../types';
+import { Cliente, Obra, MonthlySalesData, CartaOferta, Equipo, ActividadPorEtapa, FunnelStage } from '../types';
+
+const getActividadesPorEtapa = (): ActividadPorEtapa[] => {
+  const stages: FunnelStage[] = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
+
+  const actividadTextos: Record<FunnelStage, string[]> = {
+    'Solicitud': [
+      'Recibir solicitud formal del cliente',
+      'Registrar en sistema CRM',
+      'Asignar responsable comercial',
+      'Enviar confirmación de recepción',
+      'Programar reunión inicial'
+    ],
+    'En estudio de proyecto': [
+      'Recopilar datos técnicos del proyecto',
+      'Análisis de especificaciones requeridas',
+      'Coordinar con equipo técnico Fujitec',
+      'Revisar planos y pasadizos',
+      'Preparar estimado preliminar'
+    ],
+    'Estimado': [
+      'Finalizar cálculos técnicos',
+      'Preparar propuesta comercial',
+      'Revisar términos y condiciones',
+      'Obtener aprobación legal',
+      'Enviar estimado al cliente'
+    ],
+    'Cotización': [
+      'Presentar cotización formal',
+      'Responder consultas técnicas',
+      'Negociar términos comerciales',
+      'Obtener aprobación presupuestaria',
+      'Preparar contrato definitivo'
+    ],
+    'Contratadas': [
+      'Ejecutar contrato y recibir firma',
+      'Procesar anticipo/pago inicial',
+      'Iniciar fabricación en planta',
+      'Coordinar logística de transporte',
+      'Preparar instalación y puesta en marcha'
+    ],
+    'Finalizadas': [
+      'Completar instalación',
+      'Realizar pruebas técnicas finales',
+      'Capacitación a operarios del cliente',
+      'Recepción definitiva',
+      'Cerrar orden y documentación'
+    ],
+    'Rechazadas': [
+      'Documentar razón del rechazo',
+      'Analizar feedback del cliente',
+      'Actualizar historial de relación',
+      'Mantener contacto para futuras oportunidades'
+    ]
+  };
+
+  const actividades: ActividadPorEtapa[] = [];
+  stages.forEach(stage => {
+    const textos = actividadTextos[stage];
+    textos.forEach((texto, idx) => {
+      actividades.push({
+        id: `act-${stage}-${idx}`,
+        etapa: stage,
+        descripcion: texto,
+        completada: Math.random() > 0.5 // 50% probability
+      });
+    });
+  });
+
+  return actividades;
+};
 
 export const INITIAL_CLIENTES: Cliente[] = [
   {
     id: 'cli-1',
     razonSocial: 'Grupo Chateau S.A.',
-    contactoPrincipal: 'Arq. Roberto M. D’Amico',
+    contactoPrincipal: 'Arq. Roberto M. D\'Amico',
     cargo: 'Director de Obras & Infraestructura',
     email: 'rdamico@chateaugroup.com',
     telefono: '+54 11 4801-9900',
@@ -88,13 +158,11 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Uruguay',
     clienteId: 'cli-1',
     montoUSD: 850000,
-    tipoEquipo: 'Ascensor de Pasajeros',
-    cantidadEquipos: 6,
-    estado: 'En Negociación',
+    estado: 'En estudio de proyecto',
     fechaIngreso: '2026-03-15',
     fechaUltimaActualizacion: '2026-07-26',
     observaciones: 'Reunión presencial en Punta del Este. Cliente solicitó bonificación en plazo de garantía.',
-    responsable: 'Lic. Martín Gómez (AR/UY)',
+    usuarioAsignado: 'user-1',
     hardwareSpecs: {
       velocidadMS: 2.5,
       paradas: 28,
@@ -102,26 +170,21 @@ export const INITIAL_OBRAS: Obra[] = [
       capacidadKg: 1000,
       modelo: 'Fujitec ZEXIA MRL'
     },
+    equipoIds: ['eqp-1'],
+    actividadesPorEtapa: getActividadesPorEtapa(),
     etapaLogs: [
       {
         id: 'log-1',
-        etapa: 'Cotización',
+        etapa: 'Solicitud',
         fechaCambio: '2026-03-15',
         usuarioId: 'usr-superadmin',
         accion: 'cambio_etapa'
       },
       {
         id: 'log-2',
-        etapa: 'Presentada',
+        etapa: 'En estudio de proyecto',
         fechaCambio: '2026-04-10',
         usuarioId: 'usr-vendedor',
-        accion: 'cambio_etapa'
-      },
-      {
-        id: 'log-3',
-        etapa: 'En Negociación',
-        fechaCambio: '2026-06-05',
-        usuarioId: 'usr-superadmin',
         accion: 'cambio_etapa'
       }
     ]
@@ -133,20 +196,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Argentina',
     clienteId: 'cli-2',
     montoUSD: 1420000,
-    tipoEquipo: 'Alta Velocidad',
-    cantidadEquipos: 8,
-    estado: 'Presentada',
+    estado: 'Estimado',
     fechaIngreso: '2026-04-10',
-    fechaUltimaActualizacion: '2026-07-20', // 8 días atrás -> ALERTA TEMPORAL >7d!
-    observaciones: 'Carta Oferta enviada. Pendiente dictamen del comité técnico de Alvear.',
-    responsable: 'Ing. Esteban Rossi',
+    fechaUltimaActualizacion: '2026-07-20',
+    observaciones: 'Estimado enviado. Pendiente dictamen del comité técnico de Alvear.',
+    usuarioAsignado: 'user-2',
     hardwareSpecs: {
       velocidadMS: 4.0,
       paradas: 54,
       tipoSalaMaquinas: 'Con Sala de Máquinas',
       capacidadKg: 1600,
       modelo: 'Fujitec High Speed Ultra'
-    }
+    },
+    equipoIds: ['eqp-4'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-3',
@@ -155,20 +218,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Argentina',
     clienteId: 'cli-3',
     montoUSD: 1150000,
-    tipoEquipo: 'Ascensor de Pasajeros',
-    cantidadEquipos: 12,
-    estado: 'Adjudicada',
+    estado: 'Contratadas',
     fechaIngreso: '2026-01-20',
     fechaUltimaActualizacion: '2026-07-15',
     observaciones: 'Contrato firmado. Anticipo del 30% cobrado. Iniciada fabricación en planta Fujitec.',
-    responsable: 'Lic. Martín Gómez (AR/UY)',
+    usuarioAsignado: 'user-1',
     hardwareSpecs: {
       velocidadMS: 1.75,
       paradas: 16,
       tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
       capacidadKg: 800,
       modelo: 'Fujitec VIRIDIS Green'
-    }
+    },
+    equipoIds: ['eqp-2'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-4',
@@ -177,20 +240,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Uruguay',
     clienteId: 'cli-4',
     montoUSD: 490000,
-    tipoEquipo: 'Ascensor de Pasajeros',
-    cantidadEquipos: 4,
     estado: 'Cotización',
     fechaIngreso: '2026-07-02',
-    fechaUltimaActualizacion: '2026-07-14', // 14 días atrás -> ALERTA TEMPORAL >7d!
+    fechaUltimaActualizacion: '2026-07-14',
     observaciones: 'En etapa de cálculo de tráfico y layout de hueco con equipo de ingeniería Fujitec.',
-    responsable: 'Ing. Valeria Silva (UY)',
+    usuarioAsignado: 'user-2',
     hardwareSpecs: {
       velocidadMS: 2.0,
       paradas: 12,
       tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
       capacidadKg: 1000,
       modelo: 'Fujitec REXIA MRL'
-    }
+    },
+    equipoIds: ['eqp-1'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-5',
@@ -199,20 +262,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Argentina',
     clienteId: 'cli-5',
     montoUSD: 980000,
-    tipoEquipo: 'Alta Velocidad',
-    cantidadEquipos: 6,
-    estado: 'En Negociación',
+    estado: 'En estudio de proyecto',
     fechaIngreso: '2026-05-18',
-    fechaUltimaActualizacion: '2026-07-16', // 12 días atrás -> ALERTA TEMPORAL >7d!
+    fechaUltimaActualizacion: '2026-07-16',
     observaciones: 'Revisión técnica de pasadizos. Requiere ajustar velocidad a 3.0 m/s.',
-    responsable: 'Ing. Esteban Rossi',
+    usuarioAsignado: 'user-2',
     hardwareSpecs: {
       velocidadMS: 3.0,
       paradas: 38,
       tipoSalaMaquinas: 'Con Sala de Máquinas',
       capacidadKg: 1250,
       modelo: 'Fujitec High Speed Custom'
-    }
+    },
+    equipoIds: ['eqp-4'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-6',
@@ -221,20 +284,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Argentina',
     clienteId: 'cli-6',
     montoUSD: 320000,
-    tipoEquipo: 'Ascensor de Carga / Montacargas',
-    cantidadEquipos: 4,
-    estado: 'Perdida',
+    estado: 'Rechazadas',
     fechaIngreso: '2026-02-10',
     fechaUltimaActualizacion: '2026-06-01',
     observaciones: 'Perdida por precio frente a competidor local. Mantener contacto para mantenimiento futuro.',
-    responsable: 'Arq. Lucía Fernández',
+    usuarioAsignado: 'user-2',
     hardwareSpecs: {
       velocidadMS: 0.75,
       paradas: 5,
       tipoSalaMaquinas: 'Con Sala de Máquinas',
       capacidadKg: 3000,
       modelo: 'Fujitec Heavy Duty Freight'
-    }
+    },
+    equipoIds: ['eqp-3'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-7',
@@ -243,20 +306,20 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Uruguay',
     clienteId: 'cli-7',
     montoUSD: 620000,
-    tipoEquipo: 'Alta Velocidad',
-    cantidadEquipos: 5,
-    estado: 'Presentada',
+    estado: 'Estimado',
     fechaIngreso: '2026-06-11',
-    fechaUltimaActualizacion: '2026-07-27', // 1 día atrás
+    fechaUltimaActualizacion: '2026-07-27',
     observaciones: 'Presentación formal de oferta comercial en Montevideo. Excelente recepción.',
-    responsable: 'Ing. Valeria Silva (UY)',
+    usuarioAsignado: 'user-2',
     hardwareSpecs: {
       velocidadMS: 2.5,
       paradas: 22,
       tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
       capacidadKg: 1000,
       modelo: 'Fujitec ZEXIA Premium'
-    }
+    },
+    equipoIds: ['eqp-1'],
+    actividadesPorEtapa: getActividadesPorEtapa()
   },
   {
     id: 'obr-8',
@@ -265,20 +328,86 @@ export const INITIAL_OBRAS: Obra[] = [
     region: 'Argentina',
     clienteId: 'cli-3',
     montoUSD: 750000,
-    tipoEquipo: 'Ascensor de Pasajeros',
-    cantidadEquipos: 6,
-    estado: 'Adjudicada',
+    estado: 'Contratadas',
     fechaIngreso: '2026-03-01',
     fechaUltimaActualizacion: '2026-07-05',
     observaciones: 'Adjudicada exitosamente. Orden de compra recibida.',
-    responsable: 'Lic. Martín Gómez (AR/UY)',
+    usuarioAsignado: 'user-1',
     hardwareSpecs: {
       velocidadMS: 2.0,
       paradas: 20,
       tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
       capacidadKg: 1000,
       modelo: 'Fujitec ZEXIA'
-    }
+    },
+    equipoIds: ['eqp-1'],
+    actividadesPorEtapa: getActividadesPorEtapa()
+  },
+  {
+    id: 'obr-9',
+    codigo: 'A-5250',
+    nombre: 'SHOPPING ROSARIO - ESCALERAS MECÁNICAS',
+    region: 'Argentina',
+    clienteId: 'cli-6',
+    montoUSD: 420000,
+    estado: 'Estimado',
+    fechaIngreso: '2026-06-01',
+    fechaUltimaActualizacion: '2026-07-28',
+    observaciones: 'Proyecto para renovación de escaleras mecánicas. Centro comercial importante.',
+    usuarioAsignado: 'user-2',
+    hardwareSpecs: {
+      velocidadMS: 0.5,
+      paradas: 1,
+      tipoSalaMaquinas: 'Con Sala de Máquinas',
+      capacidadKg: 1500,
+      modelo: 'Fujitec Escalera Mecánica'
+    },
+    equipoIds: ['eqp-5'],
+    actividadesPorEtapa: getActividadesPorEtapa()
+  },
+  {
+    id: 'obr-10',
+    codigo: 'U-1180',
+    nombre: 'PUERTO DE MONTEVIDEO - MONTACARGAS INDUSTRIAL',
+    region: 'Uruguay',
+    clienteId: 'cli-7',
+    montoUSD: 550000,
+    estado: 'Cotización',
+    fechaIngreso: '2026-07-05',
+    fechaUltimaActualizacion: '2026-07-25',
+    observaciones: 'Montacargas para terminal de contenedores. Carga pesada, uso industrial.',
+    usuarioAsignado: 'user-2',
+    hardwareSpecs: {
+      velocidadMS: 1.5,
+      paradas: 5,
+      tipoSalaMaquinas: 'Con Sala de Máquinas',
+      capacidadKg: 3000,
+      modelo: 'Fujitec REXIA Carga'
+    },
+    equipoIds: ['eqp-3'],
+    actividadesPorEtapa: getActividadesPorEtapa()
+  },
+  {
+    id: 'obr-11',
+    codigo: 'A-5280',
+    nombre: 'HOSPITAL ITALIANO - RAMPAS ACCESIBILIDAD',
+    region: 'Argentina',
+    clienteId: 'cli-2',
+    montoUSD: 180000,
+    estado: 'En estudio de proyecto',
+    fechaIngreso: '2026-07-10',
+    fechaUltimaActualizacion: '2026-07-22',
+    observaciones: 'Proyecto de accesibilidad para hospital. Rampas fijas para sillas de ruedas.',
+    usuarioAsignado: 'user-1',
+    hardwareSpecs: {
+      velocidadMS: 0.3,
+      paradas: 1,
+      tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
+      capacidadKg: 800,
+      modelo: 'Rampa Accesibilidad'
+    },
+    equipoIds: [],
+    actividadesPorEtapa: getActividadesPorEtapa()
   }
 ];
 
@@ -316,31 +445,36 @@ export const INITIAL_CARTAS_OFERTA: CartaOferta[] = [
 export const INITIAL_EQUIPOS: Equipo[] = [
   {
     id: 'eqp-1',
-    codigoUnico: 'FJT-ZEXIA-MRL-2.5',
+    codigoUnico: 'FJT-ASC-ZEXIA-2.5',
     nombre: 'Fujitec ZEXIA MRL 2.5m/s',
-    tipo: 'Ascensor de Pasajeros',
+    tipo: 'Ascensor',
+    uso: 'Pasajeros',
     velocidadMS: 2.5,
     paradas: 20,
     tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
     capacidadKg: 1000,
+    capacidadPersonas: 8,
     modelo: 'Fujitec ZEXIA MRL'
   },
   {
     id: 'eqp-2',
-    codigoUnico: 'FJT-VIRIDIS-1.6',
+    codigoUnico: 'FJT-ASC-VIRIDIS-1.6',
     nombre: 'Fujitec VIRIDIS 1.6m/s',
-    tipo: 'Ascensor de Pasajeros',
+    tipo: 'Ascensor',
+    uso: 'Pasajeros',
     velocidadMS: 1.6,
     paradas: 15,
     tipoSalaMaquinas: 'Con Sala de Máquinas',
     capacidadKg: 1000,
+    capacidadPersonas: 8,
     modelo: 'Fujitec VIRIDIS'
   },
   {
     id: 'eqp-3',
-    codigoUnico: 'FJT-REXIA-2.0-CARGA',
+    codigoUnico: 'FJT-ASC-REXIA-CARGA',
     nombre: 'Fujitec REXIA 2.0m/s Carga',
-    tipo: 'Ascensor de Carga / Montacargas',
+    tipo: 'Ascensor',
+    uso: 'Montacargas',
     velocidadMS: 2.0,
     paradas: 10,
     tipoSalaMaquinas: 'Con Sala de Máquinas',
@@ -349,24 +483,28 @@ export const INITIAL_EQUIPOS: Equipo[] = [
   },
   {
     id: 'eqp-4',
-    codigoUnico: 'FJT-ELIGHT-3.0',
+    codigoUnico: 'FJT-ASC-ELIGHT-3.0',
     nombre: 'Fujitec ELIGHT 3.0m/s Alta Velocidad',
-    tipo: 'Alta Velocidad',
+    tipo: 'Ascensor',
+    uso: 'Alta Velocidad',
     velocidadMS: 3.0,
     paradas: 30,
     tipoSalaMaquinas: 'Con Sala de Máquinas',
     capacidadKg: 1000,
+    capacidadPersonas: 8,
     modelo: 'Fujitec ELIGHT'
   },
   {
     id: 'eqp-5',
-    codigoUnico: 'FJT-ESCALERA-1.0',
+    codigoUnico: 'FJT-ESC-MECH-0.5',
     nombre: 'Escalera Mecánica Fujitec',
-    tipo: 'Escalera Mecánica / Rampa',
+    tipo: 'Escalera',
     velocidadMS: 0.5,
     paradas: 1,
     tipoSalaMaquinas: 'Con Sala de Máquinas',
     capacidadKg: 1500,
+    ancho: 100,
+    inclinacion: 30,
     modelo: 'Fujitec Escalera Mecánica'
   }
 ];

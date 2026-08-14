@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 // Ensure build info is included in bundle
 console.log('Build version:', BUILD_VERSION);
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { DarkModeProvider } from './context/DarkModeContext';
 import { LoginScreen } from './components/LoginScreen';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -20,6 +21,7 @@ import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
 import { PantallaCartaOferta } from './components/PantallaCartaOferta';
 import { PantallaAdmin } from './components/PantallaAdmin';
 import { PantallaEquipos } from './components/PantallaEquipos';
+import { PantallaConfiguracion } from './components/PantallaConfiguracion';
 import { ModalObra } from './components/ModalObra';
 import { ModalActividad } from './components/ModalActividad';
 import { ModalCliente } from './components/ModalCliente';
@@ -33,6 +35,7 @@ import {
   FunnelStage,
   Equipo
 } from './types';
+import { logCambioEstado, logCambioUsuarioAsignado, logActividadCompletada, logEquipoAgregado, logEquipoRemovido } from './utils/sistemLog';
 import {
   INITIAL_OBRAS,
   INITIAL_CLIENTES,
@@ -42,29 +45,77 @@ import {
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
 
-const getMonthlyDataWithCurrentMonth = (baseData: typeof MONTHLY_SALES_DATA) => {
+const distributeValue = (total: number) => {
+  const baseAmount = Math.floor(total / 12);
+  const remainder = total % 12;
+  const newMeses = Array(12).fill(baseAmount);
+  for (let i = 0; i < remainder; i++) {
+    newMeses[i] += 1;
+  }
+  return newMeses;
+};
+
+const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: number) => {
   const currentMonth = new Date().getMonth();
+  const currentYearValue = new Date().getFullYear();
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-  return baseData.map((data, index) => {
-    const mesNombre = meses[index];
+  // Get budget for selected year
+  const budgetConfig = budgetConfigs.find(b => b.año === selectedYear);
+
+  if (!budgetConfig) {
+    // Default budget if year not found
+    const defaultMonto = 8500000;
+    const defaultUnidades = 80;
+    return Array.from({ length: 12 }, (_, i) => ({
+      mes: meses[i] + (i === currentMonth && selectedYear === currentYearValue ? ' (YTD)' : i > currentMonth && selectedYear === currentYearValue ? ' (Proy)' : ''),
+      ventasRealesUSD: 0,
+      ventasAcumuladasUSD: 0,
+      planAcumuladoUSD: Math.round((defaultMonto / 12) * (i + 1)),
+      equiposVendidos: 0,
+      equiposPlan: Math.round((defaultUnidades / 12) * (i + 1))
+    }));
+  }
+
+  const mesesUSD = budgetConfig.mesesUSD || Array(12).fill(budgetConfig.montoAnualUSD / 12);
+  const unidadesMeses = budgetConfig.unidadesMeses || Array(12).fill(budgetConfig.unidadesAnual / 12);
+
+  const monthlyData = [];
+  let planAcumulado = 0;
+  let equiposPlanAcumulados = 0;
+
+  for (let i = 0; i < 12; i++) {
+    const mesNombre = meses[i];
     let label = mesNombre;
 
-    if (index === currentMonth) {
-      label = `${mesNombre} (YTD)`;
-    } else if (index > currentMonth) {
-      label = `${mesNombre} (Proy)`;
+    if (selectedYear === currentYearValue) {
+      if (i === currentMonth) {
+        label = `${mesNombre} (YTD)`;
+      } else if (i > currentMonth) {
+        label = `${mesNombre} (Proy)`;
+      }
     }
 
-    return {
-      ...data,
-      mes: label
-    };
-  });
+    planAcumulado += mesesUSD[i] || 0;
+    equiposPlanAcumulados += Math.round(unidadesMeses[i] || 0);
+
+    monthlyData.push({
+      mes: label,
+      ventasRealesUSD: 0,
+      ventasAcumuladasUSD: 0,
+      planAcumuladoUSD: planAcumulado,
+      equiposVendidos: 0,
+      equiposPlan: equiposPlanAcumulados
+    });
+  }
+
+  return monthlyData;
 };
 
 function AppContent() {
-  const { usuarioActual } = useAuth();
+  const { usuarioActual, usuarios: usuariosAuth } = useAuth();
+  const getNombreUsuario = (usuarioId?: string): string =>
+    usuariosAuth.find((u) => u.id === usuarioId)?.nombre || 'Sin asignar';
 
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -87,9 +138,9 @@ function AppContent() {
     {
       año: new Date().getFullYear(),
       montoAnualUSD: 8500000,
-      mesesUSD: Array(12).fill(708333),
+      mesesUSD: distributeValue(8500000),
       unidadesAnual: 80,
-      unidadesMeses: Array(12).fill(7),
+      unidadesMeses: distributeValue(80),
       rentabilidadPorcentaje: 22
     }
   ]);
@@ -102,9 +153,17 @@ function AppContent() {
   const [selectedObraForActividad, setSelectedObraForActividad] = useState<Obra | null>(null);
   const [isModalClienteOpen, setIsModalClienteOpen] = useState<boolean>(false);
   const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
+  const [isConfiguracionOpen, setIsConfiguracionOpen] = useState<boolean>(false);
 
   // Count total obras requiring temporal alert (> 7 days without update)
   const alertaCount = obras.filter((o) => tieneAlertaTemporal(o)).length;
+
+  // Keep modal-displayed obras in sync with live `obras` state (avoids stale checkboxes/data
+  // after toggling an activity or other in-place update while the modal is open)
+  const editingObraLive = editingObra ? obras.find((o) => o.id === editingObra.id) || editingObra : null;
+  const selectedObraForActividadLive = selectedObraForActividad
+    ? obras.find((o) => o.id === selectedObraForActividad.id) || selectedObraForActividad
+    : null;
 
   // Handlers
   const handleOpenNewObraModal = () => {
@@ -124,27 +183,19 @@ function AppContent() {
 
       if (exists) {
         const obraAnterior = prev.find((o) => o.id === savedObra.id);
-        if (obraAnterior) {
-          const existingLogs = obraAnterior.etapaLogs || [];
-
-          if (obraAnterior.estado !== savedObra.estado && usuarioActual) {
-            const hoyISO = new Date().toISOString().split('T')[0];
-            const nuevoLog = {
-              id: `log-${Date.now()}`,
-              etapa: savedObra.estado,
-              fechaCambio: hoyISO,
-              usuarioId: usuarioActual.id,
-              accion: 'cambio_etapa' as const
-            };
-            obraFinal = {
-              ...savedObra,
-              etapaLogs: [...existingLogs, nuevoLog]
-            };
-          } else {
-            obraFinal = {
-              ...savedObra,
-              etapaLogs: existingLogs
-            };
+        if (obraAnterior && usuarioActual) {
+          // Log estado changes
+          if (obraAnterior.estado !== savedObra.estado) {
+            obraFinal = logCambioEstado(obraFinal, obraAnterior.estado, savedObra.estado, usuarioActual.nombre, 'dropdown');
+          }
+          // Log usuario assignment changes
+          if (obraAnterior.usuarioAsignado !== savedObra.usuarioAsignado) {
+            obraFinal = logCambioUsuarioAsignado(
+              obraFinal,
+              getNombreUsuario(obraAnterior.usuarioAsignado),
+              getNombreUsuario(savedObra.usuarioAsignado),
+              usuarioActual.nombre
+            );
           }
         }
         return prev.map((o) => (o.id === savedObra.id ? obraFinal : o));
@@ -155,23 +206,16 @@ function AppContent() {
   };
 
   const handleUpdateObraState = (obraId: string, nuevoEstado: FunnelStage) => {
-    const hoyISO = new Date().toISOString().split('T')[0];
     setObras((prev) =>
       prev.map((o: Obra) => {
-        if (o.id === obraId && usuarioActual) {
-          const nuevoLog = {
-            id: `log-${Date.now()}`,
-            etapa: nuevoEstado,
-            fechaCambio: hoyISO,
-            usuarioId: usuarioActual.id,
-            accion: 'cambio_etapa' as const
-          };
-          return {
-            ...o,
+        if (o.id === obraId && usuarioActual && o.estado !== nuevoEstado) {
+          let obraLogged = logCambioEstado(o, o.estado, nuevoEstado, usuarioActual.nombre, 'dropdown');
+          obraLogged = {
+            ...obraLogged,
             estado: nuevoEstado,
-            fechaUltimaActualizacion: hoyISO,
-            etapaLogs: [...(o.etapaLogs || []), nuevoLog]
+            fechaUltimaActualizacion: new Date().toISOString().split('T')[0]
           };
+          return obraLogged;
         }
         return o;
       })
@@ -189,11 +233,6 @@ function AppContent() {
 
   const handleSaveCartaOferta = (nuevaCarta: CartaOferta) => {
     setCartasOferta((prev) => [nuevaCarta, ...prev]);
-    // Also update Obra stage to 'Presentada' if it was in 'Cotización'
-    const obraTarget = obras.find((o) => o.id === nuevaCarta.obraId);
-    if (obraTarget && obraTarget.estado === 'Cotización') {
-      handleUpdateObraState(obraTarget.id, 'Presentada');
-    }
   };
 
   const handleNavigateToObra = (obraId: string) => {
@@ -204,7 +243,7 @@ function AppContent() {
     setActiveTab('obras');
   };
 
-  const handleAddActividad = (obraId: string, descripcion: string) => {
+  const handleAddActividad = (obraId: string, descripcion: string, reseteaDias: boolean = false) => {
     setObras((prev) => {
       const updated = prev.map((o) => {
         if (o.id === obraId) {
@@ -215,18 +254,21 @@ function AppContent() {
             fecha: hoy,
             autor: usuarioActual?.nombre || 'Usuario'
           };
-          const newLog = usuarioActual ? {
-            id: `log-${Date.now()}`,
-            etapa: o.estado,
-            fechaCambio: hoy,
-            usuarioId: usuarioActual.id,
-            accion: 'nota_agregada' as const
-          } : null;
-          return {
+
+          let updatedObra = {
             ...o,
-            actividades: [newActividad, ...(o.actividades || [])],
-            etapaLogs: newLog ? [...(o.etapaLogs || []), newLog] : o.etapaLogs
+            actividades: [newActividad, ...(o.actividades || [])]
           };
+
+          // If reseteaDias is true, reset the action counter
+          if (reseteaDias && usuarioActual) {
+            updatedObra = {
+              ...updatedObra,
+              fechaUltimaActualizacion: hoy
+            };
+          }
+
+          return updatedObra;
         }
         return o;
       });
@@ -239,6 +281,60 @@ function AppContent() {
       }
       return updated;
     });
+  };
+
+  const handleToggleActividad = (obraId: string, actividadId: string, completada: boolean) => {
+    setObras((prev) =>
+      prev.map((o) => {
+        if (o.id === obraId && usuarioActual) {
+          let obraLogged = o;
+          const actividad = o.actividadesPorEtapa?.find((a) => a.id === actividadId);
+          if (actividad) {
+            obraLogged = logActividadCompletada(o, actividad.descripcion, o.estado, completada, usuarioActual.nombre);
+          }
+
+          return {
+            ...obraLogged,
+            actividadesPorEtapa: (obraLogged.actividadesPorEtapa || []).map((a) =>
+              a.id === actividadId
+                ? {
+                    ...a,
+                    completada,
+                    fechaCompletada: completada ? new Date().toISOString().slice(0, 19).replace('T', ' ') : undefined,
+                    completadaPor: completada ? usuarioActual.nombre : undefined
+                  }
+                : a
+            ),
+            fechaUltimaActualizacion: completada ? new Date().toISOString().split('T')[0] : o.fechaUltimaActualizacion
+          };
+        }
+        return o;
+      })
+    );
+  };
+
+  // Agrega/quita equipos de una obra (usado desde la Ficha de Cliente y desde ModalObra)
+  // con log de auditoría por cada alta/baja individual.
+  const handleUpdateObraEquipos = (obraId: string, nuevosEquipoIds: string[]) => {
+    setObras((prev) =>
+      prev.map((o) => {
+        if (o.id !== obraId || !usuarioActual) return o;
+        const anteriores = o.equipoIds || [];
+        const agregados = nuevosEquipoIds.filter((id) => !anteriores.includes(id));
+        const quitados = anteriores.filter((id) => !nuevosEquipoIds.includes(id));
+
+        let obraLogged: Obra = { ...o, equipoIds: nuevosEquipoIds };
+        agregados.forEach((id) => {
+          const eq = equipos.find((e) => e.id === id);
+          if (eq) obraLogged = logEquipoAgregado(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+        });
+        quitados.forEach((id) => {
+          const eq = equipos.find((e) => e.id === id);
+          if (eq) obraLogged = logEquipoRemovido(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+        });
+        return obraLogged;
+      })
+    );
   };
 
   const handleEditClienteContacts = (cliente: Cliente) => {
@@ -255,6 +351,11 @@ function AppContent() {
         return [...prev, config];
       }
     });
+  };
+
+  const handleSaveDiasConfig = (config: any) => {
+    // For now, just close the modal - in a real app, this would persist to backend
+    setIsConfiguracionOpen(false);
   };
 
   const handleSaveEquipo = (equipo: Equipo) => {
@@ -278,7 +379,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F1F3F5] font-sans text-[#2D3436] overflow-hidden">
+    <div className="flex h-screen bg-[#F1F3F5] dark:bg-[#1A1F22] font-sans text-[#2D3436] dark:text-[#F1F3F5] overflow-hidden transition-colors">
       {/* Sidebar Navigation */}
       <div className="print:hidden">
         <Sidebar
@@ -306,6 +407,7 @@ function AppContent() {
             selectedYear={selectedYear}
             setSelectedYear={setSelectedYear}
             onClickAlertaBadge={handleClickAlertaBadge}
+            onOpenConfig={() => setIsConfiguracionOpen(true)}
           />
         </div>
 
@@ -314,7 +416,7 @@ function AppContent() {
           {activeTab === 'dashboard' && (
             <PantallaDashboard
               obras={obras}
-              monthlyData={getMonthlyDataWithCurrentMonth(MONTHLY_SALES_DATA)}
+              monthlyData={generateMonthlyDataFromBudget(budgetConfigs, selectedYear)}
               selectedRegion={selectedRegion}
               selectedEquipmentType={selectedEquipmentType}
               searchQuery={searchQuery}
@@ -331,6 +433,8 @@ function AppContent() {
           {activeTab === 'obras' && (
             <PantallaObrasFunnel
               obras={obras}
+              equipos={equipos}
+              clientes={clientes}
               selectedRegion={selectedRegion}
               selectedEquipmentType={selectedEquipmentType}
               searchQuery={searchQuery}
@@ -352,6 +456,8 @@ function AppContent() {
             <PantallaFichaRelacional
               clientes={clientes}
               obras={obras}
+              equipos={equipos}
+              onUpdateObraEquipos={handleUpdateObraEquipos}
               selectedRegion={selectedRegion}
               searchQuery={searchQuery}
               onSelectObraForOffer={handleGenerarOferta}
@@ -377,8 +483,11 @@ function AppContent() {
           {activeTab === 'equipos' && (
             <PantallaEquipos
               equipos={equipos}
+              obras={obras}
+              clientes={clientes}
               onSaveEquipo={handleSaveEquipo}
               onDeleteEquipo={handleDeleteEquipo}
+              onUpdateObraEquipos={handleUpdateObraEquipos}
             />
           )}
 
@@ -401,21 +510,24 @@ function AppContent() {
         onSaveObra={handleSaveObra}
         clientes={clientes}
         equipos={equipos}
-        editingObra={editingObra}
+        obras={obras}
+        editingObra={editingObraLive}
         proximoCodigoObra={proximoCodigoObra}
         onUpdateProximoCodigo={setProximoCodigoObra}
         onOpenViewActividades={(obra) => {
           setSelectedObraForActividad(obra);
           setIsModalActividadOpen(true);
         }}
+        onToggleActividad={handleToggleActividad}
+        onUpdateObraEquipos={handleUpdateObraEquipos}
       />
 
       {/* Actividad Modal */}
-      {selectedObraForActividad && (
+      {selectedObraForActividadLive && (
         <ModalActividad
           isOpen={isModalActividadOpen}
           onClose={() => setIsModalActividadOpen(false)}
-          obra={selectedObraForActividad}
+          obra={selectedObraForActividadLive}
           onAddActividad={handleAddActividad}
         />
       )}
@@ -434,6 +546,14 @@ function AppContent() {
           }}
         />
       )}
+
+      {/* Configuración Panel (Superadmin only) */}
+      <PantallaConfiguracion
+        isOpen={isConfiguracionOpen}
+        onClose={() => setIsConfiguracionOpen(false)}
+        onSaveDiasConfig={handleSaveDiasConfig}
+        onSaveBudgetConfig={handleSaveBudgetConfig}
+      />
     </div>
   );
 }
@@ -451,7 +571,9 @@ function AppWithAuth() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppWithAuth />
+      <DarkModeProvider>
+        <AppWithAuth />
+      </DarkModeProvider>
     </AuthProvider>
   );
 }

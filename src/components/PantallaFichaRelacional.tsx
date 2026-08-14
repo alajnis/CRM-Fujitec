@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Users,
-  Cpu,
   Search,
   Plus,
   Mail,
@@ -11,45 +10,98 @@ import {
   FileSpreadsheet,
   Check,
   ChevronRight,
-  Gauge,
-  Layers,
-  ShieldCheck,
-  Zap,
-  ArrowRight,
+  ChevronDown,
   UserPlus,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  X
 } from 'lucide-react';
-import { Cliente, Obra, HardwareSpecs, Region } from '../types';
+import { Cliente, Obra, Equipo, Region } from '../types';
 import { formatUSD } from '../utils/semaforo';
+import { contarEquiposPorTipo, obtenerObraDeEquipo } from '../utils/equipoUtils';
+import { SoftDeleteConfirm } from './SoftDeleteConfirm';
+import { ModalAsignarObrasACliente } from './ModalAsignarObrasACliente';
+import { useAuth } from '../context/AuthContext';
 
 interface PantallaFichaRelacionalProps {
   clientes: Cliente[];
   obras: Obra[];
+  equipos?: Equipo[];
   selectedRegion: Region;
   searchQuery?: string;
   onSelectObraForOffer: (obra: Obra) => void;
   onSaveCliente: (cliente: Cliente) => void;
   onOpenEditClienteContacts?: (cliente: Cliente) => void;
   onOpenViewActividades?: (obra: Obra) => void;
+  onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
 }
 
 export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = ({
   clientes,
   obras,
+  equipos = [],
   selectedRegion,
   searchQuery: globalSearchQuery = '',
   onSelectObraForOffer,
   onSaveCliente,
   onOpenEditClienteContacts,
-  onOpenViewActividades
+  onOpenViewActividades,
+  onUpdateObraEquipos
 }) => {
-  const [activeTab, setActiveTab] = useState<'clientes' | 'hardware'>('clientes');
+  const { isSuperuser } = useAuth();
+
   const [selectedClienteId, setSelectedClienteId] = useState<string>(clientes[0]?.id || '');
   const [localSearchQuery, setLocalSearchQuery] = useState<string>('');
   const searchQuery = globalSearchQuery || localSearchQuery;
 
   // Modal State for New Client
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+
+  // Soft delete state
+  const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  // Modal para asignar obras
+  const [isAsignarObrasModalOpen, setIsAsignarObrasModalOpen] = useState(false);
+
+  // Acordeón de equipos por obra (relacional Cliente → Obra → Equipos)
+  const [expandedObraId, setExpandedObraId] = useState<string | null>(null);
+  const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
+
+  const tipoIcono: Record<string, string> = {
+    'Ascensor': '🛗',
+    'Escalera': '🪜',
+    'Rampa': '♿'
+  };
+
+  const toggleExpandObra = (obraId: string) => {
+    setExpandedObraId(prev => (prev === obraId ? null : obraId));
+    setEquipoSearchQuery('');
+  };
+
+  const handleAddEquipoAObra = (obra: Obra, equipoId: string) => {
+    if (!onUpdateObraEquipos) return;
+    const actuales = obra.equipoIds || [];
+    if (actuales.includes(equipoId)) return;
+
+    const equipo = equipos.find(e => e.id === equipoId);
+    const obraActual = obtenerObraDeEquipo(equipoId, obras, obra.id);
+    if (obraActual && equipo) {
+      const confirmado = window.confirm(
+        `Este equipo ya está asignado a ${obraActual.codigo} - ${obraActual.nombre}.\n\nUn equipo solo puede estar en una obra a la vez. ¿Confirmás moverlo a esta obra?`
+      );
+      if (!confirmado) return;
+      onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter(id => id !== equipoId));
+    }
+    onUpdateObraEquipos(obra.id, [...actuales, equipoId]);
+    setEquipoSearchQuery('');
+  };
+
+  const handleRemoveEquipoDeObra = (obra: Obra, equipoId: string) => {
+    if (!onUpdateObraEquipos) return;
+    onUpdateObraEquipos(obra.id, (obra.equipoIds || []).filter(id => id !== equipoId));
+  };
+
   const [newClienteForm, setNewClienteForm] = useState<Partial<Cliente>>({
     razonSocial: '',
     contactoPrincipal: '',
@@ -74,17 +126,6 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
 
   const activeCliente = clientes.find((c) => c.id === selectedClienteId) || clientes[0];
   const activeClienteObras = activeCliente ? obras.filter((o) => o.clienteId === activeCliente.id) : [];
-
-  const filteredObras = obras.filter((o) => {
-    const matchRegion = selectedRegion === 'Todas' || o.region === selectedRegion;
-    const q = searchQuery.toLowerCase();
-    const matchQ = !q ||
-      o.codigo.toLowerCase().includes(q) ||
-      o.nombre.toLowerCase().includes(q) ||
-      o.hardwareSpecs.modelo.toLowerCase().includes(q) ||
-      o.responsable.toLowerCase().includes(q);
-    return matchRegion && matchQ;
-  });
 
   const isValidEmail = (email: string): boolean => {
     if (!email || email.trim() === '') return false;
@@ -136,37 +177,14 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
 
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
-      {/* Top Tab Switcher: Bloque Clientes vs Bloque Equipos (Ficha Hardware) */}
+      {/* Header: Directorio de Clientes */}
       <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-5 border border-[#E0E0E0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex bg-[#F1F3F5] p-1.5 rounded-xl border border-[#E0E0E0]">
-          <button
-            onClick={() => setActiveTab('clientes')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeTab === 'clientes'
-                ? 'bg-white text-[#2D3436] shadow-xs border border-[#E0E0E0]'
-                : 'text-[#636E72] hover:text-[#2D3436]'
-            }`}
-            id="btn-tab-clientes"
-          >
-            <Users size={16} className={activeTab === 'clientes' ? 'text-[#C8102E]' : ''} />
-            <span>Bloque Clientes (Directorio)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('hardware')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeTab === 'hardware'
-                ? 'bg-white text-[#2D3436] shadow-xs border border-[#E0E0E0]'
-                : 'text-[#636E72] hover:text-[#2D3436]'
-            }`}
-            id="btn-tab-hardware"
-          >
-            <Cpu size={16} className={activeTab === 'hardware' ? 'text-[#C8102E]' : ''} />
-            <span>Bloque Equipos (Ficha de Hardware)</span>
-          </button>
+        <div className="flex items-center gap-2 px-4 py-2">
+          <Users size={16} className="text-[#C8102E]" />
+          <span className="text-xs font-bold text-[#2D3436]">Directorio de Clientes</span>
         </div>
 
-        {activeTab === 'clientes' && (
+        {true && (
           <button
             onClick={() => setIsNewClientModalOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white font-bold text-xs shadow-sm transition-all hover:brightness-110"
@@ -180,7 +198,7 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
       </div>
 
       {/* BLOQUE 1: FICHA CLIENTES RELACIONAL */}
-      {activeTab === 'clientes' && (
+      {true && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Column: Client List Selector */}
           <div className="md:col-span-4 bg-white/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] shadow-sm p-5 space-y-4">
@@ -247,7 +265,16 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                       CUIT/RUT: {activeCliente.cuitRut} | Región: {activeCliente.region}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    <button
+                      onClick={() => setIsAsignarObrasModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26] flex items-center gap-1.5"
+                      style={{ backgroundColor: '#C8102E' }}
+                      id="btn-asignar-obras"
+                    >
+                      <Plus size={14} />
+                      Asignar Obras
+                    </button>
                     {onOpenEditClienteContacts && (
                       <button
                         onClick={() => onOpenEditClienteContacts(activeCliente)}
@@ -257,6 +284,19 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                       >
                         <UserPlus size={14} />
                         Editar Contactos
+                      </button>
+                    )}
+                    {isSuperuser() && (
+                      <button
+                        onClick={() => {
+                          setClienteToDelete(activeCliente);
+                          setIsDeleteConfirmOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs shadow-2xs transition-all flex items-center gap-1.5"
+                        id="btn-eliminar-cliente"
+                      >
+                        <Trash2 size={14} />
+                        Eliminar Cliente
                       </button>
                     )}
                     <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#2D3436] text-white shadow-2xs">
@@ -294,6 +334,41 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                   </div>
                 </div>
 
+                {/* Secondary Contacts Section */}
+                {activeCliente.contactos && activeCliente.contactos.length > 0 && (
+                  <div className="space-y-3 pt-4 border-t border-[#F1F3F5]">
+                    <h3 className="text-sm font-extrabold text-[#2D3436] flex items-center gap-2">
+                      <Users size={16} className="text-[#C8102E]" />
+                      Contactos Secundarios
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {activeCliente.contactos.map((contacto, idx) => (
+                        <div key={idx} className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-2 shadow-2xs">
+                          <div>
+                            <p className="text-xs font-bold text-blue-900 uppercase tracking-wide">Contacto {idx + 2}</p>
+                            <p className="text-sm font-extrabold text-[#2D3436]">{contacto.nombre}</p>
+                            <p className="text-xs text-[#636E72] font-medium">{contacto.cargo}</p>
+                          </div>
+                          <div className="space-y-1 text-xs text-[#2D3436]">
+                            {contacto.email && (
+                              <div className="flex items-center gap-1.5">
+                                <Mail size={12} className="text-blue-600" />
+                                <a href={`mailto:${contacto.email}`} className="hover:underline text-[#C8102E]">{contacto.email}</a>
+                              </div>
+                            )}
+                            {contacto.telefono && (
+                              <div className="flex items-center gap-1.5">
+                                <Phone size={12} className="text-blue-600" />
+                                <span>{contacto.telefono}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Linked Obras Section */}
                 <div className="space-y-3 pt-2">
                   <h3 className="text-sm font-extrabold text-[#2D3436] flex items-center justify-between border-b border-[#F1F3F5] pb-2">
@@ -309,49 +384,162 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {activeClienteObras.map((obra) => (
-                        <div key={obra.id} className="p-4 rounded-xl border border-[#E0E0E0] bg-white hover:bg-[#F1F3F5]/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-black text-[#C8102E] text-xs">{obra.codigo}</span>
-                              <span className="font-extrabold text-[#2D3436] text-sm">{obra.nombre}</span>
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F1F3F5] text-[#2D3436] border border-[#E0E0E0]">
-                                {obra.estado}
-                              </span>
-                            </div>
-                            <div className="text-xs text-[#636E72] font-medium">
-                              Equipos: {obra.cantidadEquipos}x {obra.hardwareSpecs.modelo} ({obra.hardwareSpecs.velocidadMS} m/s, {obra.hardwareSpecs.paradas} paradas, {obra.hardwareSpecs.capacidadKg} kg)
-                            </div>
-                          </div>
+                      {activeClienteObras.map((obra) => {
+                        const equipoIdsObra = obra.equipoIds || [];
+                        const counts = contarEquiposPorTipo(obra, equipos);
+                        const totalEquipos = counts.ascensores + counts.escaleras + counts.rampas;
+                        const isExpanded = expandedObraId === obra.id;
+                        const equiposDisponibles = equipos.filter((eq) =>
+                          !equipoIdsObra.includes(eq.id) &&
+                          !eq.isDeleted &&
+                          (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+                            eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+                            eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
+                        );
 
-                          <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <span className="font-black text-[#2D3436] text-sm whitespace-nowrap">
-                              {formatUSD(obra.montoUSD)}
-                            </span>
-                            {onOpenViewActividades && (
-                              <button
-                                onClick={() => onOpenViewActividades(obra)}
-                                className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-blue-600 flex items-center gap-1.5"
-                                style={{ backgroundColor: '#2D3436' }}
-                                id={`btn-ver-actividades-${obra.id}`}
-                                title="Ver notas y actividades"
-                              >
-                                <MessageSquare size={14} />
-                                Notas
-                              </button>
+                        return (
+                          <div key={obra.id} className="rounded-xl border border-[#E0E0E0] bg-white shadow-2xs overflow-hidden">
+                            <div className="p-4 hover:bg-[#F1F3F5]/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="space-y-1.5 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono font-black text-[#C8102E] text-xs">{obra.codigo}</span>
+                                  <span className="font-extrabold text-[#2D3436] text-sm">{obra.nombre}</span>
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F1F3F5] text-[#2D3436] border border-[#E0E0E0]">
+                                    {obra.estado}
+                                  </span>
+                                </div>
+                                {/* Equipment summary + expand toggle */}
+                                <button
+                                  onClick={() => toggleExpandObra(obra.id)}
+                                  className="flex items-center gap-2 text-xs font-semibold text-[#636E72] hover:text-[#C8102E] transition-colors"
+                                  id={`btn-toggle-equipos-${obra.id}`}
+                                >
+                                  {totalEquipos === 0 ? (
+                                    <span className="italic text-[#B2BEC3]">Sin equipos asignados</span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      {counts.ascensores > 0 && <span>🛗 {counts.ascensores}</span>}
+                                      {counts.escaleras > 0 && <span>🪜 {counts.escaleras}</span>}
+                                      {counts.rampas > 0 && <span>♿ {counts.rampas}</span>}
+                                    </span>
+                                  )}
+                                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                  <span>{isExpanded ? 'Ocultar equipos' : 'Ver / gestionar equipos'}</span>
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap justify-end">
+                                <span className="font-black text-[#2D3436] text-sm whitespace-nowrap">
+                                  {formatUSD(obra.montoUSD)}
+                                </span>
+                                {onOpenViewActividades && (
+                                  <button
+                                    onClick={() => onOpenViewActividades(obra)}
+                                    className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-blue-600 flex items-center gap-1.5"
+                                    style={{ backgroundColor: '#2D3436' }}
+                                    id={`btn-ver-actividades-${obra.id}`}
+                                    title="Ver notas y actividades"
+                                  >
+                                    <MessageSquare size={14} />
+                                    Notas
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => onSelectObraForOffer(obra)}
+                                  className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs flex items-center gap-1 transition-all hover:bg-[#A60D26]"
+                                  style={{ backgroundColor: '#C8102E' }}
+                                  id={`btn-generar-oferta-relacional-${obra.id}`}
+                                >
+                                  <span>Oferta</span>
+                                  <ChevronRight size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Expanded: Equipos de la obra */}
+                            {isExpanded && (
+                              <div className="border-t border-[#F1F3F5] bg-[#F8F9FA] p-4 space-y-3">
+                                {equipoIdsObra.length === 0 ? (
+                                  <p className="text-[11px] text-[#B2BEC3] italic">Todavía no hay equipos vinculados a esta obra.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {equipoIdsObra.map((equipoId) => {
+                                      const eq = equipos.find((e) => e.id === equipoId);
+                                      if (!eq) return null;
+                                      return (
+                                        <div key={equipoId} className="flex items-center justify-between gap-2 p-2.5 bg-white rounded-lg border border-[#E0E0E0]">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="text-base shrink-0">{tipoIcono[eq.tipo] || '⚙️'}</span>
+                                            <div className="min-w-0">
+                                              <p className="font-bold text-[#2D3436] text-xs truncate">{eq.nombre}</p>
+                                              <p className="text-[10px] text-[#636E72] truncate">{eq.codigoUnico} · {eq.modelo}</p>
+                                            </div>
+                                          </div>
+                                          {onUpdateObraEquipos && (
+                                            <button
+                                              onClick={() => handleRemoveEquipoDeObra(obra, equipoId)}
+                                              className="p-1.5 text-[#636E72] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                                              title="Quitar equipo de la obra"
+                                            >
+                                              <X size={14} />
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {onUpdateObraEquipos && (
+                                  <div className="pt-2 border-t border-[#E0E0E0] space-y-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar equipo por nombre, modelo o código..."
+                                      value={equipoSearchQuery}
+                                      onChange={(e) => setEquipoSearchQuery(e.target.value)}
+                                      className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg text-xs font-medium text-[#2D3436] focus:outline-none focus:border-[#C8102E]"
+                                    />
+                                    {equipoSearchQuery && (
+                                      <div className="max-h-40 overflow-y-auto space-y-1">
+                                        {equiposDisponibles.length === 0 ? (
+                                          <p className="text-[11px] text-[#B2BEC3] italic p-1">Sin resultados</p>
+                                        ) : (
+                                          equiposDisponibles.slice(0, 8).map((eq) => {
+                                            const obraDeEquipo = obtenerObraDeEquipo(eq.id, obras, obra.id);
+                                            return (
+                                            <button
+                                              key={eq.id}
+                                              onClick={() => handleAddEquipoAObra(obra, eq.id)}
+                                              className="w-full flex items-center justify-between gap-2 p-2 bg-white hover:bg-blue-50 rounded-lg border border-[#E0E0E0] transition-colors text-left"
+                                            >
+                                              <div className="flex items-center gap-2 min-w-0">
+                                                <span className="text-base shrink-0">{tipoIcono[eq.tipo] || '⚙️'}</span>
+                                                <div className="min-w-0">
+                                                  <p className="font-bold text-[#2D3436] text-xs truncate">{eq.nombre}</p>
+                                                  <p className="text-[10px] text-[#636E72] truncate">
+                                                    {eq.codigoUnico} · {eq.modelo}
+                                                    {obraDeEquipo && (
+                                                      <span className="ml-1.5 text-amber-700 font-bold">⚠️ En {obraDeEquipo.codigo}</span>
+                                                    )}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                              <span className="text-[10px] font-bold text-[#C8102E] shrink-0">
+                                                {obraDeEquipo ? 'Mover acá' : '+ Agregar'}
+                                              </span>
+                                            </button>
+                                            );
+                                          })
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             )}
-                            <button
-                              onClick={() => onSelectObraForOffer(obra)}
-                              className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs flex items-center gap-1 transition-all hover:bg-[#A60D26]"
-                              style={{ backgroundColor: '#C8102E' }}
-                              id={`btn-generar-oferta-relacional-${obra.id}`}
-                            >
-                              <span>Oferta</span>
-                              <ChevronRight size={14} />
-                            </button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -361,88 +549,6 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                 Seleccione un cliente para ver sus datos relacionales
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* BLOQUE 2: FICHA DE HARDWARE (ESPECIFICACIONES TÉCNICAS DE EQUIPOS) */}
-      {activeTab === 'hardware' && (
-        <div className="space-y-6">
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm space-y-2">
-            <h3 className="text-base font-extrabold text-[#2D3436] flex items-center gap-2">
-              <Cpu size={18} style={{ color: '#C8102E' }} />
-              Especificaciones Técnicas Críticas de Hardware (Modelos Fujitec)
-            </h3>
-            <p className="text-xs text-[#636E72] font-medium">
-              Configuraciones estándar de ascensores y montacargas asignadas a las obras en cartera
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredObras.map((obra) => {
-              const spec = obra.hardwareSpecs;
-              return (
-                <div key={obra.id} className="bg-white/90 backdrop-blur-md rounded-2xl p-5 border border-[#E0E0E0] shadow-xs space-y-4 relative overflow-hidden">
-                  <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3">
-                    <div>
-                      <span className="font-mono font-black text-xs text-[#C8102E]">{obra.codigo}</span>
-                      <h4 className="font-extrabold text-[#2D3436] text-sm">{obra.nombre}</h4>
-                    </div>
-                    <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#F1F3F5] text-[#2D3436] border border-[#E0E0E0]">
-                      {obra.cantidadEquipos} Unidades
-                    </span>
-                  </div>
-
-                  {/* Hardware Spec Badges Grid */}
-                  <div className="space-y-2.5">
-                    <div className="text-xs font-black text-[#2D3436] bg-red-50 p-2.5 rounded-xl border border-red-200">
-                      Modelo: {spec.modelo}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      <div className="p-3 bg-[#F1F3F5]/80 rounded-xl border border-[#E0E0E0] space-y-0.5">
-                        <span className="text-[10px] text-[#B2BEC3] font-black uppercase flex items-center gap-1">
-                          <Gauge size={12} /> Velocidad
-                        </span>
-                        <p className="font-extrabold text-[#2D3436]">{spec.velocidadMS} m/s</p>
-                      </div>
-
-                      <div className="p-3 bg-[#F1F3F5]/80 rounded-xl border border-[#E0E0E0] space-y-0.5">
-                        <span className="text-[10px] text-[#B2BEC3] font-black uppercase flex items-center gap-1">
-                          <Layers size={12} /> Paradas
-                        </span>
-                        <p className="font-extrabold text-[#2D3436]">{spec.paradas} paradas</p>
-                      </div>
-
-                      <div className="p-3 bg-[#F1F3F5]/80 rounded-xl border border-[#E0E0E0] space-y-0.5">
-                        <span className="text-[10px] text-[#B2BEC3] font-black uppercase flex items-center gap-1">
-                          <Zap size={12} /> Máquinas
-                        </span>
-                        <p className="font-extrabold text-[#2D3436] truncate">{spec.tipoSalaMaquinas}</p>
-                      </div>
-
-                      <div className="p-3 bg-[#F1F3F5]/80 rounded-xl border border-[#E0E0E0] space-y-0.5">
-                        <span className="text-[10px] text-[#B2BEC3] font-black uppercase flex items-center gap-1">
-                          <ShieldCheck size={12} /> Capacidad
-                        </span>
-                        <p className="font-extrabold text-[#2D3436]">{spec.capacidadKg} kg</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-[#F1F3F5] pt-3 flex items-center justify-between text-xs">
-                    <span className="text-[#636E72] font-medium">Estado: <strong className="text-[#2D3436]">{obra.estado}</strong></span>
-                    <button
-                      onClick={() => onSelectObraForOffer(obra)}
-                      className="font-bold text-[#C8102E] hover:underline flex items-center gap-0.5"
-                      id={`btn-espec-oferta-${obra.id}`}
-                    >
-                      Generar Carta <ArrowRight size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
@@ -507,9 +613,10 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2D3436] mb-1">Correo Electrónico</label>
+                  <label className="block font-bold text-[#2D3436] mb-1">Correo Electrónico *</label>
                   <input
                     type="email"
+                    required
                     placeholder="contacto@empresa.com"
                     value={newClienteForm.email}
                     onChange={(e) => setNewClienteForm({...newClienteForm, email: e.target.value})}
@@ -517,9 +624,10 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#2D3436] mb-1">Teléfono</label>
+                  <label className="block font-bold text-[#2D3436] mb-1">Teléfono *</label>
                   <input
                     type="text"
+                    required
                     placeholder="+54 11 4000-0000"
                     value={newClienteForm.telefono}
                     onChange={(e) => setNewClienteForm({...newClienteForm, telefono: e.target.value})}
@@ -585,6 +693,44 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
           </div>
         </div>
       )}
+
+      {/* Modal para Asignar Obras */}
+      {activeCliente && (
+        <ModalAsignarObrasACliente
+          isOpen={isAsignarObrasModalOpen}
+          onClose={() => setIsAsignarObrasModalOpen(false)}
+          cliente={activeCliente}
+          obras={obras}
+          clientes={clientes}
+          onAsignarObras={(clienteId, obraIds) => {
+            obraIds.forEach(obraId => {
+              const obra = obras.find(o => o.id === obraId);
+              if (obra) {
+                onSaveCliente({...obra, clienteId} as any);
+              }
+            });
+            setIsAsignarObrasModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Soft Delete Confirmation Modal */}
+      <SoftDeleteConfirm
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setClienteToDelete(null);
+          setIsDeleteConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          if (clienteToDelete) {
+            console.log('Soft delete cliente:', clienteToDelete.id);
+          }
+          setClienteToDelete(null);
+          setIsDeleteConfirmOpen(false);
+        }}
+        entityType="cliente"
+        entityName={clienteToDelete?.razonSocial || ''}
+      />
     </div>
   );
 };

@@ -7,11 +7,13 @@ interface StageTooltipProps {
 }
 
 const stageDefinitions: Record<FunnelStage, string> = {
-  'Cotización': 'Cliente recibió propuesta de precios, aguardando su feedback',
-  'Presentada': 'Propuesta formal enviada a responsable de decisión',
-  'En Negociación': 'En discusiones de términos, precio y timeline',
-  'Adjudicada': 'Contrato firmado, ganamos la licitación',
-  'Perdida': 'Cliente eligió competidor o decidió no proceder'
+  'Solicitud': 'Solicitud inicial del cliente recibida',
+  'En estudio de proyecto': 'En análisis técnico y viabilidad del proyecto',
+  'Estimado': 'Estimación técnica y presupuestal completada',
+  'Cotización': 'Propuesta formal de precios enviada',
+  'Contratadas': 'Contrato firmado, proyecto adjudicado',
+  'Finalizadas': 'Proyecto completado e implementado',
+  'Rechazadas': 'Propuesta no aceptada, proyecto descartado'
 };
 
 export const StageTooltip: React.FC<StageTooltipProps> = ({ stage, children }) => {

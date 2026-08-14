@@ -63,7 +63,7 @@ export function getDiasSinActualizar(fechaISO: string): number {
  * Considera: cambio de etapa, notas agregadas, o ediciones de obra
  */
 export function tieneAlertaTemporal(obra: Obra): boolean {
-  if (obra.estado === 'Adjudicada' || obra.estado === 'Perdida') {
+  if (obra.estado === 'Finalizadas' || obra.estado === 'Rechazadas') {
     return false; // Obras cerradas no generan alerta
   }
 

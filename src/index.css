@@ -1,1 +1,48 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Global dark-mode overrides.
+  Most screens use hardcoded hex utility classes (bg-white, bg-[#F1F3F5], text-[#2D3436], etc.)
+  instead of dark: variants. Rather than touching every component, we repaint those
+  known classes when the .dark class is active on <html>.
+*/
+.dark {
+  color-scheme: dark;
+}
+
+/* Backgrounds */
+.dark [class*="bg-white"] { background-color: #23282b !important; }
+.dark [class*='bg-[#F1F3F5]'] { background-color: #181c1e !important; }
+.dark [class*='bg-[#F8F9FA]'] { background-color: #1e2224 !important; }
+.dark [class*='bg-[#E0E0E0]'] { background-color: #2f3538 !important; }
+.dark [class*='bg-[#2D3436]'] { background-color: #0f1213 !important; }
+
+/* Text */
+.dark [class*='text-[#2D3436]'] { color: #F1F3F5 !important; }
+.dark [class*='text-[#636E72]'] { color: #A7B0B4 !important; }
+.dark [class*='text-[#B2BEC3]'] { color: #8A9296 !important; }
+
+/* Borders */
+.dark [class*='border-[#E0E0E0]'] { border-color: #3A4144 !important; }
+.dark [class*='border-[#F1F3F5]'] { border-color: #3A4144 !important; }
+
+/* Inputs / form fields keep readable contrast */
+.dark input,
+.dark select,
+.dark textarea {
+  color: #F1F3F5;
+}
+
+.dark ::placeholder {
+  color: #6b7377 !important;
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #181c1e;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #3A4144;
+}

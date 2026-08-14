@@ -1,25 +1,27 @@
 import React, { useState } from 'react';
-import { 
-  TrendingUp, 
-  Building2, 
-  DollarSign, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Target, 
+import {
+  TrendingUp,
+  Building2,
+  DollarSign,
+  CheckCircle2,
+  AlertTriangle,
+  Target,
   ArrowUpRight,
   ShieldCheck,
   Calendar,
   Layers,
   MapPin,
-  Clock
+  Clock,
+  ArrowDown,
+  ChevronDown
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
   CartesianGrid,
   BarChart,
   Bar,
@@ -28,6 +30,7 @@ import {
 } from 'recharts';
 import { Obra, Region, EquipmentType, MonthlySalesData } from '../types';
 import { getSemaforoComercial, formatUSD, tieneAlertaTemporal, getDiasSinActualizar } from '../utils/semaforo';
+import { useAuth } from '../context/AuthContext';
 
 interface PantallaDashboardProps {
   obras: Obra[];
@@ -52,35 +55,70 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   selectedYear = new Date().getFullYear(),
   onOpenViewActividades
 }) => {
+  const { usuarioActual, usuarios } = useAuth();
+  const getNombreUsuario = (usuarioId?: string): string => {
+    if (!usuarioId) return 'Sin asignar';
+    return usuarios.find(u => u.id === usuarioId)?.nombre || usuarioId;
+  };
   const [showEquipos, setShowEquipos] = useState(false);
+  const [misObrasFilter, setMisObrasFilter] = useState<'todas' | 'alerta' | 'sin-alerta'>('todas');
+  const [misObrasSortBy, setMisObrasSortBy] = useState<'dias' | 'deadline' | 'stage' | 'nombre'>('dias');
 
   // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
-    const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
+    const matchEquipment = selectedEquipmentType === 'Todos';
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
     const q = searchQuery.toLowerCase();
     const matchQuery = !q ||
       obra.codigo.toLowerCase().includes(q) ||
       obra.nombre.toLowerCase().includes(q) ||
-      obra.responsable.toLowerCase().includes(q) ||
-      obra.hardwareSpecs.modelo.toLowerCase().includes(q);
+      getNombreUsuario(obra.usuarioAsignado).toLowerCase().includes(q) ||
+      (obra.hardwareSpecs?.modelo || '').toLowerCase().includes(q);
     return matchRegion && matchEquipment && matchYear && matchQuery;
   });
 
+  // "Mis obras asignadas" - Filter for current user
+  const misObrasAsignadas = obras.filter(obra =>
+    obra.usuarioAsignado === usuarioActual?.id &&
+    obra.estado !== 'Finalizadas' &&
+    obra.estado !== 'Rechazadas'
+  );
+
+  // Apply mis obras filter
+  let misObrasFilteradas = misObrasAsignadas;
+  if (misObrasFilter === 'alerta') {
+    misObrasFilteradas = misObrasAsignadas.filter(o => tieneAlertaTemporal(o));
+  } else if (misObrasFilter === 'sin-alerta') {
+    misObrasFilteradas = misObrasAsignadas.filter(o => !tieneAlertaTemporal(o));
+  }
+
+  // Sort mis obras
+  misObrasFilteradas = [...misObrasFilteradas].sort((a, b) => {
+    if (misObrasSortBy === 'dias') {
+      return getDiasSinActualizar(b.fechaUltimaActualizacion) - getDiasSinActualizar(a.fechaUltimaActualizacion);
+    } else if (misObrasSortBy === 'nombre') {
+      return a.nombre.localeCompare(b.nombre);
+    } else if (misObrasSortBy === 'stage') {
+      const stages = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas'];
+      return stages.indexOf(a.estado) - stages.indexOf(b.estado);
+    }
+    return 0;
+  });
+
   // Calculate Key Performance Metrics (Indicadores Operacionales según PDF)
-  const montoPlanAnualUSD = selectedRegion === 'Argentina' ? 6000000 : selectedRegion === 'Uruguay' ? 2500000 : 8500000;
-  const equiposPlanAnual = selectedRegion === 'Argentina' ? 55 : selectedRegion === 'Uruguay' ? 25 : 80;
-  const rentabilidadPlanPorcentaje = 18.0; // 18% target margin
+  const montoPlanAnualUSD = 8500000;
+  const equiposPlanAnual = 80;
+  const rentabilidadPlanPorcentaje = 18.0;
 
-  // Adjudicadas (Ventas cerradas / Informadas)
-  const obrasAdjudicadas = filteredObras.filter((o) => o.estado === 'Adjudicada');
-  const montoVentasAdjudicadasUSD = obrasAdjudicadas.reduce((sum, o) => sum + o.montoUSD, 0);
-  const equiposVendidosTotal = obrasAdjudicadas.reduce((sum, o) => sum + o.cantidadEquipos, 0);
+  // Contratadas (Ventas cerradas / Informadas)
+  const obrasContratadas = filteredObras.filter((o) => o.estado === 'Contratadas');
+  const montoVentasContratadas = obrasContratadas.reduce((sum, o) => sum + o.montoUSD, 0);
+  const equiposVendidosTotal = obrasContratadas.length;
 
-  const avgRentabilidadReal = obrasAdjudicadas.length > 0
-    ? obrasAdjudicadas.reduce((sum, o) => sum + (o.rentabilidadEstimada || 16.5), 0) / obrasAdjudicadas.length
+  const avgRentabilidadReal = obrasContratadas.length > 0
+    ? obrasContratadas.reduce((sum, o) => sum + (o.rentabilidadEstimada || 16.5), 0) / obrasContratadas.length
     : 0;
 
   // A) 4/1: Equipos Vendidos vs Plan
@@ -92,7 +130,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
 
   // B) 5/2: Cumplimiento de Ventas Adjudicadas vs Plan
   const porcentajeVentas = Math.min(
-    Math.round((montoVentasAdjudicadasUSD / montoPlanAnualUSD) * 100) || 0,
+    Math.round((montoVentasContratadas / montoPlanAnualUSD) * 100) || 0,
     150
   );
   const semaforoVentas = getSemaforoComercial(porcentajeVentas);
@@ -107,24 +145,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   // Stagnant projects >7 days
   const obrasAlertas = filteredObras.filter((o) => tieneAlertaTemporal(o));
 
-  // Regional breakdown data for bar chart
-  const datosRegion = [
-    {
-      name: 'Argentina',
-      montoAdjudicado: obras.filter(o => o.region === 'Argentina' && o.estado === 'Adjudicada').reduce((s, o) => s + o.montoUSD, 0),
-      montoPipeline: obras.filter(o => o.region === 'Argentina' && ['Cotización', 'Presentada', 'En Negociación'].includes(o.estado)).reduce((s, o) => s + o.montoUSD, 0),
-      equipos: obras.filter(o => o.region === 'Argentina' && o.estado === 'Adjudicada').reduce((s, o) => s + o.cantidadEquipos, 0)
-    },
-    {
-      name: 'Uruguay',
-      montoAdjudicado: obras.filter(o => o.region === 'Uruguay' && o.estado === 'Adjudicada').reduce((s, o) => s + o.montoUSD, 0),
-      montoPipeline: obras.filter(o => o.region === 'Uruguay' && ['Cotización', 'Presentada', 'En Negociación'].includes(o.estado)).reduce((s, o) => s + o.montoUSD, 0),
-      equipos: obras.filter(o => o.region === 'Uruguay' && o.estado === 'Adjudicada').reduce((s, o) => s + o.cantidadEquipos, 0)
-    }
-  ];
-
   // Stage Breakdown for Funnel summary
-  const etapas = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
+  const etapas = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
   const conteoPorEtapa = etapas.map(etapa => {
     const arr = filteredObras.filter(o => o.estado === etapa);
     return {
@@ -234,7 +256,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
           <div className="space-y-1.5 text-[11px] text-[#636E72] border-t border-[#F1F3F5] pt-3 mt-2">
             <div className="flex justify-between">
               <span>(5) Monto Ventas Inf.:</span>
-              <span className="font-bold text-[#2D3436]">{formatUSD(montoVentasAdjudicadasUSD)}</span>
+              <span className="font-bold text-[#2D3436]">{formatUSD(montoVentasContratadas)}</span>
             </div>
             <div className="flex justify-between">
               <span>(2) Monto Plan Anual:</span>
@@ -294,6 +316,140 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* SECTION 1.5: MIS OBRAS ASIGNADAS (MANDATORY) */}
+      {usuarioActual && (
+        <div className="space-y-4">
+          <div className="mb-2">
+            <h2 className="text-base font-bold text-[#2D3436] flex items-center gap-2 mb-1">
+              <Building2 size={18} style={{ color: '#C8102E' }} />
+              Mis Obras Asignadas
+            </h2>
+            <p className="text-xs text-[#636E72]">
+              Proyectos asignados a {usuarioActual.nombre} • {misObrasFilteradas.length} de {misObrasAsignadas.length} obras
+            </p>
+          </div>
+
+          {/* Filters and Sort Controls */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-4 border border-[#E0E0E0] shadow-sm flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMisObrasFilter('todas')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  misObrasFilter === 'todas'
+                    ? 'bg-[#C8102E] text-white'
+                    : 'bg-[#F1F3F5] text-[#2D3436] hover:bg-[#E0E0E0]'
+                }`}
+              >
+                Todas ({misObrasAsignadas.length})
+              </button>
+              <button
+                onClick={() => setMisObrasFilter('alerta')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  misObrasFilter === 'alerta'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                En Alerta ({misObrasAsignadas.filter(o => tieneAlertaTemporal(o)).length})
+              </button>
+              <button
+                onClick={() => setMisObrasFilter('sin-alerta')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  misObrasFilter === 'sin-alerta'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                Sin Alerta ({misObrasAsignadas.filter(o => !tieneAlertaTemporal(o)).length})
+              </button>
+            </div>
+
+            <select
+              value={misObrasSortBy}
+              onChange={(e) => setMisObrasSortBy(e.target.value as any)}
+              className="sm:ml-auto px-3 py-1.5 bg-white border border-[#E0E0E0] rounded-lg text-xs font-bold text-[#2D3436] focus:outline-none focus:border-[#C8102E]"
+            >
+              <option value="dias">Ordenar por: Días sin acción</option>
+              <option value="nombre">Ordenar por: Nombre</option>
+              <option value="stage">Ordenar por: Estadio</option>
+            </select>
+          </div>
+
+          {/* Obras Table */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] shadow-sm overflow-hidden">
+            {misObrasFilteradas.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <CheckCircle2 size={40} className="mx-auto text-emerald-500" />
+                <p className="text-sm font-bold text-[#2D3436]">
+                  {misObrasFilter === 'alerta' ? '¡Sin obras en alerta!' : '¡Todo al día!'}
+                </p>
+                <p className="text-xs text-[#636E72]">
+                  {misObrasAsignadas.length === 0
+                    ? 'No tienes obras asignadas en estado activo'
+                    : misObrasFilter === 'alerta'
+                    ? 'Todas tus obras están dentro del plazo'
+                    : 'Accede a la sección Funnel Obras para gestionar nuevos proyectos'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-[#F1F3F5] border-b border-[#E0E0E0]">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Código</th>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Proyecto</th>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Cliente</th>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Estadio</th>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Días</th>
+                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Estado</th>
+                      <th className="px-4 py-3 text-center font-bold text-[#2D3436]">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E0E0E0]">
+                    {misObrasFilteradas.map((obra) => {
+                      const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
+                      const enAlerta = tieneAlertaTemporal(obra);
+                      const cliente = obras.find(o => o.id === obra.id)?.clienteId || 'N/A';
+
+                      return (
+                        <tr key={obra.id} className="hover:bg-[#F9F9F9] transition-colors">
+                          <td className="px-4 py-3 font-mono font-bold text-[#C8102E]">{obra.codigo}</td>
+                          <td className="px-4 py-3 font-bold text-[#2D3436] truncate max-w-xs">{obra.nombre}</td>
+                          <td className="px-4 py-3 text-[#636E72]">Cliente</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800">
+                              {obra.estado}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[#2D3436] font-bold">{dias}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                              enAlerta
+                                ? 'bg-red-100 text-red-800 border border-red-300'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            }`}>
+                              {enAlerta ? 'Con Alerta' : 'Sin Alerta'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => onNavigateToObra(obra.id)}
+                              className="px-2 py-1 rounded-lg text-[#C8102E] hover:bg-[#F1F3F5] transition-all font-bold text-[11px]"
+                            >
+                              Ver →
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* SECTION 2: CENTRAL ACCUMULATED EVOLUTION CHART */}
       <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm space-y-4">
@@ -441,39 +597,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
           </div>
         </div>
 
-        {/* Widget 2: Regional Performance (AR vs UY) */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="border-b border-[#F1F3F5] pb-3 mb-3">
-              <h3 className="text-sm font-bold text-[#2D3436] flex items-center gap-1.5">
-                <MapPin size={16} className="text-[#636E72]" />
-                Desglose Regional (AR / UY)
-              </h3>
-              <p className="text-[11px] text-[#B2BEC3]">Monto adjudicado y en negociación consolidado en USD</p>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              {datosRegion.map((reg) => (
-                <div key={reg.name} className="p-3.5 bg-white rounded-xl border border-[#E0E0E0] shadow-2xs space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-[#2D3436] flex items-center gap-1">
-                      {reg.name === 'Argentina' ? '🇦🇷 Argentina' : '🇺🇾 Uruguay'}
-                    </span>
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Adjudicado: {formatUSD(reg.montoAdjudicado)}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-[#636E72] flex justify-between border-t border-[#F1F3F5] pt-2">
-                    <span>En Pipeline: <strong>{formatUSD(reg.montoPipeline)}</strong></span>
-                    <span>Equipos: <strong>{reg.equipos} un.</strong></span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Widget 3: Temporal Alert List (> 7 days stagnant) */}
+        {/* Widget 2: Temporal Alert List (> 7 days stagnant) */}
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3 mb-3">

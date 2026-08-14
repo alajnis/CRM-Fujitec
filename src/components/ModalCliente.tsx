@@ -60,17 +60,17 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
       setValidationError('El contacto debe tener al menos un email o teléfono');
       return;
     }
-    const contacts = formCliente.contacts || [];
+    const contacts = formCliente.contactos || [];
     setFormCliente({
       ...formCliente,
-      contacts: [...contacts, { ...newContact, id: `contact-${Date.now()}` } as ClienteContact]
+      contactos: [...contactos, { ...newContact, id: `contact-${Date.now()}` } as ClienteContact]
     });
     setNewContact({ nombre: '', cargo: '', email: '', telefono: '' });
   };
 
   const handleRemoveContact = (index: number) => {
-    const contacts = (formCliente.contacts || []).filter((_, i) => i !== index);
-    setFormCliente({ ...formCliente, contacts });
+    const contactos = (formCliente.contactos || []).filter((_, i) => i !== index);
+    setFormCliente({ ...formCliente, contactos });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -158,11 +158,11 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
               <Mail size={16} /> Contactos Adicionales
             </h4>
 
-            {(!formCliente.contacts || formCliente.contacts.length === 0) ? (
+            {(!formCliente.contactos || formCliente.contactos.length === 0) ? (
               <p className="text-xs text-[#B2BEC3] italic">No hay contactos adicionales.</p>
             ) : (
               <div className="space-y-2">
-                {formCliente.contacts.map((contact, idx) => (
+                {formCliente.contactos.map((contact, idx) => (
                   <div key={idx} className="bg-white p-3 rounded-lg border border-[#E0E0E0] flex items-start justify-between gap-3">
                     <div className="flex-1 text-xs">
                       <p className="font-bold text-[#2D3436]">{contact.nombre}</p>

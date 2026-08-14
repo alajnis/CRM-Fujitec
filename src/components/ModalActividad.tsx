@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, MessageSquare } from 'lucide-react';
+import { X, Calendar, User, MessageSquare, RotateCw } from 'lucide-react';
 import { Obra, Actividad } from '../types';
 
 interface ModalActividadProps {
   isOpen: boolean;
   onClose: () => void;
   obra: Obra;
-  onAddActividad: (obraId: string, descripcion: string) => void;
+  onAddActividad: (obraId: string, descripcion: string, reseteaDias?: boolean) => void;
 }
 
 export const ModalActividad: React.FC<ModalActividadProps> = ({
@@ -16,14 +16,16 @@ export const ModalActividad: React.FC<ModalActividadProps> = ({
   onAddActividad
 }) => {
   const [descripcion, setDescripcion] = useState('');
+  const [reseteaDias, setReseteaDias] = useState(false);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!descripcion.trim()) return;
-    onAddActividad(obra.id, descripcion);
+    onAddActividad(obra.id, descripcion, reseteaDias);
     setDescripcion('');
+    setReseteaDias(false);
     onClose();
   };
 
@@ -82,6 +84,28 @@ export const ModalActividad: React.FC<ModalActividadProps> = ({
                 required
               />
             </div>
+
+            {/* Reset Switch */}
+            <div className="flex items-start gap-2.5 p-3 bg-blue-50 rounded-xl border border-blue-200">
+              <input
+                type="checkbox"
+                id="reseta-dias"
+                checked={reseteaDias}
+                onChange={(e) => setReseteaDias(e.target.checked)}
+                className="w-4 h-4 rounded cursor-pointer mt-0.5"
+              />
+              <label htmlFor="reseta-dias" className="flex-1 cursor-pointer">
+                <span className="text-xs font-bold text-[#2D3436] block">
+                  Esta nota reinicia los días sin acción
+                </span>
+                <p className="text-[10px] text-[#636E72] mt-1">
+                  {reseteaDias
+                    ? '✓ Se reiniciará el contador de 7 días cuando guardes esta nota'
+                    : 'Activa esta opción si quieres reiniciar el contador de días sin acción'}
+                </p>
+              </label>
+            </div>
+
             <div className="flex justify-end gap-2.5">
               <button
                 type="button"

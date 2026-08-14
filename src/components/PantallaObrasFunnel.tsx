@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
-import { 
-  List, 
-  Kanban, 
-  Clock, 
-  Plus, 
-  Search, 
-  AlertTriangle, 
-  Building2, 
-  FileText, 
-  Edit3, 
-  ChevronRight, 
-  MapPin, 
+import React, { useState, useEffect } from 'react';
+import {
+  List,
+  Kanban,
+  Clock,
+  Plus,
+  Search,
+  AlertTriangle,
+  Building2,
+  FileText,
+  Edit3,
+  ChevronRight,
+  MapPin,
   ArrowRight,
   Filter,
   CheckCircle,
   XCircle,
   MoreVertical,
   SlidersHorizontal,
-  Calendar
+  Calendar,
+  Zap,
+  Minimize2,
+  TrendingUp,
+  Trash2
 } from 'lucide-react';
-import { Obra, FunnelStage, Region, EquipmentType } from '../types';
+import { Obra, FunnelStage, Region, EquipmentType, Equipo } from '../types';
 import { formatUSD, formatDateES, getDiasSinActualizar, tieneAlertaTemporal } from '../utils/semaforo';
+import { contarEquiposPorTipo, obtenerModeloPrincipal } from '../utils/equipoUtils';
 import { StageTooltip } from './StageTooltip';
+import { SoftDeleteConfirm } from './SoftDeleteConfirm';
+import { ModalAdvertencia } from './ModalAdvertencia';
+import { ComponenteActividades } from './ComponenteActividades';
+import { useAuth } from '../context/AuthContext';
 
 interface PantallaObrasFunnelProps {
   obras: Obra[];
+  equipos: Equipo[];
+  clientes?: any[]; // Para mostrar nombres de clientes en tabla
   selectedRegion: Region;
   selectedEquipmentType: EquipmentType;
   searchQuery: string;
@@ -40,6 +51,8 @@ interface PantallaObrasFunnelProps {
 
 export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   obras,
+  equipos,
+  clientes = [],
   selectedRegion,
   selectedEquipmentType,
   searchQuery,
@@ -52,16 +65,44 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   showOnlyAlerts = false,
   onCloseAlertFilter
 }) => {
-  // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban, Sub-view 3: Cronograma Línea de Tiempo
-  const [subView, setSubView] = useState<'lista' | 'kanban' | 'cronograma'>('kanban');
+  const { isSuperuser, usuarios } = useAuth();
+
+  const getNombreUsuario = (usuarioId?: string): string => {
+    if (!usuarioId) return 'Sin asignar';
+    return usuarios.find(u => u.id === usuarioId)?.nombre || usuarioId;
+  };
+
+  // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban
+  const [subView, setSubView] = useState<'lista' | 'kanban'>('kanban');
 
   // Filter by Stage local filter
   const [stageFilter, setStageFilter] = useState<string>('Todas');
+  const [showFinalizadosRechazados, setShowFinalizadosRechazados] = useState<boolean>(false);
+
+  // Card view mode (persisted in localStorage)
+  const [cardViewMode, setCardViewModeState] = useState<'complete' | 'summarized'>(() => {
+    const saved = localStorage.getItem('kanban-view-mode');
+    return (saved as 'complete' | 'summarized') || 'complete';
+  });
+
+  const setCardViewMode = (mode: 'complete' | 'summarized') => {
+    localStorage.setItem('kanban-view-mode', mode);
+    setCardViewModeState(mode);
+  };
+
+  // Soft delete state
+  const [obraToDelete, setObraToDelete] = useState<Obra | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  // Drag-and-drop + Warning modal state
+  const [draggedObra, setDraggedObra] = useState<Obra | null>(null);
+  const [pendingStageChange, setPendingStageChange] = useState<{ obra: Obra; nuevoEstado: FunnelStage } | null>(null);
+  const [isAdvertenciaOpen, setIsAdvertenciaOpen] = useState(false);
 
   // Filter obras
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
-    const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
+    const matchEquipment = selectedEquipmentType === 'Todos';
     const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
@@ -69,16 +110,42 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     const matchQuery = !q ||
       obra.codigo.toLowerCase().includes(q) ||
       obra.nombre.toLowerCase().includes(q) ||
-      obra.responsable.toLowerCase().includes(q) ||
-      obra.hardwareSpecs.modelo.toLowerCase().includes(q);
+      getNombreUsuario(obra.usuarioAsignado).toLowerCase().includes(q) ||
+      (obra.hardwareSpecs?.modelo || '').toLowerCase().includes(q);
     const matchAlert = !showOnlyAlerts || tieneAlertaTemporal(obra);
+    const matchFinalizadas = showFinalizadosRechazados || (obra.estado !== 'Finalizadas' && obra.estado !== 'Rechazadas');
 
-    return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert;
+    return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert && matchFinalizadas;
   });
 
   console.log('PantallaObrasFunnel - searchQuery:', searchQuery, 'filteredObras:', filteredObras.length, 'totalObras:', obras.length);
 
-  const stages: FunnelStage[] = ['Cotización', 'Presentada', 'En Negociación', 'Adjudicada', 'Perdida'];
+  const allStages: FunnelStage[] = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
+  const stages = showFinalizadosRechazados
+    ? allStages
+    : allStages.filter(s => s !== 'Finalizadas' && s !== 'Rechazadas');
+
+  const handleStageChangeRequest = (obra: Obra, nuevoEstado: FunnelStage) => {
+    if (nuevoEstado === obra.estado) return;
+
+    const actividadesEtapa = obra.actividadesPorEtapa?.filter(a => a.etapa === obra.estado) || [];
+    const tieneIncompletas = actividadesEtapa.some(a => !a.completada);
+
+    if (tieneIncompletas) {
+      setPendingStageChange({ obra, nuevoEstado });
+      setIsAdvertenciaOpen(true);
+    } else {
+      onUpdateObraState(obra.id, nuevoEstado);
+    }
+  };
+
+  const handleConfirmStageChange = () => {
+    if (pendingStageChange) {
+      onUpdateObraState(pendingStageChange.obra.id, pendingStageChange.nuevoEstado);
+      setPendingStageChange(null);
+      setIsAdvertenciaOpen(false);
+    }
+  };
 
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
@@ -112,22 +179,10 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             <span>Vista Lista Tradicional</span>
           </button>
 
-          <button
-            onClick={() => setSubView('cronograma')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              subView === 'cronograma'
-                ? 'bg-white text-[#2D3436] shadow-xs border border-[#E0E0E0]'
-                : 'text-[#636E72] hover:text-[#2D3436]'
-            }`}
-            id="btn-subview-cronograma"
-          >
-            <Clock size={15} className={subView === 'cronograma' ? 'text-[#C8102E]' : ''} />
-            <span>Cronograma Secuencial</span>
-          </button>
         </div>
 
         {/* Local Filter & Totals */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="text-[#636E72] font-bold">Etapa:</span>
             <select
@@ -143,7 +198,35 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             </select>
           </div>
 
-          <div className="hidden sm:block font-extrabold text-[#2D3436] bg-white px-3.5 py-2 rounded-xl border border-[#E0E0E0] shadow-2xs">
+          <button
+            onClick={() => setShowFinalizadosRechazados(!showFinalizadosRechazados)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              showFinalizadosRechazados
+                ? 'bg-emerald-500 text-white'
+                : 'bg-[#F1F3F5] text-[#636E72] hover:bg-[#E0E0E0]'
+            }`}
+            title={showFinalizadosRechazados ? 'Ocultar finalizadas y rechazadas' : 'Mostrar finalizadas y rechazadas'}
+            id="btn-toggle-finalizadas"
+          >
+            {showFinalizadosRechazados ? '✓ Mostrar finalizadas y rechazadas' : 'Mostrar finalizadas y rechazadas'}
+          </button>
+
+          {subView === 'kanban' && (
+            <button
+              onClick={() => setCardViewMode(cardViewMode === 'complete' ? 'summarized' : 'complete')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                cardViewMode === 'summarized'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-[#F1F3F5] text-[#636E72] hover:bg-[#E0E0E0]'
+              }`}
+              id="btn-toggle-card-view"
+              title={cardViewMode === 'complete' ? 'Cambiar a vista resumida' : 'Cambiar a vista completa'}
+            >
+              {cardViewMode === 'summarized' ? '◀ Vista Resumida' : 'Vista Completa'}
+            </button>
+          )}
+
+          <div className="hidden sm:block ml-auto font-extrabold text-[#2D3436] bg-white px-3.5 py-2 rounded-xl border border-[#E0E0E0] shadow-2xs">
             Total Pipeline: {formatUSD(filteredObras.reduce((s, o) => s + o.montoUSD, 0))}
           </div>
         </div>
@@ -176,11 +259,13 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
             let headerBg = 'bg-white/80 border-[#E0E0E0] text-[#2D3436]';
             let dotColor = 'bg-[#B2BEC3]';
-            if (stage === 'Cotización') { headerBg = 'bg-indigo-50/80 border-indigo-200 text-indigo-900'; dotColor = 'bg-indigo-500'; }
-            if (stage === 'Presentada') { headerBg = 'bg-amber-50/80 border-amber-200 text-amber-900'; dotColor = 'bg-amber-500'; }
-            if (stage === 'En Negociación') { headerBg = 'bg-blue-50/80 border-blue-200 text-blue-900'; dotColor = 'bg-blue-500'; }
-            if (stage === 'Adjudicada') { headerBg = 'bg-emerald-50/80 border-emerald-200 text-emerald-900'; dotColor = 'bg-emerald-500'; }
-            if (stage === 'Perdida') { headerBg = 'bg-red-50/80 border-red-200 text-red-900'; dotColor = 'bg-red-400'; }
+            if (stage === 'Solicitud') { headerBg = 'bg-slate-50/80 border-slate-200 text-slate-900'; dotColor = 'bg-slate-500'; }
+            if (stage === 'En estudio de proyecto') { headerBg = 'bg-cyan-50/80 border-cyan-200 text-cyan-900'; dotColor = 'bg-cyan-500'; }
+            if (stage === 'Estimado') { headerBg = 'bg-indigo-50/80 border-indigo-200 text-indigo-900'; dotColor = 'bg-indigo-500'; }
+            if (stage === 'Cotización') { headerBg = 'bg-amber-50/80 border-amber-200 text-amber-900'; dotColor = 'bg-amber-500'; }
+            if (stage === 'Contratadas') { headerBg = 'bg-emerald-50/80 border-emerald-200 text-emerald-900'; dotColor = 'bg-emerald-500'; }
+            if (stage === 'Finalizadas') { headerBg = 'bg-green-50/80 border-green-200 text-green-900'; dotColor = 'bg-green-600'; }
+            if (stage === 'Rechazadas') { headerBg = 'bg-red-50/80 border-red-200 text-red-900'; dotColor = 'bg-red-500'; }
 
             return (
               <div key={stage} className="flex flex-col rounded-2xl bg-white/40 backdrop-blur-md border border-[#E0E0E0] p-3.5 min-w-[270px] w-[270px] shrink-0 h-[calc(100vh-230px)] shadow-2xs snap-start">
@@ -203,7 +288,23 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                 </div>
 
                 {/* Stage Obra Cards Column */}
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                <div
+                  className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 transition-all rounded-lg"
+                  style={{
+                    backgroundColor: draggedObra ? 'rgba(200, 16, 46, 0.05)' : 'transparent'
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedObra) {
+                      handleStageChangeRequest(draggedObra, stage);
+                      setDraggedObra(null);
+                    }
+                  }}
+                >
                   {stageObras.length === 0 ? (
                     <div className="p-5 text-center text-xs text-[#B2BEC3] italic border border-dashed border-[#E0E0E0] rounded-xl bg-white/30">
                       Sin obras en {stage.toLowerCase()}
@@ -214,11 +315,17 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
 
                       return (
-                        <div 
-                          key={obra.id} 
-                          className={`bg-white/90 backdrop-blur-md rounded-xl p-4 border shadow-2xs transition-all hover:shadow-md space-y-2.5 relative group ${
+                        <div
+                          key={obra.id}
+                          draggable
+                          onDragStart={() => setDraggedObra(obra)}
+                          onDragEnd={() => setDraggedObra(null)}
+                          onClick={() => onEditObra(obra)}
+                          className={`bg-white/90 backdrop-blur-md rounded-xl border shadow-2xs transition-all hover:shadow-md relative group cursor-pointer active:cursor-grabbing w-full min-w-0 max-w-full overflow-hidden box-border ${
+                            cardViewMode === 'summarized' ? 'p-2.5 space-y-1' : 'p-4 space-y-2.5'
+                          } ${
                             alerta ? 'border-amber-400 ring-2 ring-amber-200/50' : 'border-[#E0E0E0] hover:border-[#B2BEC3]'
-                          }`}
+                          } ${draggedObra?.id === obra.id ? 'opacity-50' : ''}`}
                         >
                           {/* Alert Badge for >7d Stagnant */}
                           {alerta && (
@@ -229,54 +336,81 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           )}
 
                           {/* Code & Region Badge */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black text-[#C8102E] tracking-wide font-mono">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-xs font-black text-[#C8102E] tracking-wide font-mono truncate min-w-0">
                               {obra.codigo}
                             </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F1F3F5] text-[#2D3436] border border-[#E0E0E0]">
-                              {obra.region === 'Argentina' ? '🇦🇷 AR' : '🇺🇾 UY'}
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F1F3F5] text-[#2D3436] border border-[#E0E0E0] shrink-0">
+                              {obra.region === 'Argentina' ? 'AR' : 'UY'}
                             </span>
                           </div>
 
-                          {/* Obra Name & Specs */}
+                          {/* Obra Name */}
                           <div>
                             <h4 className="text-xs font-extrabold text-[#2D3436] leading-snug line-clamp-2">
                               {obra.nombre}
                             </h4>
-                            <p className="text-[11px] text-[#636E72] font-semibold mt-0.5">
-                              {obra.cantidadEquipos}x {obra.hardwareSpecs.modelo}
-                            </p>
                           </div>
 
-                          {/* Specs Mini Badges */}
-                          <div className="flex flex-wrap gap-1 text-[10px] text-[#636E72]">
-                            <span className="bg-[#F1F3F5] px-2 py-0.5 rounded-md font-medium">
-                              {obra.hardwareSpecs.velocidadMS} m/s
-                            </span>
-                            <span className="bg-[#F1F3F5] px-2 py-0.5 rounded-md font-medium">
-                              {obra.hardwareSpecs.paradas} paradas
-                            </span>
-                            <span className="bg-[#F1F3F5] px-2 py-0.5 rounded-md font-medium">
-                              {obra.hardwareSpecs.capacidadKg} kg
-                            </span>
-                          </div>
+                          {/* Assigned User - hidden in summarized mode */}
+                          {cardViewMode === 'complete' && (
+                            <div className="text-xs text-[#636E72] font-medium truncate">
+                              👤 <span className="font-bold text-[#2D3436]">{getNombreUsuario(obra.usuarioAsignado)}</span>
+                            </div>
+                          )}
 
-                          {/* Price & Date */}
-                          <div className="flex items-center justify-between border-t border-[#F1F3F5] pt-2 text-xs">
-                            <span className="font-extrabold text-[#2D3436]">
-                              {formatUSD(obra.montoUSD)}
-                            </span>
-                            <span className="text-[10px] text-[#B2BEC3] font-medium">
-                              Act: {formatDateES(obra.fechaUltimaActualizacion)}
-                            </span>
-                          </div>
+                          {/* Equipment Counts by Type */}
+                          {(() => {
+                            const counts = contarEquiposPorTipo(obra, equipos);
+                            const totalEquipos = counts.ascensores + counts.escaleras + counts.rampas;
+                            return totalEquipos > 0 ? (
+                              <div className="flex flex-wrap gap-2 text-[10px]">
+                                {counts.ascensores > 0 && (
+                                  <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold border border-blue-300 flex items-center gap-1">
+                                    <Building2 size={12} /> {counts.ascensores} asc.
+                                  </span>
+                                )}
+                                {counts.escaleras > 0 && (
+                                  <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-semibold border border-purple-300 flex items-center gap-1">
+                                    <Minimize2 size={12} /> {counts.escaleras} esc.
+                                  </span>
+                                )}
+                                {counts.rampas > 0 && (
+                                  <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-md font-semibold border border-green-300 flex items-center gap-1">
+                                    <TrendingUp size={12} /> {counts.rampas} ram.
+                                  </span>
+                                )}
+                                {counts.montacargas > 0 && (
+                                  <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md font-semibold border border-orange-300 flex items-center gap-1">
+                                    <Zap size={12} /> {counts.montacargas} mont.
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-[#B2BEC3] italic">Sin equipos asignados</p>
+                            );
+                          })()}
 
-                          {/* Change Stage Dropdown & Action Links */}
-                          <div className="flex items-center justify-between pt-1.5 text-xs border-t border-[#F1F3F5]">
+                          {/* Price & Date - hidden in summarized mode */}
+                          {cardViewMode === 'complete' && (
+                            <div className="flex items-center justify-between gap-1.5 min-w-0 border-t border-[#F1F3F5] pt-2 text-xs">
+                              <span className="font-extrabold text-[#2D3436] truncate">
+                                {formatUSD(obra.montoUSD)}
+                              </span>
+                              <span className="text-[10px] text-[#B2BEC3] font-medium shrink-0">
+                                Act: {formatDateES(obra.fechaUltimaActualizacion)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Change Stage Dropdown & Action Links - hidden in summarized mode */}
+                          {cardViewMode === 'complete' && (
+                          <div className="flex items-center gap-1.5 pt-1.5 text-xs border-t border-[#F1F3F5]" onClick={(e) => e.stopPropagation()}>
                             <select
                               value={obra.estado}
-                              onChange={(e) => onUpdateObraState(obra.id, e.target.value as FunnelStage)}
-                              className="bg-[#F1F3F5] border border-[#E0E0E0] text-[11px] font-bold text-[#2D3436] rounded-lg py-1 px-2 focus:outline-none"
+                              onChange={(e) => handleStageChangeRequest(obra, e.target.value as FunnelStage)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 min-w-0 bg-[#F1F3F5] border border-[#E0E0E0] text-[10px] font-bold text-[#2D3436] rounded-lg py-1 px-1.5 focus:outline-none"
                               id={`select-stage-obra-${obra.id}`}
                             >
                               {stages.map((st) => (
@@ -284,25 +418,40 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                               ))}
                             </select>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5 shrink-0">
                               <button
-                                onClick={() => onEditObra(obra)}
-                                className="p-1.5 text-[#636E72] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-colors"
+                                onClick={(e) => { e.stopPropagation(); onEditObra(obra); }}
+                                className="p-1 text-[#636E72] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-colors"
                                 title="Editar Obra & Specs"
                                 id={`btn-edit-obra-${obra.id}`}
                               >
-                                <Edit3 size={14} />
+                                <Edit3 size={13} />
                               </button>
                               <button
-                                onClick={() => onGenerarOferta(obra)}
-                                className="p-1.5 font-bold text-[#C8102E] hover:bg-red-50 rounded-lg flex items-center gap-0.5 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); onGenerarOferta(obra); }}
+                                className="p-1 font-bold text-[#C8102E] hover:bg-red-50 rounded-lg flex items-center gap-0.5 transition-colors"
                                 title="Generar Carta Oferta"
                                 id={`btn-carta-oferta-obra-${obra.id}`}
                               >
-                                <FileText size={14} />
+                                <FileText size={13} />
                               </button>
+                              {isSuperuser() && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setObraToDelete(obra);
+                                    setIsDeleteConfirmOpen(true);
+                                  }}
+                                  className="p-1 text-[#636E72] hover:text-red-600 hover:bg-[#F1F3F5] rounded-lg transition-colors"
+                                  title="Eliminar Obra"
+                                  id={`btn-delete-obra-${obra.id}`}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </div>
+                          )}
                         </div>
                       );
                     })
@@ -321,15 +470,15 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             <table className="w-full text-left text-xs text-[#2D3436] border-collapse">
               <thead>
                 <tr className="bg-[#2D3436] text-white font-bold uppercase tracking-wider text-[11px]">
-                  <th className="p-4">Código Obra</th>
-                  <th className="p-4">Nombre del Proyecto</th>
-                  <th className="p-4">Región</th>
-                  <th className="p-4">Estado del Proyecto</th>
-                  <th className="p-4">Equipos & Modelo</th>
-                  <th className="p-4">Monto (USD)</th>
+                  <th className="p-4">Código</th>
+                  <th className="p-4">Proyecto</th>
+                  <th className="p-4">Cliente</th>
+                  <th className="p-4">Estado</th>
+                  <th className="p-4">Asignado</th>
                   <th className="p-4">Ingreso</th>
                   <th className="p-4">Última Act.</th>
-                  <th className="p-4 text-center">Alerta (&gt;7d)</th>
+                  <th className="p-4">Monto (USD)</th>
+                  <th className="p-4 text-center">Alerta</th>
                   <th className="p-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -346,53 +495,49 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                     const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
 
                     let stageBadge = 'bg-[#F1F3F5] text-[#2D3436]';
-                    if (obra.estado === 'Adjudicada') stageBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                    if (obra.estado === 'En Negociación') stageBadge = 'bg-blue-100 text-blue-800 border-blue-300';
-                    if (obra.estado === 'Presentada') stageBadge = 'bg-amber-100 text-amber-900 border-amber-300';
-                    if (obra.estado === 'Perdida') stageBadge = 'bg-red-100 text-red-800 border-red-300';
+                    if (obra.estado === 'Solicitud') stageBadge = 'bg-slate-100 text-slate-800 border-slate-300';
+                    if (obra.estado === 'En estudio de proyecto') stageBadge = 'bg-cyan-100 text-cyan-800 border-cyan-300';
+                    if (obra.estado === 'Estimado') stageBadge = 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                    if (obra.estado === 'Cotización') stageBadge = 'bg-amber-100 text-amber-900 border-amber-300';
+                    if (obra.estado === 'Contratadas') stageBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                    if (obra.estado === 'Finalizadas') stageBadge = 'bg-green-100 text-green-800 border-green-300';
+                    if (obra.estado === 'Rechazadas') stageBadge = 'bg-red-100 text-red-800 border-red-300';
 
                     return (
-                      <tr 
-                        key={obra.id} 
-                        className={`hover:bg-white/90 transition-colors ${
+                      <tr
+                        key={obra.id}
+                        onClick={() => onEditObra(obra)}
+                        className={`hover:bg-white/90 transition-colors cursor-pointer ${
                           alerta ? 'bg-amber-50/50' : ''
                         }`}
                       >
-                        <td className="p-4 font-mono font-black text-[#C8102E]">
+                        <td className="p-4 font-mono font-black text-[#C8102E] text-xs">
                           {obra.codigo}
                         </td>
-                        <td className="p-4 font-bold text-[#2D3436]">
+                        <td className="p-4 font-bold text-[#2D3436] text-xs">
                           {obra.nombre}
-                          <div className="text-[11px] font-normal text-[#636E72]">
-                            Resp: {obra.responsable}
-                          </div>
                         </td>
-                        <td className="p-4">
-                          <span className="font-semibold text-[#2D3436]">
-                            {obra.region === 'Argentina' ? '🇦🇷 Argentina' : '🇺🇾 Uruguay'}
+                        <td className="p-4 text-xs text-[#636E72]">
+                          <span className="font-medium text-[#2D3436]">
+                            {clientes.find(c => c.id === obra.clienteId)?.razonSocial || obra.clienteId}
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${stageBadge}`}>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${stageBadge}`}>
                             {obra.estado}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <div className="font-semibold text-[#2D3436]">
-                            {obra.cantidadEquipos}x {obra.hardwareSpecs.modelo}
-                          </div>
-                          <div className="text-[11px] text-[#636E72]">
-                            {obra.hardwareSpecs.velocidadMS}m/s | {obra.hardwareSpecs.paradas}p | {obra.hardwareSpecs.capacidadKg}kg
-                          </div>
+                        <td className="p-4 text-xs text-[#636E72]">
+                          {getNombreUsuario(obra.usuarioAsignado)}
                         </td>
-                        <td className="p-4 font-extrabold text-[#2D3436]">
-                          {formatUSD(obra.montoUSD)}
-                        </td>
-                        <td className="p-4 text-[#636E72]">
+                        <td className="p-4 text-xs text-[#636E72]">
                           {formatDateES(obra.fechaIngreso)}
                         </td>
-                        <td className="p-4 text-[#636E72]">
+                        <td className="p-4 text-xs text-[#636E72]">
                           {formatDateES(obra.fechaUltimaActualizacion)}
+                        </td>
+                        <td className="p-4 font-extrabold text-[#2D3436] text-xs">
+                          {formatUSD(obra.montoUSD)}
                         </td>
                         <td className="p-4 text-center">
                           {alerta ? (
@@ -404,7 +549,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                             <span className="text-emerald-600 text-[10px] font-bold">Al día</span>
                           )}
                         </td>
-                        <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                        <td className="p-4 text-right space-x-1.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => onEditObra(obra)}
                             className="px-3 py-1.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] text-[#2D3436] font-bold text-xs transition-colors"
@@ -420,6 +565,18 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           >
                             Carta Oferta
                           </button>
+                          {isSuperuser() && (
+                            <button
+                              onClick={() => {
+                                setObraToDelete(obra);
+                                setIsDeleteConfirmOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-colors"
+                              id={`btn-table-delete-${obra.id}`}
+                            >
+                              Eliminar
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -503,6 +660,39 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
               })}
           </div>
         </div>
+      )}
+
+      {/* Soft Delete Confirmation Modal */}
+      <SoftDeleteConfirm
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setObraToDelete(null);
+          setIsDeleteConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          // Note: actual deletion logic should be handled in parent App component
+          if (obraToDelete) {
+            console.log('Soft delete obra:', obraToDelete.id);
+          }
+          setObraToDelete(null);
+          setIsDeleteConfirmOpen(false);
+        }}
+        entityType="obra"
+        entityName={obraToDelete ? `${obraToDelete.codigo} - ${obraToDelete.nombre}` : ''}
+      />
+
+      {/* Stage Change Warning Modal */}
+      {pendingStageChange && (
+        <ModalAdvertencia
+          isOpen={isAdvertenciaOpen}
+          onClose={() => {
+            setIsAdvertenciaOpen(false);
+            setPendingStageChange(null);
+          }}
+          onConfirm={handleConfirmStageChange}
+          actividadesIncompletas={pendingStageChange.obra.actividadesPorEtapa?.filter(a => a.etapa === pendingStageChange.obra.estado) || []}
+          etapaActual={pendingStageChange.obra.estado}
+        />
       )}
     </div>
   );
