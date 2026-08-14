@@ -18,17 +18,22 @@ export const useSupabaseData = (): UseSupabaseDataResult => {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
+      console.log('📥 Loading data from Supabase...');
+
       const [obrasData, clientesData, equiposData] = await Promise.all([
         obrasService.getObras(),
         clientesService.getClientes(),
         equiposService.getEquipos()
       ]);
+
+      console.log(`✅ Loaded: ${obrasData.length} obras, ${clientesData.length} clientes, ${equiposData.length} equipos`);
 
       // Transform Supabase data to app types using adapter
       const appObras = obrasData.map(o => supabaseAdapter.toAppObra(o));
@@ -38,10 +43,12 @@ export const useSupabaseData = (): UseSupabaseDataResult => {
       setObras(appObras);
       setClientes(appClientes);
       setEquipos(appEquipos);
+      setHasLoaded(true);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error loading data');
       setError(error);
-      console.error('Error loading data from Supabase:', error);
+      console.error('❌ Error loading data from Supabase:', error);
+      setHasLoaded(true);
     } finally {
       setIsLoading(false);
     }

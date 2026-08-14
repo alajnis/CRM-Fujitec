@@ -83,12 +83,14 @@ export const supabaseAdapter = {
   toSupabaseCliente(appCliente: Cliente) {
     return {
       nombre: appCliente.razonSocial,
-      email: appCliente.email,
-      telefono: appCliente.telefono,
-      direccion: appCliente.direccion,
+      email: appCliente.email || '',
+      telefono: appCliente.telefono || '',
+      direccion: appCliente.direccion || '',
       ciudad: '',
-      provincia: appCliente.region,
-      tipo: 'empresa'
+      provincia: appCliente.region || 'Uruguay',
+      pais: 'Argentina',
+      tipo: 'empresa',
+      estado: 'activo'
     };
   },
 

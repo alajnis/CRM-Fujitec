@@ -258,12 +258,24 @@ function AppContent() {
   const handleSaveCliente = (newCliente: Cliente) => {
     // Save to Supabase
     const supabaseData = supabaseAdapter.toSupabaseCliente(newCliente);
+    console.log('💾 Saving cliente to Supabase:', supabaseData);
+
     if (newCliente.id && newCliente.id.length > 0) {
       clientesService.updateCliente(newCliente.id, supabaseData as any)
-        .catch(err => console.error('Error updating cliente in Supabase:', err));
+        .then(() => console.log('✅ Cliente updated in Supabase'))
+        .catch(err => {
+          console.error('❌ Error updating cliente in Supabase:', err);
+          console.error('Details:', err.message);
+        });
     } else {
       clientesService.createCliente(supabaseData as any)
-        .catch(err => console.error('Error creating cliente in Supabase:', err));
+        .then((result) => {
+          console.log('✅ Cliente created in Supabase with ID:', result.id);
+        })
+        .catch(err => {
+          console.error('❌ Error creating cliente in Supabase:', err);
+          console.error('Details:', err.message);
+        });
     }
 
     setClientes((prev) => {
