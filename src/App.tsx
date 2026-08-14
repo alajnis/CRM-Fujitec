@@ -46,7 +46,7 @@ import {
 import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
-import { obrasService, clientesService, equiposService } from './services';
+import { obrasService, clientesService, equiposService, actividadesService } from './services';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -352,6 +352,34 @@ function AppContent() {
     });
   };
 
+  const handleAddActividadPorEtapa = (obraId: string, descripcion: string, etapa: FunnelStage) => {
+    setObras((prev) => {
+      const updated = prev.map((o) => {
+        if (o.id === obraId) {
+          const newActividadId = crypto.randomUUID();
+          const newActividad = {
+            id: newActividadId,
+            etapa,
+            descripcion,
+            completada: false
+          };
+
+          // Save to Supabase asynchronously
+          const supabaseData = supabaseAdapter.toSupabaseActividad(newActividad, obraId);
+          actividadesService.createActividad(supabaseData as any)
+            .catch(err => console.error('Error creating actividad in Supabase:', err));
+
+          return {
+            ...o,
+            actividadesPorEtapa: [newActividad, ...(o.actividadesPorEtapa || [])]
+          };
+        }
+        return o;
+      });
+      return updated;
+    });
+  };
+
   const handleToggleActividad = (obraId: string, actividadId: string, completada: boolean) => {
     setObras((prev) =>
       prev.map((o) => {
@@ -362,7 +390,7 @@ function AppContent() {
             obraLogged = logActividadCompletada(o, actividad.descripcion, o.estado, completada, usuarioActual.nombre);
           }
 
-          return {
+          const updatedObra = {
             ...obraLogged,
             actividadesPorEtapa: (obraLogged.actividadesPorEtapa || []).map((a) =>
               a.id === actividadId
@@ -376,6 +404,16 @@ function AppContent() {
             ),
             fechaUltimaActualizacion: completada ? new Date().toISOString().split('T')[0] : o.fechaUltimaActualizacion
           };
+
+          // Save to Supabase asynchronously
+          const actividadActualizada = updatedObra.actividadesPorEtapa?.find((a) => a.id === actividadId);
+          if (actividadActualizada) {
+            const supabaseData = supabaseAdapter.toSupabaseActividad(actividadActualizada, obraId);
+            actividadesService.updateActividad(actividadId, supabaseData as any)
+              .catch(err => console.error('Error updating actividad in Supabase:', err));
+          }
+
+          return updatedObra;
         }
         return o;
       })

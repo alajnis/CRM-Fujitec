@@ -1,4 +1,4 @@
-import { Obra, Cliente, Equipo, FunnelStage } from '../types';
+import { Obra, Cliente, Equipo, FunnelStage, ActividadPorEtapa } from '../types';
 import type { Obra as SupabaseObra, Cliente as SupabaseCliente, Equipo as SupabaseEquipo } from '../types/supabase';
 
 // Map Supabase etapa_actual to app FunnelStage
@@ -30,7 +30,11 @@ const mapFunnelStageToEtapa = (stage: FunnelStage): string => {
 
 export const supabaseAdapter = {
   // Convert Supabase Obra to App Obra
-  toAppObra(supabaseObra: SupabaseObra): Obra {
+  toAppObra(supabaseObra: SupabaseObra, actividades: any[] = []): Obra {
+    const actividadesDelObra = actividades
+      .filter(a => a.obra_id === supabaseObra.id && !a.deleted_at)
+      .map(a => this.toAppActividadPorEtapa(a));
+
     return {
       id: supabaseObra.id,
       codigo: `A-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
@@ -45,7 +49,7 @@ export const supabaseAdapter = {
       usuarioAsignado: supabaseObra.created_by,
       equipoIds: [],
       actividades: [],
-      actividadesPorEtapa: []
+      actividadesPorEtapa: actividadesDelObra
     };
   },
 
@@ -123,6 +127,30 @@ export const supabaseAdapter = {
       capacidad: `${appEquipo.capacidadKg} kg`,
       puertas: appEquipo.paradas,
       notas: appEquipo.observaciones
+    };
+  },
+
+  // Convert Supabase Actividad to App ActividadPorEtapa
+  toAppActividadPorEtapa(supabaseActividad: any): ActividadPorEtapa {
+    return {
+      id: supabaseActividad.id,
+      etapa: supabaseActividad.etapa || 'Solicitud',
+      descripcion: supabaseActividad.descripcion || '',
+      completada: supabaseActividad.estado === 'completada',
+      fechaCompletada: supabaseActividad.fecha_completacion,
+      completadaPor: supabaseActividad.usuario_asignado
+    };
+  },
+
+  // Convert App ActividadPorEtapa to Supabase Actividad
+  toSupabaseActividad(appActividad: ActividadPorEtapa, obraId: string) {
+    return {
+      obra_id: obraId,
+      descripcion: appActividad.descripcion,
+      estado: appActividad.completada ? 'completada' : 'pendiente',
+      fecha_completacion: appActividad.completada ? appActividad.fechaCompletada : null,
+      usuario_asignado: appActividad.completadaPor,
+      tipo: 'tarea'
     };
   }
 };
