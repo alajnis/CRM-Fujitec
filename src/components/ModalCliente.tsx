@@ -51,15 +51,18 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
   };
 
   const handleAddContact = () => {
+    console.log('🔘 handleAddContact called, newContact:', newContact);
     setValidationError('');
     if (!newContact.nombre || newContact.nombre.trim() === '') {
+      console.log('❌ Validation failed: no nombre');
       setValidationError('El nombre del contacto es obligatorio');
       return;
     }
+    console.log('✅ Adding contact:', newContact);
     const contacts = formCliente.contactos || [];
     setFormCliente({
       ...formCliente,
-      contactos: [...contactos, { ...newContact, id: `contact-${Date.now()}` } as ClienteContact]
+      contactos: [...contacts, { ...newContact, id: `contact-${Date.now()}` } as ClienteContact]
     });
     setNewContact({ nombre: '', cargo: '', email: '', telefono: '' });
   };
