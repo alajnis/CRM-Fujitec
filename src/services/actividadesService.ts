@@ -6,11 +6,12 @@ export const actividadesService = {
     const { data, error } = await supabase
       .from('actividades')
       .select('*')
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Actividad[];
+    // Filter out deleted records in memory
+    const filtered = (data || []).filter(a => !a.deleted_at);
+    return filtered as Actividad[];
   },
 
   async getActividadById(id: string) {

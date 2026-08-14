@@ -75,7 +75,10 @@ export const seedActividades = async () => {
       .select('id, etapa_actual')
       .is('deleted_at', null);
 
-    if (obrasError) throw obrasError;
+    if (obrasError) {
+      console.error('❌ Error fetching obras:', obrasError);
+      throw obrasError;
+    }
     if (!obras || obras.length === 0) {
       console.log('⚠️ No obras found');
       return;
@@ -87,6 +90,23 @@ export const seedActividades = async () => {
 
     // For each obra, create activities for all stages
     for (const obra of obras) {
+      // Check if activities already exist for this obra
+      const { data: existingActividades, error: checkError } = await supabase
+        .from('actividades')
+        .select('id')
+        .eq('obra_id', obra.id)
+        .is('deleted_at', null);
+
+      if (checkError) {
+        console.error(`⚠️ Error checking existing activities for obra ${obra.id}:`, checkError);
+        continue;
+      }
+
+      if (existingActividades && existingActividades.length > 0) {
+        console.log(`⏭️ Obra ${obra.id} already has ${existingActividades.length} activities, skipping...`);
+        continue;
+      }
+
       const activitiesToInsert: any[] = [];
 
       for (const stage of stages) {
@@ -108,14 +128,16 @@ export const seedActividades = async () => {
       }
 
       // Insert activities for this obra
-      const { error: insertError } = await supabase
+      console.log(`📝 Inserting ${activitiesToInsert.length} activities for obra ${obra.id}...`);
+      const { error: insertError, data: insertedData } = await supabase
         .from('actividades')
-        .insert(activitiesToInsert);
+        .insert(activitiesToInsert)
+        .select();
 
       if (insertError) {
         console.error(`❌ Error inserting activities for obra ${obra.id}:`, insertError);
       } else {
-        console.log(`✅ Inserted ${activitiesToInsert.length} activities for obra ${obra.id}`);
+        console.log(`✅ Inserted ${insertedData?.length || activitiesToInsert.length} activities for obra ${obra.id}`);
       }
     }
 
