@@ -26,12 +26,21 @@ export const useSupabaseData = (): UseSupabaseDataResult => {
       setError(null);
 
       console.log('📥 Loading data from Supabase...');
+      console.log('obrasService:', typeof obrasService);
+      console.log('clientesService:', typeof clientesService);
+      console.log('equiposService:', typeof equiposService);
 
-      const [obrasData, clientesData, equiposData] = await Promise.all([
-        obrasService.getObras(),
-        clientesService.getClientes(),
-        equiposService.getEquipos()
-      ]);
+      console.log('🔄 Calling obrasService.getObras()...');
+      const obrasData = await obrasService.getObras();
+      console.log('✅ obrasService.getObras() returned:', obrasData.length, 'items');
+
+      console.log('🔄 Calling clientesService.getClientes()...');
+      const clientesData = await clientesService.getClientes();
+      console.log('✅ clientesService.getClientes() returned:', clientesData.length, 'items');
+
+      console.log('🔄 Calling equiposService.getEquipos()...');
+      const equiposData = await equiposService.getEquipos();
+      console.log('✅ equiposService.getEquipos() returned:', equiposData.length, 'items');
 
       console.log(`✅ Loaded: ${obrasData.length} obras, ${clientesData.length} clientes, ${equiposData.length} equipos`);
 
