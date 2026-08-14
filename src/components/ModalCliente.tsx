@@ -51,14 +51,11 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
   };
 
   const handleAddContact = () => {
-    console.log('🔘 handleAddContact called, newContact:', newContact);
     setValidationError('');
     if (!newContact.nombre || newContact.nombre.trim() === '') {
-      console.log('❌ Validation failed: no nombre');
       setValidationError('El nombre del contacto es obligatorio');
       return;
     }
-    console.log('✅ Adding contact:', newContact);
     const contacts = formCliente.contactos || [];
     setFormCliente({
       ...formCliente,
@@ -167,13 +164,18 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                       <p className="font-bold text-[#2D3436]">{contact.nombre}</p>
                       <p className="text-[#636E72]">{contact.cargo}</p>
                       <div className="flex gap-2 mt-1 text-[#C8102E] font-semibold">
-                        <a href={`mailto:${contact.email}`} className="hover:underline flex items-center gap-1">
-                          <Mail size={12} /> {contact.email}
-                        </a>
+                        {contact.email && (
+                          <a href={`mailto:${contact.email}`} className="hover:underline flex items-center gap-1">
+                            <Mail size={12} /> {contact.email}
+                          </a>
+                        )}
                         {contact.telefono && (
                           <a href={`tel:${contact.telefono}`} className="hover:underline flex items-center gap-1">
                             <Phone size={12} /> {contact.telefono}
                           </a>
+                        )}
+                        {!contact.email && !contact.telefono && (
+                          <p className="text-[#B2BEC3] italic text-xs">Sin contacto</p>
                         )}
                       </div>
                     </div>

@@ -85,8 +85,8 @@ export const supabaseAdapter = {
     return {
       id: supabaseCliente.id,
       razonSocial: supabaseCliente.nombre,
-      contactoPrincipal: 'Contacto',
-      cargo: 'N/A',
+      contactoPrincipal: '',
+      cargo: '',
       email: supabaseCliente.email || '',
       telefono: supabaseCliente.telefono || '',
       direccion: supabaseCliente.direccion || '',
