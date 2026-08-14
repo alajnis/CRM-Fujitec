@@ -69,7 +69,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
   const getNombreUsuario = (usuarioId?: string): string => {
     if (!usuarioId) return 'Sin asignar';
-    return usuarios.find(u => u.id === usuarioId)?.nombre || usuarioId;
+    return usuarios.find(u => u.id === usuarioId)?.nombre || 'Sin asignar';
   };
 
   // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban
