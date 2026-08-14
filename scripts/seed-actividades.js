@@ -1,7 +1,12 @@
-import { supabase } from './supabaseClient';
-import { FunnelStage } from '../types';
+import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 
-const actividadTextos: Record<FunnelStage, string[]> = {
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ubbojwlsfiutsarwvsyd.supabase.co';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InViYm9qd2xzZml1dHNhcnd2c3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2OTk3MzQsImV4cCI6MjEwMjI3NTczNH0.sSBlypkUHD8EYnApqHnRHguPTJRMTkV8taHhTpI9ibE';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const actividadTextos = {
   'Solicitud': [
     'Recibir solicitud formal del cliente',
     'Registrar en sistema CRM',
@@ -52,8 +57,8 @@ const actividadTextos: Record<FunnelStage, string[]> = {
   ]
 };
 
-const mapEtapaToSupabaseEtapa = (etapa: FunnelStage): string => {
-  const mapping: Record<FunnelStage, string> = {
+const mapEtapaToSupabaseEtapa = (etapa) => {
+  const mapping = {
     'Solicitud': 'prospeccion',
     'En estudio de proyecto': 'evaluacion',
     'Estimado': 'propuesta',
@@ -65,9 +70,24 @@ const mapEtapaToSupabaseEtapa = (etapa: FunnelStage): string => {
   return mapping[etapa] || 'prospeccion';
 };
 
-export const seedActividades = async () => {
+async function seedActividades() {
   try {
     console.log('🌱 Starting activities seed...');
+
+    // Delete existing activities if --clean flag is passed
+    if (process.argv.includes('--clean')) {
+      console.log('🗑️ Cleaning existing activities...');
+      const { error: deleteError } = await supabase
+        .from('actividades')
+        .delete()
+        .is('deleted_at', null);
+
+      if (deleteError) {
+        console.error('⚠️ Error deleting existing activities:', deleteError);
+      } else {
+        console.log('✅ Cleaned existing activities');
+      }
+    }
 
     // Get all obras
     const { data: obras, error: obrasError } = await supabase
@@ -86,7 +106,8 @@ export const seedActividades = async () => {
 
     console.log(`📋 Found ${obras.length} obras`);
 
-    const stages: FunnelStage[] = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
+    const stages = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
+    let totalInserted = 0;
 
     // For each obra, create activities for all stages
     for (const obra of obras) {
@@ -107,7 +128,7 @@ export const seedActividades = async () => {
         continue;
       }
 
-      const activitiesToInsert: any[] = [];
+      const activitiesToInsert = [];
 
       for (const stage of stages) {
         const textos = actividadTextos[stage];
@@ -115,7 +136,7 @@ export const seedActividades = async () => {
 
         for (const texto of textos) {
           activitiesToInsert.push({
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             obra_id: obra.id,
             descripcion: texto,
             estado: 'pendiente',
@@ -136,12 +157,17 @@ export const seedActividades = async () => {
       if (insertError) {
         console.error(`❌ Error inserting activities for obra ${obra.id}:`, insertError);
       } else {
-        console.log(`✅ Inserted ${insertedData?.length || activitiesToInsert.length} activities for obra ${obra.id}`);
+        const count = insertedData?.length || activitiesToInsert.length;
+        console.log(`✅ Inserted ${count} activities for obra ${obra.id}`);
+        totalInserted += count;
       }
     }
 
-    console.log('✨ Activities seed completed!');
+    console.log(`✨ Activities seed completed! Total inserted: ${totalInserted}`);
   } catch (err) {
     console.error('❌ Error seeding activities:', err);
+    process.exit(1);
   }
-};
+}
+
+seedActividades();

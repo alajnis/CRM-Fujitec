@@ -144,9 +144,11 @@ export const supabaseAdapter = {
 
   // Convert Supabase Actividad to App ActividadPorEtapa
   toAppActividadPorEtapa(supabaseActividad: any): ActividadPorEtapa {
+    // Etapa is stored in the 'tipo' field (e.g., 'prospeccion', 'evaluacion', etc.)
+    const etapaDelTipo = supabaseActividad.tipo || supabaseActividad.etapa || 'prospeccion';
     return {
       id: supabaseActividad.id,
-      etapa: mapSupabaseEtapaToFunnelStage(supabaseActividad.etapa),
+      etapa: mapSupabaseEtapaToFunnelStage(etapaDelTipo),
       descripcion: supabaseActividad.descripcion || '',
       completada: supabaseActividad.estado === 'completada',
       fechaCompletada: supabaseActividad.fecha_completacion,
@@ -162,8 +164,7 @@ export const supabaseAdapter = {
       estado: appActividad.completada ? 'completada' : 'pendiente',
       fecha_completacion: appActividad.completada ? appActividad.fechaCompletada : null,
       usuario_asignado: appActividad.completadaPor,
-      tipo: 'tarea',
-      etapa: mapFunnelStageToEtapa(appActividad.etapa)
+      tipo: mapFunnelStageToEtapa(appActividad.etapa)
     };
   }
 };
