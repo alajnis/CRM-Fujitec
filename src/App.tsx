@@ -263,9 +263,14 @@ function AppContent() {
 
     // Save to Supabase
     const supabaseData = supabaseAdapter.toSupabaseCliente(clienteWithId);
-    console.log('💾 Saving cliente to Supabase:', supabaseData);
+    console.log('💾 Saving cliente to Supabase with ID:', clienteWithId.id);
 
-    if (clienteWithId.id && clienteWithId.id.length > 20) {
+    // Check if cliente already exists in state (update) or is new (create)
+    const existsInState = clientes.some((c) => c.id === clienteWithId.id);
+
+    if (existsInState) {
+      // Update existing
+      console.log('📝 Updating existing cliente...');
       clientesService.updateCliente(clienteWithId.id, supabaseData as any)
         .then(() => console.log('✅ Cliente updated in Supabase'))
         .catch(err => {
@@ -273,7 +278,10 @@ function AppContent() {
           console.error('Details:', err.message);
         });
     } else {
-      clientesService.createCliente(supabaseData as any)
+      // Create new - add ID to the data
+      console.log('✨ Creating new cliente...');
+      const supabaseDataWithId = { ...supabaseData, id: clienteWithId.id };
+      clientesService.createCliente(supabaseDataWithId as any)
         .then((result) => {
           console.log('✅ Cliente created in Supabase with ID:', result.id);
         })
@@ -284,11 +292,11 @@ function AppContent() {
     }
 
     setClientes((prev) => {
-      const exists = prev.some((c) => c.id === newCliente.id);
+      const exists = prev.some((c) => c.id === clienteWithId.id);
       if (exists) {
-        return prev.map((c) => (c.id === newCliente.id ? newCliente : c));
+        return prev.map((c) => (c.id === clienteWithId.id ? clienteWithId : c));
       }
-      return [newCliente, ...prev];
+      return [clienteWithId, ...prev];
     });
   };
 
