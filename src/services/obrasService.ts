@@ -8,7 +8,6 @@ export const obrasService = {
       const { data, error, status } = await supabase
         .from('obras')
         .select('*')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       console.log('Obras response status:', status);
@@ -16,8 +15,10 @@ export const obrasService = {
         console.error('❌ Error in getObras:', error);
         throw error;
       }
-      console.log(`✅ getObras returned ${(data || []).length} records`);
-      return (data || []) as Obra[];
+      // Filter out deleted records in memory
+      const filtered = (data || []).filter(o => !o.deleted_at);
+      console.log(`✅ getObras returned ${filtered.length} records (${data?.length} total before filtering)`);
+      return filtered as Obra[];
     } catch (err) {
       console.error('❌ Exception in getObras:', err);
       throw err;

@@ -6,25 +6,25 @@ export const clientesService = {
     try {
       console.log('🔄 Fetching clientes from Supabase...');
 
-      const query = supabase
+      // Try without the deleted_at filter first to debug
+      const { data, error, status } = await supabase
         .from('clientes')
         .select('*')
-        .is('deleted_at', null);
-
-      console.log('Query built, executing...');
-      const { data, error, status } = await query;
+        .order('fecha_creacion', { ascending: false });
 
       console.log('Response status:', status);
       console.log('Response error:', error);
-      console.log('Response data:', data);
+      console.log('Response data count:', data ? data.length : 0);
 
       if (error) {
         console.error('❌ Error in getClientes:', error);
         throw error;
       }
 
-      console.log(`✅ getClientes returned ${(data || []).length} records`);
-      return (data || []) as Cliente[];
+      // Filter out deleted records in memory
+      const filtered = (data || []).filter(c => !c.deleted_at);
+      console.log(`✅ getClientes returned ${filtered.length} records (${data?.length} total before filtering)`);
+      return filtered as Cliente[];
     } catch (err) {
       console.error('❌ Exception in getClientes:', err);
       throw err;

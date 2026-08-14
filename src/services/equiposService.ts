@@ -6,14 +6,15 @@ export const equiposService = {
     const { data, error } = await supabase
       .from('equipos')
       .select('*')
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error in getEquipos:', error);
       throw error;
     }
-    return (data || []) as Equipo[];
+    // Filter out deleted records in memory
+    const filtered = (data || []).filter(e => !e.deleted_at);
+    return filtered as Equipo[];
   },
 
   async getEquipoById(id: string) {
