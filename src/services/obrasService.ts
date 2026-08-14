@@ -3,17 +3,25 @@ import { Obra, Cliente, Equipo } from '../types/supabase';
 
 export const obrasService = {
   async getObras() {
-    const { data, error } = await supabase
-      .from('obras')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+    try {
+      console.log('🔄 Fetching obras from Supabase...');
+      const { data, error, status } = await supabase
+        .from('obras')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error in getObras:', error);
-      throw error;
+      console.log('Obras response status:', status);
+      if (error) {
+        console.error('❌ Error in getObras:', error);
+        throw error;
+      }
+      console.log(`✅ getObras returned ${(data || []).length} records`);
+      return (data || []) as Obra[];
+    } catch (err) {
+      console.error('❌ Exception in getObras:', err);
+      throw err;
     }
-    return (data || []) as Obra[];
   },
 
   async getObraById(id: string) {

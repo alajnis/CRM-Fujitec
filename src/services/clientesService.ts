@@ -3,17 +3,32 @@ import { Cliente } from '../types/supabase';
 
 export const clientesService = {
   async getClientes() {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('*')
-      .is('deleted_at', null)
-      .order('fecha_creacion', { ascending: false });
+    try {
+      console.log('🔄 Fetching clientes from Supabase...');
 
-    if (error) {
-      console.error('Error in getClientes:', error);
-      throw error;
+      const query = supabase
+        .from('clientes')
+        .select('*')
+        .is('deleted_at', null);
+
+      console.log('Query built, executing...');
+      const { data, error, status } = await query;
+
+      console.log('Response status:', status);
+      console.log('Response error:', error);
+      console.log('Response data:', data);
+
+      if (error) {
+        console.error('❌ Error in getClientes:', error);
+        throw error;
+      }
+
+      console.log(`✅ getClientes returned ${(data || []).length} records`);
+      return (data || []) as Cliente[];
+    } catch (err) {
+      console.error('❌ Exception in getClientes:', err);
+      throw err;
     }
-    return (data || []) as Cliente[];
   },
 
   async getClienteById(id: string) {
