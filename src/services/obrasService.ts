@@ -1,0 +1,118 @@
+import { supabase } from '../utils/supabaseClient';
+import { Obra, Cliente, Equipo } from '../types/supabase';
+
+export const obrasService = {
+  async getObras() {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Obra[];
+  },
+
+  async getObraById(id: string) {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data as Obra;
+  },
+
+  async getObrasByCliente(clienteId: string) {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Obra[];
+  },
+
+  async getObrasByEstapa(etapa: string) {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('*')
+      .eq('etapa_actual', etapa)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Obra[];
+  },
+
+  async createObra(obra: Omit<Obra, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('obras')
+      .insert([obra])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Obra;
+  },
+
+  async updateObra(id: string, updates: Partial<Obra>) {
+    const { data, error } = await supabase
+      .from('obras')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Obra;
+  },
+
+  async softDeleteObra(id: string) {
+    return this.updateObra(id, { deleted_at: new Date().toISOString() });
+  },
+
+  async getObraWithDetails(id: string) {
+    const { data: obraData, error: obraError } = await supabase
+      .from('obras')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (obraError) throw obraError;
+
+    const { data: clienteData, error: clienteError } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('id', obraData.cliente_id)
+      .single();
+
+    if (clienteError) throw clienteError;
+
+    const { data: equiposData, error: equiposError } = await supabase
+      .from('equipos')
+      .select('*')
+      .eq('obra_id', id)
+      .is('deleted_at', null);
+
+    if (equiposError) throw equiposError;
+
+    const { data: actividadesData, error: actividadesError } = await supabase
+      .from('actividades')
+      .select('*')
+      .eq('obra_id', id)
+      .is('deleted_at', null);
+
+    if (actividadesError) throw actividadesError;
+
+    return {
+      obra: obraData as Obra,
+      cliente: clienteData as Cliente,
+      equipos: equiposData as Equipo[],
+      actividades: actividadesData
+    };
+  }
+};
