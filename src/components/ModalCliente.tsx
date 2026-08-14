@@ -73,8 +73,8 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
     e.preventDefault();
     setValidationError('');
 
-    if (!hasContactMethod(formCliente.email, formCliente.telefono)) {
-      setValidationError('El contacto principal debe tener al menos un email o teléfono');
+    if (!formCliente.contactoPrincipal || formCliente.contactoPrincipal.trim() === '') {
+      setValidationError('El nombre del contacto principal es obligatorio');
       return;
     }
 
