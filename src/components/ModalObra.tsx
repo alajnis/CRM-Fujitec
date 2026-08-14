@@ -369,7 +369,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
               </div>
             )}
 
-            {/* Search & add */}
+            {/* Search & Dropdown Select */}
             <div className="pt-2 border-t border-[#E0E0E0] space-y-2">
               <input
                 type="text"
@@ -378,25 +378,26 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 onChange={(e) => setEquipoSearchQuery(e.target.value)}
                 className="w-full p-2 bg-white border border-[#E0E0E0] rounded-lg font-medium text-[#2D3436]"
               />
-              {equipoSearchQuery && (
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {equiposDisponibles.length === 0 ? (
-                    <p className="text-[11px] text-[#B2BEC3] italic p-1">Sin resultados</p>
-                  ) : (
-                    equiposDisponibles.slice(0, 8).map((eq) => {
+              <div className="max-h-48 overflow-y-auto border border-[#E0E0E0] rounded-lg bg-white divide-y">
+                {equiposDisponibles.length === 0 ? (
+                  <p className="text-[11px] text-[#B2BEC3] italic p-2">No hay equipos disponibles</p>
+                ) : (
+                  equiposDisponibles
+                    .sort((a, b) => (a.codigoUnico || '').localeCompare(b.codigoUnico || ''))
+                    .map((eq) => {
                       const obraDeEquipo = editingObra ? obtenerObraDeEquipo(eq.id, obras, editingObra.id) : undefined;
                       return (
                       <button
                         key={eq.id}
                         type="button"
                         onClick={() => handleAddEquipo(eq.id)}
-                        className="w-full flex items-center justify-between gap-2 p-2 bg-white hover:bg-blue-50 rounded-lg border border-[#E0E0E0] transition-colors text-left"
+                        className="w-full flex items-center justify-between gap-2 p-2 hover:bg-blue-50 transition-colors text-left"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           <span className="text-base shrink-0">{tipoIcono[eq.tipo] || '⚙️'}</span>
-                          <div className="min-w-0">
-                            <p className="font-bold text-[#2D3436] truncate">{eq.nombre}</p>
-                            <p className="text-[10px] text-[#636E72] truncate">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-[#2D3436] truncate text-xs">{eq.nombre}</p>
+                            <p className="text-[9px] text-[#636E72] truncate">
                               {eq.codigoUnico} · {eq.modelo}
                               {obraDeEquipo && (
                                 <span className="ml-1.5 text-amber-700 font-bold">⚠️ En {obraDeEquipo.codigo}</span>
@@ -404,15 +405,14 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                             </p>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-[#C8102E] shrink-0">
-                          {obraDeEquipo ? 'Mover acá' : '+ Agregar'}
+                        <span className="text-[9px] font-bold text-[#C8102E] shrink-0 px-2 py-1 bg-red-50 rounded">
+                          {obraDeEquipo ? 'Mover' : '+ Agregar'}
                         </span>
                       </button>
                       );
                     })
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
             </>
             )}

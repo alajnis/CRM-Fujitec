@@ -32,6 +32,7 @@ interface PantallaFichaRelacionalProps {
   onSelectObraForOffer: (obra: Obra) => void;
   onSaveCliente: (cliente: Cliente) => void;
   onOpenEditClienteContacts?: (cliente: Cliente) => void;
+  onOpenEditCliente?: (cliente: Cliente) => void;
   onOpenViewActividades?: (obra: Obra) => void;
   onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
 }
@@ -45,6 +46,7 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
   onSelectObraForOffer,
   onSaveCliente,
   onOpenEditClienteContacts,
+  onOpenEditCliente,
   onOpenViewActividades,
   onUpdateObraEquipos
 }) => {
@@ -275,6 +277,16 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
                       <Plus size={14} />
                       Asignar Obras
                     </button>
+                    {onOpenEditCliente && (
+                      <button
+                        onClick={() => onOpenEditCliente(activeCliente)}
+                        className="px-3.5 py-1.5 rounded-lg text-white font-bold text-xs shadow-2xs transition-all hover:bg-[#A60D26] flex items-center gap-1.5"
+                        style={{ backgroundColor: '#C8102E' }}
+                        id="btn-editar-cliente"
+                      >
+                        ✏️ Editar Cliente
+                      </button>
+                    )}
                     {onOpenEditClienteContacts && (
                       <button
                         onClick={() => onOpenEditClienteContacts(activeCliente)}

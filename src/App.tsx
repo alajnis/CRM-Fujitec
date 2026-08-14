@@ -472,6 +472,11 @@ function AppContent() {
     setIsModalClienteOpen(true);
   };
 
+  const handleEditCliente = (cliente: Cliente) => {
+    setSelectedClienteForEdit(cliente);
+    setIsModalClienteOpen(true);
+  };
+
   const handleSaveBudgetConfig = (config: any) => {
     setBudgetConfigs((prev) => {
       const exists = prev.some((c) => c.año === config.año);
@@ -610,6 +615,7 @@ function AppContent() {
               searchQuery={searchQuery}
               onSelectObraForOffer={handleGenerarOferta}
               onSaveCliente={handleSaveCliente}
+              onOpenEditCliente={handleEditCliente}
               onOpenEditClienteContacts={handleEditClienteContacts}
               onOpenViewActividades={(obra) => {
                 setSelectedObraForActividad(obra);
