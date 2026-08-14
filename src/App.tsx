@@ -46,7 +46,7 @@ import {
 import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
-import { obrasService, clientesService } from './services';
+import { obrasService, clientesService, equiposService } from './services';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -403,6 +403,20 @@ function AppContent() {
   };
 
   const handleSaveEquipo = (equipo: Equipo) => {
+    // Find the obra this equipment belongs to
+    const obraAsociada = obras.find(o => o.equipoIds?.includes(equipo.id));
+    const obraId = obraAsociada?.id || '';
+
+    // Save to Supabase
+    const supabaseData = supabaseAdapter.toSupabaseEquipo(equipo, obraId);
+    if (equipo.id && equipo.id.length > 0) {
+      equiposService.updateEquipo(equipo.id, supabaseData as any)
+        .catch(err => console.error('Error updating equipo in Supabase:', err));
+    } else {
+      equiposService.createEquipo(supabaseData as any)
+        .catch(err => console.error('Error creating equipo in Supabase:', err));
+    }
+
     setEquipos((prev) => {
       const exists = prev.some((e) => e.id === equipo.id);
       if (exists) {
