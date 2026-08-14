@@ -256,12 +256,17 @@ function AppContent() {
   };
 
   const handleSaveCliente = (newCliente: Cliente) => {
+    // Generate proper UUID if not exists
+    const clienteWithId = newCliente.id && newCliente.id.length > 20
+      ? newCliente
+      : { ...newCliente, id: crypto.randomUUID() };
+
     // Save to Supabase
-    const supabaseData = supabaseAdapter.toSupabaseCliente(newCliente);
+    const supabaseData = supabaseAdapter.toSupabaseCliente(clienteWithId);
     console.log('💾 Saving cliente to Supabase:', supabaseData);
 
-    if (newCliente.id && newCliente.id.length > 0) {
-      clientesService.updateCliente(newCliente.id, supabaseData as any)
+    if (clienteWithId.id && clienteWithId.id.length > 20) {
+      clientesService.updateCliente(clienteWithId.id, supabaseData as any)
         .then(() => console.log('✅ Cliente updated in Supabase'))
         .catch(err => {
           console.error('❌ Error updating cliente in Supabase:', err);
