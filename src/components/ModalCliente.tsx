@@ -113,7 +113,8 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                 <label className="block font-bold text-[#636E72] mb-1">Nombre</label>
                 <input
                   type="text"
-                  value={formCliente.contactoPrincipal}
+                  placeholder="Ingresa nombre del contacto principal"
+                  value={formCliente.contactoPrincipal || ''}
                   onChange={(e) => setFormCliente({ ...formCliente, contactoPrincipal: e.target.value })}
                   className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
                 />
@@ -122,7 +123,8 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                 <label className="block font-bold text-[#636E72] mb-1">Cargo</label>
                 <input
                   type="text"
-                  value={formCliente.cargo}
+                  placeholder="Ej: Gerente, Director"
+                  value={formCliente.cargo || ''}
                   onChange={(e) => setFormCliente({ ...formCliente, cargo: e.target.value })}
                   className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
                 />
