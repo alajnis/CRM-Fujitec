@@ -42,10 +42,15 @@ const mapFunnelStageToEtapa = (stage: FunnelStage): string => {
 
 export const supabaseAdapter = {
   // Convert Supabase Obra to App Obra
-  toAppObra(supabaseObra: SupabaseObra, actividades: any[] = []): Obra {
+  toAppObra(supabaseObra: SupabaseObra, actividades: any[] = [], equipos: any[] = []): Obra {
     const actividadesDelObra = actividades
       .filter(a => a.obra_id === supabaseObra.id && !a.deleted_at)
       .map(a => this.toAppActividadPorEtapa(a));
+
+    // Build equipoIds from equipos that have this obra_id
+    const equipoIds = equipos
+      .filter(e => e.obra_id === supabaseObra.id && !e.deleted_at)
+      .map(e => e.id);
 
     return {
       id: supabaseObra.id,
@@ -59,7 +64,7 @@ export const supabaseAdapter = {
       fechaUltimaActualizacion: supabaseObra.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
       observaciones: supabaseObra.notas || '',
       usuarioAsignado: supabaseObra.created_by,
-      equipoIds: [],
+      equipoIds,
       actividades: [],
       actividadesPorEtapa: actividadesDelObra
     };

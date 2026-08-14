@@ -52,7 +52,7 @@ export const useSupabaseData = (): UseSupabaseDataResult => {
       console.log(`✅ Loaded: ${obrasData.length} obras, ${clientesData.length} clientes, ${equiposData.length} equipos, ${actividadesData.length} actividades`);
 
       // Transform Supabase data to app types using adapter
-      const appObras = obrasData.map(o => supabaseAdapter.toAppObra(o, actividadesData));
+      const appObras = obrasData.map(o => supabaseAdapter.toAppObra(o, actividadesData, equiposData));
       const appClientes = clientesData.map(c => supabaseAdapter.toAppCliente(c));
       const appEquipos = equiposData.map(e => supabaseAdapter.toAppEquipo(e));
 

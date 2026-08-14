@@ -450,17 +450,29 @@ function AppContent() {
         let obraLogged: Obra = { ...o, equipoIds: nuevosEquipoIds };
         agregados.forEach((id) => {
           const eq = equipos.find((e) => e.id === id);
-          if (eq) obraLogged = logEquipoAgregado(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+          if (eq) {
+            obraLogged = logEquipoAgregado(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+            // Save equipo to Supabase with obra_id
+            const supabaseEquipoData = supabaseAdapter.toSupabaseEquipo(eq, obraId);
+            equiposService.updateEquipo(id, supabaseEquipoData as any)
+              .catch(err => console.error('Error assigning equipo to obra in Supabase:', err));
+          }
         });
         quitados.forEach((id) => {
           const eq = equipos.find((e) => e.id === id);
-          if (eq) obraLogged = logEquipoRemovido(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+          if (eq) {
+            obraLogged = logEquipoRemovido(obraLogged, eq.nombre, eq.id, usuarioActual.nombre);
+            // Remove equipo from obra in Supabase
+            const supabaseEquipoData = supabaseAdapter.toSupabaseEquipo(eq, '');
+            equiposService.updateEquipo(id, supabaseEquipoData as any)
+              .catch(err => console.error('Error removing equipo from obra in Supabase:', err));
+          }
         });
 
-        // Save to Supabase asynchronously
+        // Also update the obra's log in Supabase
         const supabaseData = supabaseAdapter.toSupabaseObra(obraLogged);
         obrasService.updateObra(obraId, supabaseData as any)
-          .catch(err => console.error('Error updating obra equipos in Supabase:', err));
+          .catch(err => console.error('Error updating obra in Supabase:', err));
 
         return obraLogged;
       })
