@@ -519,7 +519,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                         </td>
                         <td className="p-4 text-xs text-[#636E72]">
                           <span className="font-medium text-[#2D3436]">
-                            {clientes.find(c => c.id === obra.clienteId)?.razonSocial || obra.clienteId}
+                            {clientes.find(c => c.id === obra.clienteId)?.razonSocial || 'Sin cliente'}
                           </span>
                         </td>
                         <td className="p-4">
