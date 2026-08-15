@@ -3,6 +3,7 @@ import { Settings, X, Save, AlertTriangle, Plus, Edit3, ToggleRight, ToggleLeft,
 import { FunnelStage, ConfiguracionDiasEtapa, Usuario } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ModalUsuario } from './ModalUsuario';
+import { Toast } from './Toast';
 
 interface PantallaConfiguracionProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
   const [diasConfig, setDiasConfig] = useState<ConfiguracionDiasEtapa[]>(INITIAL_DIAS_CONFIG);
   const [isModalUsuarioOpen, setIsModalUsuarioOpen] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
   // Función para distribuir un valor entre 12 meses
   const distributeValue = (total: number) => {
     const baseAmount = Math.floor(total / 12);
@@ -55,11 +57,17 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
   });
 
   const handleSave = () => {
-    onSaveDiasConfig(diasConfig);
-    if (onSaveBudgetConfig) {
-      onSaveBudgetConfig(budgetConfig);
-    }
-    onClose();
+    setToast({ message: '💾 Guardando cambios...', type: 'loading' });
+    setTimeout(() => {
+      onSaveDiasConfig(diasConfig);
+      if (onSaveBudgetConfig) {
+        onSaveBudgetConfig(budgetConfig);
+      }
+      setToast({ message: '✅ Configuración guardada correctamente', type: 'success' });
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    }, 300);
   };
 
   const handleUpdateDias = (etapa: FunnelStage, nuevosDias: number) => {
@@ -380,6 +388,15 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
         usuario={usuarioEditando}
         onSaveUsuario={handleSaveUsuario}
       />
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => toast.type !== 'loading' && setToast(null)}
+        />
+      )}
     </div>
   );
 };

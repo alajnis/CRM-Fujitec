@@ -42,6 +42,7 @@ interface PantallaDashboardProps {
   onNavigateToFunnel: () => void;
   selectedYear?: number;
   onOpenViewActividades?: (obra: Obra) => void;
+  getDiasMaximosForEtapa?: (etapa: string) => number;
 }
 
 export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
@@ -53,7 +54,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   onNavigateToObra,
   onNavigateToFunnel,
   selectedYear = new Date().getFullYear(),
-  onOpenViewActividades
+  onOpenViewActividades,
+  getDiasMaximosForEtapa = () => 7
 }) => {
   const { usuarioActual, usuarios } = useAuth();
   const getNombreUsuario = (usuarioId?: string): string => {
@@ -63,6 +65,12 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   const [showEquipos, setShowEquipos] = useState(false);
   const [misObrasFilter, setMisObrasFilter] = useState<'todas' | 'alerta' | 'sin-alerta'>('todas');
   const [misObrasSortBy, setMisObrasSortBy] = useState<'dias' | 'deadline' | 'stage' | 'nombre'>('dias');
+
+  // Helper function to check if obra has alert using configured dias
+  const checkAlerta = (obra: Obra): boolean => {
+    const diasMaximos = getDiasMaximosForEtapa(obra.estado);
+    return tieneAlertaTemporal(obra, diasMaximos);
+  };
 
   // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
   const filteredObras = obras.filter((obra) => {
@@ -90,9 +98,9 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   // Apply mis obras filter
   let misObrasFilteradas = misObrasAsignadas;
   if (misObrasFilter === 'alerta') {
-    misObrasFilteradas = misObrasAsignadas.filter(o => tieneAlertaTemporal(o));
+    misObrasFilteradas = misObrasAsignadas.filter(o => checkAlerta(o));
   } else if (misObrasFilter === 'sin-alerta') {
-    misObrasFilteradas = misObrasAsignadas.filter(o => !tieneAlertaTemporal(o));
+    misObrasFilteradas = misObrasAsignadas.filter(o => !checkAlerta(o));
   }
 
   // Sort mis obras
@@ -144,7 +152,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   const semaforoRentabilidad = getSemaforoComercial(porcentajeRentabilidad);
 
   // Stagnant projects >7 days
-  const obrasAlertas = filteredObras.filter((o) => tieneAlertaTemporal(o));
+  const obrasAlertas = filteredObras.filter((o) => checkAlerta(o));
 
   // Stage Breakdown for Funnel summary
   const etapas = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
@@ -352,7 +360,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                     : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
                 }`}
               >
-                En Alerta ({misObrasAsignadas.filter(o => tieneAlertaTemporal(o)).length})
+                En Alerta ({misObrasAsignadas.filter(o => checkAlerta(o)).length})
               </button>
               <button
                 onClick={() => setMisObrasFilter('sin-alerta')}
@@ -362,7 +370,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                     : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
                 }`}
               >
-                Sin Alerta ({misObrasAsignadas.filter(o => !tieneAlertaTemporal(o)).length})
+                Sin Alerta ({misObrasAsignadas.filter(o => !checkAlerta(o)).length})
               </button>
             </div>
 
@@ -410,7 +418,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                   <tbody className="divide-y divide-[#E0E0E0]">
                     {misObrasFilteradas.map((obra) => {
                       const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
-                      const enAlerta = tieneAlertaTemporal(obra);
+                      const enAlerta = checkAlerta(obra);
                       const cliente = obras.find(o => o.id === obra.id)?.clienteId || 'N/A';
 
                       return (

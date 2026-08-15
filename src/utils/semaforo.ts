@@ -59,10 +59,10 @@ export function getDiasSinActualizar(fechaISO: string): number {
 }
 
 /**
- * Comprueba si una obra requiere alerta temporal por llevar más de 7 días sin acción
+ * Comprueba si una obra requiere alerta temporal por llevar más de N días sin acción
  * Considera: cambio de etapa, notas agregadas, o ediciones de obra
  */
-export function tieneAlertaTemporal(obra: Obra): boolean {
+export function tieneAlertaTemporal(obra: Obra, diasMaximos: number = 7): boolean {
   if (obra.estado === 'Finalizadas' || obra.estado === 'Rechazadas') {
     return false; // Obras cerradas no generan alerta
   }
@@ -91,7 +91,7 @@ export function tieneAlertaTemporal(obra: Obra): boolean {
   // Usar la fecha más reciente de todas las acciones
   const fechaMasReciente = fechas.filter(Boolean).sort().reverse()[0];
   const dias = getDiasSinActualizar(fechaMasReciente);
-  return dias > 7;
+  return dias > diasMaximos;
 }
 
 /**

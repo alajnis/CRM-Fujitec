@@ -166,6 +166,12 @@ function AppContent() {
   const [cartasOferta, setCartasOferta] = useState<CartaOferta[]>(INITIAL_CARTAS_OFERTA);
   const [equipos, setEquipos] = useState<Equipo[]>(INITIAL_EQUIPOS);
 
+  // Load dias configuration from localStorage
+  const [diasConfig, setDiasConfig] = useState<any[]>(() => {
+    const saved = localStorage.getItem('diasConfig');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Seed activities on first load
   useEffect(() => {
     const seeded = sessionStorage.getItem('actividades_seeded');
@@ -530,10 +536,16 @@ function AppContent() {
     });
   };
 
+  const getDiasMaximosForEtapa = (etapa: string): number => {
+    const found = diasConfig.find((d: any) => d.etapa === etapa);
+    return found?.diasMaximosSinAccion || 7; // Default to 7 if not configured
+  };
+
   const handleSaveDiasConfig = async (config: any) => {
-    // Save dias configuration to localStorage as fallback since Supabase table doesn't exist yet
+    // Save dias configuration to localStorage
     localStorage.setItem('diasConfig', JSON.stringify(config));
-    console.log('✅ Dias configuration saved to localStorage');
+    setDiasConfig(config); // Update state immediately
+    console.log('✅ Dias configuration saved');
     setIsConfiguracionOpen(false);
   };
 
@@ -631,6 +643,7 @@ function AppContent() {
               onNavigateToObra={handleNavigateToObra}
               onNavigateToFunnel={() => setActiveTab('obras')}
               selectedYear={selectedYear}
+              getDiasMaximosForEtapa={getDiasMaximosForEtapa}
               onOpenViewActividades={(obra) => {
                 setSelectedObraForActividad(obra);
                 setIsModalActividadOpen(true);
