@@ -287,7 +287,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                 {/* Stage Header */}
                 <div className={`p-3.5 rounded-xl border ${headerBg} mb-3 shadow-2xs backdrop-blur-sm`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="font-extrabold text-[10px] uppercase tracking-wide flex items-center gap-1.5">
                       <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
                       {stage}
                     </span>
