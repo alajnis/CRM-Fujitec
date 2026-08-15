@@ -81,15 +81,11 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   });
 
   // "Mis obras asignadas" - Filter for current user
-  const misObrasAsignadas = obras.filter(obra => {
-    const match = obra.usuarioAsignado === usuarioActual?.id &&
-                  obra.estado !== 'Finalizadas' &&
-                  obra.estado !== 'Rechazadas';
-    if (!match && obras.length > 0) {
-      console.log(`🔍 Obra ${obra.codigoObra}: usuarioAsignado="${obra.usuarioAsignado}" vs usuarioActual="${usuarioActual?.id}" | estado="${obra.estado}"`);
-    }
-    return match;
-  });
+  const misObrasAsignadas = obras.filter(obra =>
+    obra.usuarioAsignado === usuarioActual?.id &&
+    obra.estado !== 'Finalizadas' &&
+    obra.estado !== 'Rechazadas'
+  );
 
   // Apply mis obras filter
   let misObrasFilteradas = misObrasAsignadas;
