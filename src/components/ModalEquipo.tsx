@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { Equipo, EquipmentMainType } from '../types';
+import { Toast } from './Toast';
 
 interface ModalEquipoProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
   onSaveEquipo
 }) => {
   const [formEquipo, setFormEquipo] = useState<Partial<Equipo>>({});
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basicos: true,
     ascensor: true,
@@ -49,7 +51,7 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
     return `${prefix}-${typeCode}-${modelCode}-${timestamp}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formEquipo.nombre || !formEquipo.modelo || !formEquipo.tipo) return;
 
@@ -121,8 +123,19 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
       observaciones: formEquipo.observaciones
     };
 
-    onSaveEquipo(equipoFinal);
-    onClose();
+    setToast({ message: '💾 Guardando...', type: 'loading' });
+
+    try {
+      onSaveEquipo(equipoFinal);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setToast({ message: '✅ Equipo guardado correctamente', type: 'success' });
+      setTimeout(() => {
+        setToast(null);
+        onClose();
+      }, 1500);
+    } catch (error) {
+      setToast({ message: '❌ Error al guardar', type: 'error' });
+    }
   };
 
   const toggleSection = (section: string) => {
@@ -166,8 +179,17 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-4xl w-full my-8 flex flex-col max-h-[90vh]">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => toast.type !== 'loading' && setToast(null)}
+          duration={toast.type === 'loading' ? 0 : 3000}
+        />
+      )}
+      <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+        <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-4xl w-full my-8 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5]">
           <div className="flex items-center justify-between">
@@ -409,7 +431,8 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
             Guardar Equipo
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Mail, Phone, UserCheck, AlertCircle } from 'lucide-react';
 import { Cliente, ClienteContact } from '../types';
+import { Toast } from './Toast';
 
 interface ModalClienteProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
     telefono: ''
   });
   const [validationError, setValidationError] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,7 +71,7 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
     setFormCliente({ ...formCliente, contactos });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
 
@@ -78,13 +80,33 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
       return;
     }
 
-    onSaveCliente(formCliente);
-    onClose();
+    setToast({ message: '💾 Guardando...', type: 'loading' });
+
+    try {
+      onSaveCliente(formCliente);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setToast({ message: '✅ Cliente guardado correctamente', type: 'success' });
+      setTimeout(() => {
+        setToast(null);
+        onClose();
+      }, 1500);
+    } catch (error) {
+      setToast({ message: '❌ Error al guardar', type: 'error' });
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-[#2D3436]/40 backdrop-blur-sm z-[9999] overflow-y-auto flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-6 space-y-4 my-auto">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => toast.type !== 'loading' && setToast(null)}
+          duration={toast.type === 'loading' ? 0 : 3000}
+        />
+      )}
+      <div className="fixed inset-0 bg-[#2D3436]/40 backdrop-blur-sm z-[9999] overflow-y-auto flex items-center justify-center p-4">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-6 space-y-4 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3">
           <h3 className="text-lg font-extrabold text-[#2D3436]">
@@ -257,7 +279,8 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

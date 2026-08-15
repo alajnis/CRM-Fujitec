@@ -3,6 +3,7 @@ import { MessageSquare, History } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ComponenteActividades } from './ComponenteActividades';
+import { Toast } from './Toast';
 
 interface ModalObraProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   const { usuarios, usuarioActual } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
   const [confirmDialogState, setConfirmDialogState] = useState<{
     show: boolean;
     equipoId?: string;
@@ -187,7 +189,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     'Rampa': '♿'
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formObra.nombre) return;
 
@@ -221,18 +223,38 @@ export const ModalObra: React.FC<ModalObraProps> = ({
       }
     };
 
-    onSaveObra(obraFinal);
+    setToast({ message: '💾 Guardando...', type: 'loading' });
 
-    if (!editingObra) {
-      onUpdateProximoCodigo(generateNextCodigoObra(proximoCodigoObra));
+    try {
+      onSaveObra(obraFinal);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      if (!editingObra) {
+        onUpdateProximoCodigo(generateNextCodigoObra(proximoCodigoObra));
+      }
+
+      setToast({ message: '✅ Obra guardada correctamente', type: 'success' });
+      setTimeout(() => {
+        setToast(null);
+        onClose();
+      }, 1500);
+    } catch (error) {
+      setToast({ message: '❌ Error al guardar', type: 'error' });
     }
-
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full flex flex-col max-h-[calc(100vh-32px)] my-auto">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => toast.type !== 'loading' && setToast(null)}
+          duration={toast.type === 'loading' ? 0 : 3000}
+        />
+      )}
+      <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+        <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full flex flex-col max-h-[calc(100vh-32px)] my-auto">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5]">
           <div className="flex items-center justify-between">
@@ -579,6 +601,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
