@@ -119,15 +119,15 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
   };
 
   return (
-    <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
+    <div className="p-8 space-y-8 bg-[#F1F3F5] dark:bg-slate-900 min-h-screen">
       {/* Top Header Title */}
-      <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-5 border border-[#E0E0E0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl p-5 border border-[#E0E0E0] dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-[#2D3436] tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-black text-[#2D3436] dark:text-slate-100 tracking-tight flex items-center gap-2">
             <FileCheck size={20} style={{ color: '#C8102E' }} />
             Motor Documental de Carta Oferta Fujitec
           </h2>
-          <p className="text-xs text-[#636E72] font-medium">
+          <p className="text-xs text-[#636E72] dark:text-slate-400 font-medium">
             Generación automática de propuestas comerciales formales sin reescrituras manuales
           </p>
         </div>
@@ -155,12 +155,12 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT COLUMN: FORMULARIO DE ENTRADA REQUERIDO (Hidden on print) */}
-        <div className="lg:col-span-5 bg-white/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] shadow-sm p-6 space-y-4 print:hidden">
-          <div className="border-b border-[#F1F3F5] pb-3">
-            <h3 className="text-sm font-extrabold text-[#2D3436] uppercase tracking-wider">
+        <div className="lg:col-span-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] dark:border-slate-700 shadow-sm p-6 space-y-4 print:hidden">
+          <div className="border-b border-[#F1F3F5] dark:border-slate-700 pb-3">
+            <h3 className="text-sm font-extrabold text-[#2D3436] dark:text-slate-100 uppercase tracking-wider">
               1. Selección de Obra & Parámetros
             </h3>
-            <p className="text-[11px] text-[#636E72]">Campos oficiales de la propuesta económica</p>
+            <p className="text-[11px] text-[#636E72] dark:text-slate-400">Campos oficiales de la propuesta económica</p>
           </div>
 
           {/* Obra Selector */}
@@ -362,13 +362,19 @@ export const PantallaCartaOferta: React.FC<PantallaCartaOfertaProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="font-bold text-[#2D3436]">
-                    <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra?.hardwareSpecs.modelo}</td>
-                    <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra?.hardwareSpecs.velocidadMS} m/s</td>
-                    <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra?.hardwareSpecs.paradas} paradas</td>
-                    <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra?.hardwareSpecs.tipoSalaMaquinas}</td>
-                    <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra?.hardwareSpecs.capacidadKg} kg</td>
-                  </tr>
+                  {selectedObra?.hardwareSpecs ? (
+                    <tr className="font-bold text-[#2D3436]">
+                      <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra.hardwareSpecs.modelo}</td>
+                      <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra.hardwareSpecs.velocidadMS} m/s</td>
+                      <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra.hardwareSpecs.paradas} paradas</td>
+                      <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra.hardwareSpecs.tipoSalaMaquinas}</td>
+                      <td className="p-2.5 border-b border-[#E0E0E0]">{selectedObra.hardwareSpecs.capacidadKg} kg</td>
+                    </tr>
+                  ) : (
+                    <tr className="text-[#B2BEC3]">
+                      <td colSpan={5} className="p-2.5 text-center text-xs">Sin especificaciones de hardware</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
