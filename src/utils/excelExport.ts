@@ -50,18 +50,40 @@ export const exportObrasToExcel = (obras: Obra[], fileName: string = 'Obras.xlsx
 };
 
 export const exportClientesToExcel = (clientes: Cliente[], fileName: string = 'Clientes.xlsx') => {
-  const data = clientes.map(cliente => ({
-    'Razón Social': cliente.razonSocial,
-    'Contacto Principal': cliente.contactoPrincipal || '-',
-    'Cargo': cliente.cargo || '-',
-    'Email': cliente.email || '-',
-    'Teléfono': cliente.telefono || '-',
-    'Dirección': cliente.direccion || '-',
-    'Región': cliente.region,
-    'CUIT/Rut': cliente.cuitRut || '-'
-  }));
+  // Expand rows: one row per contact (primary + all secondary)
+  const expandedData: any[] = [];
 
-  const ws = XLSX.utils.json_to_sheet(data);
+  clientes.forEach(cliente => {
+    // Always add primary contact
+    expandedData.push({
+      'Razón Social': cliente.razonSocial,
+      'Contacto': cliente.contactoPrincipal || '-',
+      'Cargo': cliente.cargo || '-',
+      'Email': cliente.email || '-',
+      'Teléfono': cliente.telefono || '-',
+      'Dirección': cliente.direccion || '-',
+      'Región': cliente.region,
+      'CUIT/Rut': cliente.cuitRut || '-'
+    });
+
+    // Add secondary contacts if they exist
+    if (cliente.contactos && cliente.contactos.length > 0) {
+      cliente.contactos.forEach(contacto => {
+        expandedData.push({
+          'Razón Social': cliente.razonSocial,
+          'Contacto': contacto.nombre || '-',
+          'Cargo': contacto.cargo || '-',
+          'Email': contacto.email || '-',
+          'Teléfono': contacto.telefono || '-',
+          'Dirección': cliente.direccion || '-',
+          'Región': cliente.region,
+          'CUIT/Rut': cliente.cuitRut || '-'
+        });
+      });
+    }
+  });
+
+  const ws = XLSX.utils.json_to_sheet(expandedData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
 
@@ -80,7 +102,7 @@ export const exportClientesToExcel = (clientes: Cliente[], fileName: string = 'C
   // Adjust column widths
   ws['!cols'] = [
     { wch: 25 }, // Razón Social
-    { wch: 20 }, // Contacto Principal
+    { wch: 20 }, // Contacto
     { wch: 15 }, // Cargo
     { wch: 25 }, // Email
     { wch: 15 }, // Teléfono

@@ -339,14 +339,55 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
           <div>
             Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.length}</span> equipos
           </div>
-          <button
-            onClick={() => exportEquiposToExcel(filteredEquipos, `Equipos_${new Date().toISOString().split('T')[0]}.xlsx`)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all"
-            title="Descargar equipos en Excel"
-          >
-            <Download size={14} />
-            Descargar Excel
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedTipo('Todos');
+                setMinVelocidad(0);
+                setMaxVelocidad(10);
+                setMinCapacidad(0);
+                setMaxCapacidad(5000);
+                setSelectedModelo('');
+                setMinParadas(0);
+                setMaxParadas(100);
+                setMinAccesosFrente(0);
+                setMaxAccesosFrente(20);
+                setMinAccesosContrafrente(0);
+                setMaxAccesosContrafrente(20);
+                setSelectedUso('');
+                setMinAnchoCabina(0);
+                setMaxAnchoCabina(300);
+                setMinProfCabina(0);
+                setMaxProfCabina(300);
+                setMinAltoCabina(0);
+                setMaxAltoCabina(300);
+                setMinAnchoPasadizo(0);
+                setMaxAnchoPasadizo(300);
+                setMinProfPasadizo(0);
+                setMaxProfPasadizo(300);
+                setMinRise(0);
+                setMaxRise(30);
+                setMinInclinacion(0);
+                setMaxInclinacion(90);
+                setMinEscalones(0);
+                setMaxEscalones(100);
+                setShowFilters(false);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition-all"
+              title="Limpiar todos los filtros"
+            >
+              Limpiar Filtros
+            </button>
+            <button
+              onClick={() => exportEquiposToExcel(filteredEquipos, `Equipos_${new Date().toISOString().split('T')[0]}.xlsx`)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all"
+              title="Descargar equipos en Excel"
+            >
+              <Download size={14} />
+              Descargar Excel
+            </button>
+          </div>
         </div>
       </div>
 
