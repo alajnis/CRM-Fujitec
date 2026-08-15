@@ -35,6 +35,11 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 }) => {
   const { usuarios, usuarioActual } = useAuth();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
+  const [confirmDialogState, setConfirmDialogState] = useState<{
+    show: boolean;
+    equipoId?: string;
+    obraActual?: Obra;
+  }>({ show: false });
   const [formObra, setFormObra] = useState<Partial<Obra>>({
     codigo: 'A-5300',
     nombre: '',
@@ -132,19 +137,39 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 
     const equipo = equipos.find((eq) => eq.id === equipoId);
     const obraActual = equipoToObraMap.get(equipoId);
+
+    // If equipo already assigned, show confirmation dialog (non-blocking)
     if (obraActual && equipo) {
-      const confirmado = window.confirm(
-        `Este equipo ya está asignado a ${obraActual.codigo} - ${obraActual.nombre}.\n\nUn equipo solo puede estar en una obra a la vez. ¿Confirmás moverlo a esta obra?`
-      );
-      if (!confirmado) return;
-      startTransition(() => {
-        onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
-      });
+      setConfirmDialogState({ show: true, equipoId, obraActual });
+      return;
     }
+
+    // Otherwise add immediately
     startTransition(() => {
       onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
       setEquipoSearchQuery('');
     });
+  };
+
+  const handleConfirmMove = () => {
+    if (!editingObra || !onUpdateObraEquipos || !confirmDialogState.equipoId || !confirmDialogState.obraActual) return;
+
+    const equipoId = confirmDialogState.equipoId;
+    const obraActual = confirmDialogState.obraActual;
+
+    startTransition(() => {
+      // Remove from old obra
+      onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
+      // Add to current obra
+      onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
+      setEquipoSearchQuery('');
+    });
+
+    setConfirmDialogState({ show: false });
+  };
+
+  const handleCancelMove = () => {
+    setConfirmDialogState({ show: false });
   };
 
   const handleRemoveEquipo = (equipoId: string) => {
@@ -515,6 +540,41 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Confirmation dialog for moving equipo between obras */}
+      {confirmDialogState.show && confirmDialogState.obraActual && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+            <h3 className="text-lg font-bold text-[#2D3436] mb-2">
+              Mover Equipo
+            </h3>
+            <p className="text-sm text-[#636E72] mb-6">
+              Este equipo ya está asignado a <strong>{confirmDialogState.obraActual.codigo} - {confirmDialogState.obraActual.nombre}</strong>.
+              <br /><br />
+              Un equipo solo puede estar en una obra a la vez. ¿Confirmás moverlo a esta obra?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCancelMove}
+                className="px-4 py-2 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-semibold text-[#2D3436] text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmMove}
+                className="px-4 py-2 rounded-lg font-bold text-white text-sm transition-colors"
+                style={{ backgroundColor: '#C8102E' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#A60D26')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#C8102E')}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
