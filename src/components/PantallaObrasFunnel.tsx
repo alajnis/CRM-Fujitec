@@ -69,11 +69,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 }) => {
   const { isSuperuser, usuarios } = useAuth();
 
-  const getNombreUsuario = (usuarioId?: string): string => {
-    if (!usuarioId) return 'Sin asignar';
-    return usuarios.find(u => u.id === usuarioId)?.nombre || 'Sin asignar';
-  };
-
   // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban
   const [subView, setSubView] = useState<'lista' | 'kanban'>('kanban');
 
@@ -381,7 +376,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           {/* Assigned User - hidden in summarized mode */}
                           {cardViewMode === 'complete' && (
                             <div className="text-xs text-[#636E72] font-medium truncate">
-                              👤 <span className="font-bold text-[#2D3436]">{getNombreUsuario(obra.usuarioAsignado)}</span>
+                              👤 <span className="font-bold text-[#2D3436]">{obra.usuarioAsignado ? (usuarioMap.get(obra.usuarioAsignado) || 'Sin asignar') : 'Sin asignar'}</span>
                             </div>
                           )}
 
@@ -554,7 +549,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           </span>
                         </td>
                         <td className="p-4 text-xs text-[#636E72]">
-                          {getNombreUsuario(obra.usuarioAsignado)}
+                          {obra.usuarioAsignado ? (usuarioMap.get(obra.usuarioAsignado) || 'Sin asignar') : 'Sin asignar'}
                         </td>
                         <td className="p-4 text-xs text-[#636E72]">
                           {formatDateES(obra.fechaIngreso)}
