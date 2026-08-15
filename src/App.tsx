@@ -47,6 +47,7 @@ import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
 import { obrasService, clientesService, equiposService, actividadesService } from './services';
+import { configuracionService } from './services/configuracionService';
 import { seedActividades } from './utils/seedActividades';
 
 const distributeValue = (total: number) => {
@@ -181,8 +182,6 @@ function AppContent() {
       setObras(obrasFromSupabase);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
-      // TESTING: Assign all to admin on load
-      handleAssignAllToAdmin();
     }
   }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading]);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
@@ -226,25 +225,6 @@ function AppContent() {
   const handleEditObra = (obra: Obra) => {
     setEditingObra(obra);
     setIsModalObraOpen(true);
-  };
-
-  // Testing helper: assign all obras to admin
-  const handleAssignAllToAdmin = () => {
-    const ADMIN_ID = 'user-1'; // Superadmin ID from AuthContext
-    setObras((prev) =>
-      prev.map((obra) => ({
-        ...obra,
-        usuarioAsignado: ADMIN_ID
-      }))
-    );
-    // Also update in Supabase
-    obras.forEach((obra) => {
-      const updatedObra = { ...obra, usuarioAsignado: ADMIN_ID };
-      const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
-      obrasService.updateObra(obra.id, supabaseData as any)
-        .catch(err => console.error('Error updating obra in Supabase:', err));
-    });
-    console.log('✅ All obras assigned to admin');
   };
 
   const handleSaveObra = (savedObra: Obra) => {
@@ -545,8 +525,13 @@ function AppContent() {
     });
   };
 
-  const handleSaveDiasConfig = (config: any) => {
-    // For now, just close the modal - in a real app, this would persist to backend
+  const handleSaveDiasConfig = async (config: any) => {
+    const success = await configuracionService.saveDiasConfig(config);
+    if (success) {
+      console.log('✅ Dias configuration saved successfully');
+    } else {
+      console.error('Failed to save dias configuration');
+    }
     setIsConfiguracionOpen(false);
   };
 
