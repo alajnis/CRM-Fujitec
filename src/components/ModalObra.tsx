@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MessageSquare, History } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -128,13 +128,17 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     onUpdateObraEquipos(editingObra.id, equipoIdsActuales.filter((id) => id !== equipoId));
   };
 
-  const equiposDisponibles = equipos.filter((eq) =>
-    !equipoIdsActuales.includes(eq.id) &&
-    !eq.isDeleted &&
-    (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
-      eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
-      eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
-  );
+  const equiposDisponibles = useMemo(() => {
+    return equipos
+      .filter((eq) =>
+        !equipoIdsActuales.includes(eq.id) &&
+        !eq.isDeleted &&
+        (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+          eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+          eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
+      )
+      .sort((a, b) => (a.codigoUnico || '').localeCompare(b.codigoUnico || ''));
+  }, [equipos, equipoIdsActuales, equipoSearchQuery]);
 
   const tipoIcono: Record<string, string> = {
     'Ascensor': '🛗',
@@ -382,9 +386,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 {equiposDisponibles.length === 0 ? (
                   <p className="text-[11px] text-[#B2BEC3] italic p-2">No hay equipos disponibles</p>
                 ) : (
-                  equiposDisponibles
-                    .sort((a, b) => (a.codigoUnico || '').localeCompare(b.codigoUnico || ''))
-                    .map((eq) => {
+                  equiposDisponibles.map((eq) => {
                       const obraDeEquipo = editingObra ? obtenerObraDeEquipo(eq.id, obras, editingObra.id) : undefined;
                       return (
                       <button
