@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   List,
   Kanban,
@@ -101,24 +101,34 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   const [pendingStageChange, setPendingStageChange] = useState<{ obra: Obra; nuevoEstado: FunnelStage } | null>(null);
   const [isAdvertenciaOpen, setIsAdvertenciaOpen] = useState(false);
 
-  // Filter obras
-  const filteredObras = obras.filter((obra) => {
-    const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
-    const matchEquipment = selectedEquipmentType === 'Todos';
-    const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
-    const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
-    const matchYear = obraYear === selectedYear;
-    const q = searchQuery.toLowerCase();
-    const matchQuery = !q ||
-      obra.codigo.toLowerCase().includes(q) ||
-      obra.nombre.toLowerCase().includes(q) ||
-      getNombreUsuario(obra.usuarioAsignado).toLowerCase().includes(q) ||
-      (obra.hardwareSpecs?.modelo || '').toLowerCase().includes(q);
-    const matchAlert = !showOnlyAlerts || tieneAlertaTemporal(obra);
-    const matchFinalizadas = showFinalizadosRechazados || (obra.estado !== 'Finalizadas' && obra.estado !== 'Rechazadas');
+  // Create usuario lookup map to avoid calling getNombreUsuario in filter
+  const usuarioMap = useMemo(() => {
+    const map = new Map<string, string>();
+    usuarios.forEach(u => map.set(u.id, u.nombre));
+    return map;
+  }, [usuarios]);
 
-    return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert && matchFinalizadas;
-  });
+  // Filter obras
+  const filteredObras = useMemo(() => {
+    return obras.filter((obra) => {
+      const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
+      const matchEquipment = selectedEquipmentType === 'Todos';
+      const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
+      const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
+      const matchYear = obraYear === selectedYear;
+      const q = searchQuery.toLowerCase();
+      const usuarioNombre = obra.usuarioAsignado ? (usuarioMap.get(obra.usuarioAsignado) || 'Sin asignar') : 'Sin asignar';
+      const matchQuery = !q ||
+        obra.codigo.toLowerCase().includes(q) ||
+        obra.nombre.toLowerCase().includes(q) ||
+        usuarioNombre.toLowerCase().includes(q) ||
+        (obra.hardwareSpecs?.modelo || '').toLowerCase().includes(q);
+      const matchAlert = !showOnlyAlerts || tieneAlertaTemporal(obra);
+      const matchFinalizadas = showFinalizadosRechazados || (obra.estado !== 'Finalizadas' && obra.estado !== 'Rechazadas');
+
+      return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert && matchFinalizadas;
+    });
+  }, [obras, selectedRegion, selectedEquipmentType, stageFilter, selectedYear, searchQuery, showOnlyAlerts, showFinalizadosRechazados, usuarioMap]);
 
   console.log('PantallaObrasFunnel - searchQuery:', searchQuery, 'filteredObras:', filteredObras.length, 'totalObras:', obras.length);
 
