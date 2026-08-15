@@ -3,7 +3,6 @@ import { MessageSquare, History } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ComponenteActividades } from './ComponenteActividades';
-import { obtenerObraDeEquipo } from '../utils/equipoUtils';
 
 interface ModalObraProps {
   isOpen: boolean;
@@ -106,19 +105,19 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   // atómica contra el resto de las obras.
   const equipoIdsActuales = editingObra?.equipoIds || [];
 
-  // Precompute which obra each equipo belongs to
+  // Precompute which obra each equipo belongs to (only store the obra that contains it)
   const equipoToObraMap = useMemo(() => {
     const map = new Map<string, any>();
     equipos.forEach((eq) => {
       if (eq.id) {
-        const obra = obtenerObraDeEquipo(eq.id, obras, editingObra?.id);
-        if (obra) {
-          map.set(eq.id, obra);
+        const obraEncontrada = obras.find(o => (o.equipoIds || []).includes(eq.id));
+        if (obraEncontrada) {
+          map.set(eq.id, obraEncontrada);
         }
       }
     });
     return map;
-  }, [equipos, obras, editingObra?.id]);
+  }, [equipos, obras]);
 
   const handleAddEquipo = (equipoId: string) => {
     if (!editingObra || !onUpdateObraEquipos) return;
