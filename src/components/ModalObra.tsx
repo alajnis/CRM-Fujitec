@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, startTransition } from 'react';
 import { MessageSquare, History } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -106,21 +106,39 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   // atómica contra el resto de las obras.
   const equipoIdsActuales = editingObra?.equipoIds || [];
 
+  // Precompute which obra each equipo belongs to
+  const equipoToObraMap = useMemo(() => {
+    const map = new Map<string, any>();
+    equipos.forEach((eq) => {
+      if (eq.id) {
+        const obra = obtenerObraDeEquipo(eq.id, obras, editingObra?.id);
+        if (obra) {
+          map.set(eq.id, obra);
+        }
+      }
+    });
+    return map;
+  }, [equipos, obras, editingObra?.id]);
+
   const handleAddEquipo = (equipoId: string) => {
     if (!editingObra || !onUpdateObraEquipos) return;
     if (equipoIdsActuales.includes(equipoId)) return;
 
     const equipo = equipos.find((eq) => eq.id === equipoId);
-    const obraActual = obtenerObraDeEquipo(equipoId, obras, editingObra.id);
+    const obraActual = equipoToObraMap.get(equipoId);
     if (obraActual && equipo) {
       const confirmado = window.confirm(
         `Este equipo ya está asignado a ${obraActual.codigo} - ${obraActual.nombre}.\n\nUn equipo solo puede estar en una obra a la vez. ¿Confirmás moverlo a esta obra?`
       );
       if (!confirmado) return;
-      onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
+      startTransition(() => {
+        onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
+      });
     }
-    onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
-    setEquipoSearchQuery('');
+    startTransition(() => {
+      onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
+      setEquipoSearchQuery('');
+    });
   };
 
   const handleRemoveEquipo = (equipoId: string) => {
@@ -387,7 +405,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                   <p className="text-[11px] text-[#B2BEC3] italic p-2">No hay equipos disponibles</p>
                 ) : (
                   equiposDisponibles.map((eq) => {
-                      const obraDeEquipo = editingObra ? obtenerObraDeEquipo(eq.id, obras, editingObra.id) : undefined;
+                      const obraDeEquipo = equipoToObraMap.get(eq.id);
                       return (
                       <button
                         key={eq.id}
