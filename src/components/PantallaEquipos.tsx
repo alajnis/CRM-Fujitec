@@ -100,6 +100,9 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
   const usos = ['', 'Pasajeros', 'Montacargas', 'Alta Velocidad'];
 
   const filteredEquipos = equipos.filter((eq) => {
+    // Don't show deleted equipment
+    if (eq.isDeleted) return false;
+
     const matchTipo = selectedTipo === 'Todos' || eq.tipo === selectedTipo;
     const matchSearch = !searchQuery ||
       eq.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -337,7 +340,7 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
 
         <div className="flex justify-between items-center text-xs text-[#636E72] pt-4 border-t border-[#E0E0E0]">
           <div>
-            Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.length}</span> equipos
+            Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.filter(e => !e.isDeleted).length}</span> equipos
           </div>
           <div className="flex gap-2">
             <button
