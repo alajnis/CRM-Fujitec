@@ -67,7 +67,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
   const filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
-    const matchEquipment = selectedEquipmentType === 'Todos';
+    // Equipment filter: if 'Todos' selected, match all; otherwise check if obra has matching equipment type
+    const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
     const q = searchQuery.toLowerCase();
