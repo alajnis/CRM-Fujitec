@@ -179,11 +179,16 @@ function AppContent() {
   // Update state when Supabase data is loaded
   useEffect(() => {
     if (!isLoading && obrasFromSupabase.length > 0) {
-      setObras(obrasFromSupabase);
+      // Auto-assign all obras to admin
+      const obrasWithAdmin = obrasFromSupabase.map(o => ({
+        ...o,
+        usuarioAsignado: usuarioActual?.id || o.usuarioAsignado
+      }));
+      setObras(obrasWithAdmin);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
     }
-  }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading]);
+  }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading, usuarioActual?.id]);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
   const [budgetConfigs, setBudgetConfigs] = useState<any[]>([
     {
@@ -526,12 +531,9 @@ function AppContent() {
   };
 
   const handleSaveDiasConfig = async (config: any) => {
-    const success = await configuracionService.saveDiasConfig(config);
-    if (success) {
-      console.log('✅ Dias configuration saved successfully');
-    } else {
-      console.error('Failed to save dias configuration');
-    }
+    // Save dias configuration to localStorage as fallback since Supabase table doesn't exist yet
+    localStorage.setItem('diasConfig', JSON.stringify(config));
+    console.log('✅ Dias configuration saved to localStorage');
     setIsConfiguracionOpen(false);
   };
 
