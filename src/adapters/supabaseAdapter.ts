@@ -122,14 +122,28 @@ export const supabaseAdapter = {
     const velocidadStr = supabaseEquipo.velocidad || '';
     const capacidadStr = supabaseEquipo.capacidad || '';
 
+    // Parse velocidad: extract number from "1.75 m/s" format
+    let velocidadMS = 0;
+    if (velocidadStr && velocidadStr.trim()) {
+      const parsed = parseFloat(velocidadStr.split(' ')[0]);
+      velocidadMS = isNaN(parsed) ? 0 : parsed;
+    }
+
+    // Parse capacidad: extract number from "1000 kg" format
+    let capacidadKg = 0;
+    if (capacidadStr && capacidadStr.trim()) {
+      const parsed = parseInt(capacidadStr.split(' ')[0], 10);
+      capacidadKg = isNaN(parsed) ? 0 : parsed;
+    }
+
     return {
       id: supabaseEquipo.id,
       codigoUnico: supabaseEquipo.serial || '',
       nombre: supabaseEquipo.modelo || 'Equipo',
       modelo: supabaseEquipo.modelo || '',
       tipo: supabaseEquipo.tipo as any,
-      velocidadMS: velocidadStr ? parseFloat(velocidadStr.split(' ')[0]) : 0,
-      capacidadKg: capacidadStr ? parseInt(capacidadStr.split(' ')[0]) : 0,
+      velocidadMS,
+      capacidadKg,
       paradas: supabaseEquipo.puertas || 0,
       observaciones: supabaseEquipo.notas || '',
       isDeleted: !!supabaseEquipo.deleted_at
