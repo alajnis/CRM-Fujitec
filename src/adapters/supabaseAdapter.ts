@@ -131,7 +131,8 @@ export const supabaseAdapter = {
       velocidadMS: velocidadStr ? parseFloat(velocidadStr.split(' ')[0]) : 0,
       capacidadKg: capacidadStr ? parseInt(capacidadStr.split(' ')[0]) : 0,
       paradas: supabaseEquipo.puertas || 0,
-      observaciones: supabaseEquipo.notas || ''
+      observaciones: supabaseEquipo.notas || '',
+      isDeleted: !!supabaseEquipo.deleted_at
     };
   },
 
