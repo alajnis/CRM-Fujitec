@@ -96,17 +96,10 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
   const [showFilters, setShowFilters] = useState(false);
 
   const tiposEquipo = ['Todos', 'Ascensor', 'Escalera', 'Rampa'];
-  const modelos = ['', ...new Set(equipos.filter(eq => !eq.isDeleted).map(eq => eq.modelo))];
+  const modelos = ['', ...new Set(equipos.map(eq => eq.modelo))];
   const usos = ['', 'Pasajeros', 'Montacargas', 'Alta Velocidad'];
 
-  // Count active (non-deleted) equipment
-  const activeEquipos = equipos.filter(eq => !eq.isDeleted);
-  console.log(`🔍 DEBUG Equipos: Total=${equipos.length}, Active=${activeEquipos.length}, Deleted=${equipos.filter(eq => eq.isDeleted).length}`);
-  equipos.slice(0, 3).forEach(e => {
-    console.log(`   - ${e.nombre} (id=${e.id}, isDeleted=${e.isDeleted})`);
-  });
-
-  const filteredEquipos = activeEquipos.filter((eq) => {
+  const filteredEquipos = equipos.filter((eq) => {
     const matchTipo = selectedTipo === 'Todos' || eq.tipo === selectedTipo;
     const matchSearch = !searchQuery ||
       eq.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -378,7 +371,7 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
 
         <div className="flex justify-between items-center text-xs text-[#636E72] pt-4 border-t border-[#E0E0E0]">
           <div>
-            Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{activeEquipos.length}</span> equipos
+            Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.length}</span> equipos
           </div>
           <div className="flex gap-2">
             <button
