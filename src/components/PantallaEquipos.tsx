@@ -101,11 +101,9 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
 
   // Count active (non-deleted) equipment
   const activeEquipos = equipos.filter(eq => !eq.isDeleted);
-  console.log('🔍 DEBUG Equipos:', {
-    totalEquipos: equipos.length,
-    activeEquipos: activeEquipos.length,
-    deletedEquipos: equipos.filter(eq => eq.isDeleted).length,
-    equipoSample: equipos.slice(0, 3).map(e => ({ id: e.id, isDeleted: e.isDeleted, nombre: e.nombre }))
+  console.log(`🔍 DEBUG Equipos: Total=${equipos.length}, Active=${activeEquipos.length}, Deleted=${equipos.filter(eq => eq.isDeleted).length}`);
+  equipos.slice(0, 3).forEach(e => {
+    console.log(`   - ${e.nombre} (id=${e.id}, isDeleted=${e.isDeleted})`);
   });
 
   const filteredEquipos = activeEquipos.filter((eq) => {
