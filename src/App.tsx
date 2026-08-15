@@ -181,6 +181,8 @@ function AppContent() {
       setObras(obrasFromSupabase);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
+      // TESTING: Assign all to admin on load
+      handleAssignAllToAdmin();
     }
   }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading]);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
@@ -224,6 +226,25 @@ function AppContent() {
   const handleEditObra = (obra: Obra) => {
     setEditingObra(obra);
     setIsModalObraOpen(true);
+  };
+
+  // Testing helper: assign all obras to admin
+  const handleAssignAllToAdmin = () => {
+    const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440001'; // Superadmin ID
+    setObras((prev) =>
+      prev.map((obra) => ({
+        ...obra,
+        usuarioAsignado: ADMIN_ID
+      }))
+    );
+    // Also update in Supabase
+    obras.forEach((obra) => {
+      const updatedObra = { ...obra, usuarioAsignado: ADMIN_ID };
+      const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
+      obrasService.updateObra(obra.id, supabaseData as any)
+        .catch(err => console.error('Error updating obra in Supabase:', err));
+    });
+    console.log('✅ All obras assigned to admin');
   };
 
   const handleSaveObra = (savedObra: Obra) => {
