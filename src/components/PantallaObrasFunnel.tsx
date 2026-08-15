@@ -125,6 +125,11 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     ? allStages
     : allStages.filter(s => s !== 'Finalizadas' && s !== 'Rechazadas');
 
+  // Pipeline: exclude Finalizadas and Rechazadas from total
+  const pipelineObras = filteredObras.filter(o => o.estado !== 'Finalizadas' && o.estado !== 'Rechazadas');
+  const totalPipelineUSD = pipelineObras.reduce((s, o) => s + o.montoUSD, 0);
+  const totalPipelineCount = pipelineObras.length;
+
   const handleStageChangeRequest = (obra: Obra, nuevoEstado: FunnelStage) => {
     if (nuevoEstado === obra.estado) return;
 
@@ -227,7 +232,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
           )}
 
           <div className="hidden sm:block ml-auto font-extrabold text-[#2D3436] bg-white px-3.5 py-2 rounded-xl border border-[#E0E0E0] shadow-2xs">
-            Total Pipeline: {formatUSD(filteredObras.reduce((s, o) => s + o.montoUSD, 0))}
+            Total Pipeline: {formatUSD(totalPipelineUSD)} ({totalPipelineCount} obras)
           </div>
         </div>
       </div>
