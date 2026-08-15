@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, startTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { MessageSquare, History } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +34,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onUpdateObraEquipos
 }) => {
   const { usuarios, usuarioActual } = useAuth();
+  const [isPending, startTransition] = useTransition();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
   const [confirmDialogState, setConfirmDialogState] = useState<{
     show: boolean;
@@ -120,35 +121,36 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     return `${letra}-${nextNumber}`;
   };
 
-  // Map equipo ID to the obra it belongs to (computed during render, no dependency on obras which mutates)
-  const equipoToObraMap = new Map<string, any>();
-  equipos.forEach((eq) => {
-    if (eq.id) {
-      const obraEncontrada = obras.find(o => (o.equipoIds || []).includes(eq.id));
-      if (obraEncontrada) {
-        equipoToObraMap.set(eq.id, obraEncontrada);
-      }
-    }
-  });
+  // Fast lookup: create map from works that have each equipo
+  // Instead of: for each equipo, search all obras (O(n²))
+  // Do: for each obra, mark all its equipos (O(n))
+  const equipoToObraMap = useMemo(() => {
+    const map = new Map<string, Obra>();
+    obras.forEach((obra) => {
+      (obra.equipoIds || []).forEach((equipoId) => {
+        map.set(equipoId, obra);
+      });
+    });
+    return map;
+  }, [obras]);
 
   const handleAddEquipo = (equipoId: string) => {
+    // Minimal work: only checks, no state updates in handler
     if (!editingObra || !onUpdateObraEquipos) return;
     if (equipoIdsActuales.includes(equipoId)) return;
 
-    const equipo = equipos.find((eq) => eq.id === equipoId);
     const obraActual = equipoToObraMap.get(equipoId);
 
-    // If equipo already assigned, show confirmation dialog (non-blocking)
-    if (obraActual && equipo) {
+    if (obraActual) {
+      // Conflict: show dialog without doing work
       setConfirmDialogState({ show: true, equipoId, obraActual });
-      return;
+    } else {
+      // No conflict: defer all work to transition
+      startTransition(() => {
+        onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
+        setEquipoSearchQuery('');
+      });
     }
-
-    // Otherwise add immediately
-    startTransition(() => {
-      onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
-      setEquipoSearchQuery('');
-    });
   };
 
   const handleConfirmMove = () => {
@@ -157,10 +159,12 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     const equipoId = confirmDialogState.equipoId;
     const obraActual = confirmDialogState.obraActual;
 
+    // All work deferred to transition
     startTransition(() => {
-      // Remove from old obra
       onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
-      // Add to current obra
+    });
+
+    startTransition(() => {
       onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
       setEquipoSearchQuery('');
     });
