@@ -45,6 +45,7 @@ import {
 } from './data/mockData';
 import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
+import { supabase } from './utils/supabaseClient';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
 import { obrasService, clientesService, equiposService, actividadesService } from './services';
 import { configuracionService } from './services/configuracionService';
@@ -540,21 +541,29 @@ function AppContent() {
     const ADMIN_ID = 'user-1';
     console.log('🔄 Assigning all obras to admin...');
 
-    for (const obra of obras) {
-      const updatedObra = { ...obra, usuarioAsignado: ADMIN_ID };
-      const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
+    // Update local state immediately
+    setObras(prev => prev.map(o => ({ ...o, usuarioAsignado: ADMIN_ID })));
 
+    // Try to save to Supabase (don't block if fails)
+    for (const obra of obras) {
       try {
-        await obrasService.updateObra(obra.id, supabaseData as any);
-        console.log(`✅ Assigned obra ${obra.codigoObra} to admin`);
+        // Use RPC or direct update
+        const { error } = await supabase
+          .from('obras')
+          .update({ created_by: ADMIN_ID })
+          .eq('id', obra.id);
+
+        if (error) {
+          console.warn(`⚠️ Failed to update ${obra.codigoObra} in DB:`, error.message);
+        } else {
+          console.log(`✅ Saved obra ${obra.codigoObra} to Supabase`);
+        }
       } catch (err) {
-        console.error(`❌ Failed to assign obra ${obra.codigoObra}:`, err);
+        console.warn(`⚠️ Exception updating ${obra.codigoObra}:`, err);
       }
     }
 
-    // Update local state
-    setObras(prev => prev.map(o => ({ ...o, usuarioAsignado: ADMIN_ID })));
-    console.log('✅ All obras assigned to admin');
+    console.log('✅ All obras assigned to admin in React (persistence may vary)');
   };
 
   const handleSaveEquipo = (equipo: Equipo) => {
