@@ -253,16 +253,16 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           duration={toast.type === 'loading' ? 0 : 3000}
         />
       )}
-      <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-        <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full flex flex-col max-h-[calc(100vh-32px)] my-auto">
+      <div className="fixed inset-0 bg-[#2D3436]/50 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-[#E0E0E0] dark:border-slate-700 shadow-2xl max-w-2xl w-full flex flex-col max-h-[calc(100vh-32px)] my-auto">
         {/* Header - Fixed */}
-        <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5]">
+        <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5] dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-[#2D3436]">
+              <h3 className="text-xl font-black text-[#2D3436] dark:text-slate-100">
                 {editingObra ? `Editar Obra: ${editingObra.codigo}` : 'Registrar Nueva Obra Comercial'}
               </h3>
-              <p className="text-xs text-[#B2BEC3] font-semibold mt-1 uppercase tracking-wide">
+              <p className="text-xs text-[#B2BEC3] dark:text-slate-400 font-semibold mt-1 uppercase tracking-wide">
                 {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
               </p>
             </div>
@@ -279,7 +279,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                   <MessageSquare size={20} />
                 </button>
               )}
-              <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
+              <button onClick={onClose} className="p-2 text-[#B2BEC3] dark:text-slate-400 hover:text-[#2D3436] dark:hover:text-slate-200 hover:bg-[#F1F3F5] dark:hover:bg-slate-700 rounded-lg transition-all">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>

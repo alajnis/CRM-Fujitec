@@ -19,25 +19,77 @@
 .dark [class*='bg-[#E0E0E0]'] { background-color: #2f3538 !important; }
 .dark [class*='bg-[#2D3436]'] { background-color: #0f1213 !important; }
 
+/* Light Blue Info Boxes - bg-blue-50, bg-blue-100 */
+.dark [class*='bg-blue-50'],
+.dark [class*='bg-blue-100'] {
+  background-color: #1e2d3a !important;
+}
+
+/* Light background panels */
+.dark [class*='bg-slate-50'],
+.dark [class*='bg-gray-50'] {
+  background-color: #1a1f22 !important;
+}
+
 /* Text */
 .dark [class*='text-[#2D3436]'] { color: #F1F3F5 !important; }
 .dark [class*='text-[#636E72]'] { color: #A7B0B4 !important; }
 .dark [class*='text-[#B2BEC3]'] { color: #8A9296 !important; }
 
+/* Light text becomes readable */
+.dark [class*='text-white'],
+.dark [class*='text-slate-100'],
+.dark [class*='text-gray-100'] {
+  color: #E8EAED !important;
+}
+
 /* Borders */
 .dark [class*='border-[#E0E0E0]'] { border-color: #3A4144 !important; }
 .dark [class*='border-[#F1F3F5]'] { border-color: #3A4144 !important; }
+.dark [class*='border-blue-100'] { border-color: #2d3f4d !important; }
+.dark [class*='border-blue-200'] { border-color: #3d4f5d !important; }
+.dark [class*='border-gray-100'] { border-color: #2f3538 !important; }
+
+/* Modal Containers - Critical */
+.dark [class*='rounded-2xl'],
+.dark [class*='rounded-3xl'] {
+  background-color: #23282b !important;
+}
 
 /* Inputs / form fields keep readable contrast */
 .dark input,
 .dark select,
 .dark textarea {
-  color: #F1F3F5;
+  background-color: #1a1f22 !important;
+  color: #F1F3F5 !important;
+  border-color: #3A4144 !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #C8102E !important;
+  background-color: #23282b !important;
 }
 
 .dark ::placeholder {
   color: #6b7377 !important;
 }
+
+/* Buttons in dark mode - keep Fujitec red visible */
+.dark button[style*='#C8102E'],
+.dark [style*='backgroundColor: #C8102E'] {
+  background-color: #C8102E !important;
+  color: white !important;
+}
+
+/* Toast notifications visibility */
+.dark [class*='bg-green-50'] { background-color: #1a2f22 !important; }
+.dark [class*='bg-red-50'] { background-color: #2f1a22 !important; }
+.dark [class*='bg-blue-50'] { background-color: #1a2f3a !important; }
+.dark [class*='text-green-700'] { color: #66bb6a !important; }
+.dark [class*='text-red-700'] { color: #ef5350 !important; }
+.dark [class*='text-blue-700'] { color: #42a5f5 !important; }
 
 /* Scrollbar */
 .dark ::-webkit-scrollbar-track {

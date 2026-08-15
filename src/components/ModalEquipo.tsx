@@ -188,20 +188,20 @@ export const ModalEquipo: React.FC<ModalEquipoProps> = ({
           duration={toast.type === 'loading' ? 0 : 3000}
         />
       )}
-      <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-        <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-4xl w-full my-8 flex flex-col max-h-[90vh]">
+      <div className="fixed inset-0 bg-[#2D3436]/50 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-[#E0E0E0] dark:border-slate-700 shadow-2xl max-w-4xl w-full my-8 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5]">
+        <div className="flex-shrink-0 p-6 border-b border-[#F1F3F5] dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-[#2D3436]">
+              <h3 className="text-xl font-black text-[#2D3436] dark:text-slate-100">
                 {equipo ? 'Editar Equipo' : 'Registrar Nuevo Equipo'}
               </h3>
-              <p className="text-xs text-[#B2BEC3] font-semibold mt-1 uppercase tracking-wide">
+              <p className="text-xs text-[#B2BEC3] dark:text-slate-400 font-semibold mt-1 uppercase tracking-wide">
                 Especificaciones técnicas Fujitec
               </p>
             </div>
-            <button onClick={onClose} className="p-2 text-[#B2BEC3] hover:text-[#2D3436] hover:bg-[#F1F3F5] rounded-lg transition-all">
+            <button onClick={onClose} className="p-2 text-[#B2BEC3] dark:text-slate-400 hover:text-[#2D3436] dark:hover:text-slate-200 hover:bg-[#F1F3F5] dark:hover:bg-slate-700 rounded-lg transition-all">
               <X size={20} />
             </button>
           </div>

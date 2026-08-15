@@ -105,68 +105,68 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
           duration={toast.type === 'loading' ? 0 : 3000}
         />
       )}
-      <div className="fixed inset-0 bg-[#2D3436]/40 backdrop-blur-sm z-[9999] overflow-y-auto flex items-center justify-center p-4">
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-[#E0E0E0] shadow-2xl max-w-2xl w-full p-6 space-y-4 my-auto">
+      <div className="fixed inset-0 bg-[#2D3436]/40 dark:bg-black/60 backdrop-blur-sm z-[9999] overflow-y-auto flex items-center justify-center p-4">
+        <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-[#E0E0E0] dark:border-slate-700 shadow-2xl max-w-2xl w-full p-6 space-y-4 my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3">
-          <h3 className="text-lg font-extrabold text-[#2D3436]">
+        <div className="flex items-center justify-between border-b border-[#F1F3F5] dark:border-slate-700 pb-3">
+          <h3 className="text-lg font-extrabold text-[#2D3436] dark:text-slate-100">
             Gestionar Contactos - {cliente.razonSocial}
           </h3>
-          <button onClick={onClose} className="text-[#B2BEC3] font-bold text-lg hover:text-[#2D3436]">✕</button>
+          <button onClick={onClose} className="text-[#B2BEC3] dark:text-slate-400 font-bold text-lg hover:text-[#2D3436] dark:hover:text-slate-200">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Validation Error */}
           {validationError && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 text-xs font-semibold">
               <AlertCircle size={16} />
               {validationError}
             </div>
           )}
 
           {/* Contacto Principal */}
-          <div className="bg-[#F1F3F5] p-4 rounded-xl border border-[#E0E0E0] space-y-3">
-            <div className="flex items-center gap-2 text-sm font-bold text-[#2D3436]">
+          <div className="bg-[#F1F3F5] dark:bg-slate-700 p-4 rounded-xl border border-[#E0E0E0] dark:border-slate-600 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#2D3436] dark:text-slate-100">
               <UserCheck size={16} />
               Contacto Principal (Información de Cliente)
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block font-bold text-[#636E72] mb-1">Nombre</label>
+                <label className="block font-bold text-[#636E72] dark:text-slate-300 mb-1">Nombre</label>
                 <input
                   type="text"
                   placeholder="Ingresa nombre del contacto principal"
                   value={formCliente.contactoPrincipal || ''}
                   onChange={(e) => setFormCliente({ ...formCliente, contactoPrincipal: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
+                  className="w-full p-2.5 bg-white dark:bg-slate-600 border border-[#E0E0E0] dark:border-slate-500 rounded-lg focus:outline-none focus:border-[#C8102E] dark:text-slate-100 dark:placeholder-slate-400"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#636E72] mb-1">Cargo</label>
+                <label className="block font-bold text-[#636E72] dark:text-slate-300 mb-1">Cargo</label>
                 <input
                   type="text"
                   placeholder="Ej: Gerente, Director"
                   value={formCliente.cargo || ''}
                   onChange={(e) => setFormCliente({ ...formCliente, cargo: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
+                  className="w-full p-2.5 bg-white dark:bg-slate-600 border border-[#E0E0E0] dark:border-slate-500 rounded-lg focus:outline-none focus:border-[#C8102E] dark:text-slate-100 dark:placeholder-slate-400"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#636E72] mb-1">Email</label>
+                <label className="block font-bold text-[#636E72] dark:text-slate-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={formCliente.email}
                   onChange={(e) => setFormCliente({ ...formCliente, email: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
+                  className="w-full p-2.5 bg-white dark:bg-slate-600 border border-[#E0E0E0] dark:border-slate-500 rounded-lg focus:outline-none focus:border-[#C8102E] dark:text-slate-100 dark:placeholder-slate-400"
                 />
               </div>
               <div>
-                <label className="block font-bold text-[#636E72] mb-1">Teléfono</label>
+                <label className="block font-bold text-[#636E72] dark:text-slate-300 mb-1">Teléfono</label>
                 <input
                   type="tel"
                   value={formCliente.telefono}
                   onChange={(e) => setFormCliente({ ...formCliente, telefono: e.target.value })}
-                  className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8102E]"
+                  className="w-full p-2.5 bg-white dark:bg-slate-600 border border-[#E0E0E0] dark:border-slate-500 rounded-lg focus:outline-none focus:border-[#C8102E] dark:text-slate-100 dark:placeholder-slate-400"
                 />
               </div>
             </div>
