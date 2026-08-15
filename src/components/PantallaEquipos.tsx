@@ -107,6 +107,11 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
       eq.codigoUnico.toLowerCase().includes(searchQuery.toLowerCase());
     const matchVelocidad = eq.velocidadMS >= minVelocidad && eq.velocidadMS <= maxVelocidad;
     const matchCapacidad = eq.capacidadKg >= minCapacidad && eq.capacidadKg <= maxCapacidad;
+
+    // Debug first equipo that fails
+    if (eq.nombre === 'FUJITEC-ECO' && !matchVelocidad) {
+      console.log(`❌ ${eq.nombre} fails velocity: ${eq.velocidadMS} not in [${minVelocidad}, ${maxVelocidad}]`);
+    }
     const matchModelo = !selectedModelo || eq.modelo === selectedModelo;
     const matchParadas = (eq.paradas || 0) >= minParadas && (eq.paradas || 0) <= maxParadas;
     const matchAccesosFrente = (eq.accesosFrente || 0) >= minAccesosFrente && (eq.accesosFrente || 0) <= maxAccesosFrente;
