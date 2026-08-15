@@ -21,11 +21,13 @@ import {
   Zap,
   Minimize2,
   TrendingUp,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react';
 import { Obra, FunnelStage, Region, EquipmentType, Equipo } from '../types';
 import { formatUSD, formatDateES, getDiasSinActualizar, tieneAlertaTemporal } from '../utils/semaforo';
 import { contarEquiposPorTipo, obtenerModeloPrincipal } from '../utils/equipoUtils';
+import { exportObrasToExcel } from '../utils/excelExport';
 import { StageTooltip } from './StageTooltip';
 import { SoftDeleteConfirm } from './SoftDeleteConfirm';
 import { ModalAdvertencia } from './ModalAdvertencia';
@@ -231,7 +233,16 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             </button>
           )}
 
-          <div className="hidden sm:block ml-auto font-extrabold text-[#2D3436] bg-white px-3.5 py-2 rounded-xl border border-[#E0E0E0] shadow-2xs">
+          <button
+            onClick={() => exportObrasToExcel(pipelineObras, `Obras_${new Date().toISOString().split('T')[0]}.xlsx`)}
+            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all shadow-2xs"
+            title="Descargar obras en Excel"
+          >
+            <Download size={14} />
+            Descargar Excel
+          </button>
+
+          <div className="hidden sm:block font-extrabold text-[#2D3436] bg-white px-3.5 py-2 rounded-xl border border-[#E0E0E0] shadow-2xs">
             Total Pipeline: {formatUSD(totalPipelineUSD)} ({totalPipelineCount} obras)
           </div>
         </div>

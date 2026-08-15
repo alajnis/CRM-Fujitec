@@ -10,11 +10,13 @@ import {
   ChevronDown,
   MessageSquare,
   Trash2,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { Cliente, Obra, Equipo, Region } from '../types';
 import { formatUSD } from '../utils/semaforo';
 import { contarEquiposPorTipo, obtenerObraDeEquipo } from '../utils/equipoUtils';
+import { exportClientesToExcel } from '../utils/excelExport';
 import { SoftDeleteConfirm } from './SoftDeleteConfirm';
 import { ModalAsignarObrasACliente } from './ModalAsignarObrasACliente';
 import { useAuth } from '../context/AuthContext';
@@ -200,19 +202,29 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Column: Client List Selector */}
           <div className="md:col-span-4 bg-white/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] shadow-sm p-5 space-y-4">
-            <div className="relative">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#B2BEC3]" />
-              <input
-                type="text"
-                placeholder="Filtrar por razón social, contacto..."
-                value={searchQuery}
-                onChange={(e) => setLocalSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 bg-white border border-[#E0E0E0] text-xs rounded-xl focus:outline-none font-medium shadow-2xs"
-                id="input-filter-clientes"
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#B2BEC3]" />
+                <input
+                  type="text"
+                  placeholder="Filtrar por razón social, contacto..."
+                  value={searchQuery}
+                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2 bg-white border border-[#E0E0E0] text-xs rounded-xl focus:outline-none font-medium shadow-2xs"
+                  id="input-filter-clientes"
+                />
+              </div>
+              <button
+                onClick={() => exportClientesToExcel(filteredClientes, `Clientes_${new Date().toISOString().split('T')[0]}.xlsx`)}
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all"
+                title="Descargar clientes en Excel"
+              >
+                <Download size={14} />
+                Descargar Excel
+              </button>
             </div>
 
-            <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[calc(100vh-340px)] overflow-y-auto pr-1">
               {filteredClientes.map((cli) => {
                 const isSelected = cli.id === selectedClienteId;
                 const cliObras = obras.filter((o) => o.clienteId === cli.id);

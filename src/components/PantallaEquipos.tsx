@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Cpu, Search, Filter, Link2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, Cpu, Search, Filter, Link2, Download } from 'lucide-react';
 import { Equipo, Obra, Cliente } from '../types';
+import { exportEquiposToExcel } from '../utils/excelExport';
 import { ModalEquipo } from './ModalEquipo';
 import { ModalAsignarEquipoAObra } from './ModalAsignarEquipoAObra';
 import { SoftDeleteConfirm } from './SoftDeleteConfirm';
@@ -334,8 +335,18 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
           )}
         </div>
 
-        <div className="text-xs text-[#636E72] pt-4 border-t border-[#E0E0E0]">
-          Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.length}</span> equipos
+        <div className="flex justify-between items-center text-xs text-[#636E72] pt-4 border-t border-[#E0E0E0]">
+          <div>
+            Mostrando <span className="font-bold text-[#C8102E]">{filteredEquipos.length}</span> de <span className="font-bold">{equipos.length}</span> equipos
+          </div>
+          <button
+            onClick={() => exportEquiposToExcel(filteredEquipos, `Equipos_${new Date().toISOString().split('T')[0]}.xlsx`)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all"
+            title="Descargar equipos en Excel"
+          >
+            <Download size={14} />
+            Descargar Excel
+          </button>
         </div>
       </div>
 
