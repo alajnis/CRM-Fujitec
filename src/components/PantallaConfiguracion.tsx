@@ -9,6 +9,7 @@ interface PantallaConfiguracionProps {
   onClose: () => void;
   onSaveDiasConfig: (config: ConfiguracionDiasEtapa[]) => void;
   onSaveBudgetConfig?: (config: any) => void;
+  onAssignAllToAdmin?: () => Promise<void>;
 }
 
 const INITIAL_DIAS_CONFIG: ConfiguracionDiasEtapa[] = [
@@ -25,13 +26,15 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
   isOpen,
   onClose,
   onSaveDiasConfig,
-  onSaveBudgetConfig
+  onSaveBudgetConfig,
+  onAssignAllToAdmin
 }) => {
   const { usuarios, crearUsuario, actualizarUsuario, activarDesactivarUsuario } = useAuth();
   const [activeTab, setActiveTab] = useState<'dias' | 'usuarios' | 'presupuesto'>('dias');
   const [diasConfig, setDiasConfig] = useState<ConfiguracionDiasEtapa[]>(INITIAL_DIAS_CONFIG);
   const [isModalUsuarioOpen, setIsModalUsuarioOpen] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
   // Función para distribuir un valor entre 12 meses
   const distributeValue = (total: number) => {
     const baseAmount = Math.floor(total / 12);
@@ -186,6 +189,24 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
               <p className="text-xs text-blue-800">
                 Los cambios en esta configuración se aplicarán a todas las obras al momento de guardar. Las alertas se recalcularán en tiempo real basándose en estos nuevos límites.
               </p>
+            </div>
+
+            {/* Testing: Assign all to admin */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <button
+                onClick={async () => {
+                  setIsAssigning(true);
+                  try {
+                    await onAssignAllToAdmin?.();
+                  } finally {
+                    setIsAssigning(false);
+                  }
+                }}
+                disabled={isAssigning}
+                className="w-full px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 transition-colors font-bold text-white text-sm"
+              >
+                {isAssigning ? '⏳ Asignando todas las obras al admin...' : '🔧 Asignar todas las obras al admin (Testing)'}
+              </button>
             </div>
           </div>
           )}

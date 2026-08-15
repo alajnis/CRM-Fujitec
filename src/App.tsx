@@ -535,6 +535,28 @@ function AppContent() {
     setIsConfiguracionOpen(false);
   };
 
+  // TESTING: Assign all obras to admin (call once on demand)
+  const assignAllObrasyToAdmin = async () => {
+    const ADMIN_ID = 'user-1';
+    console.log('🔄 Assigning all obras to admin...');
+
+    for (const obra of obras) {
+      const updatedObra = { ...obra, usuarioAsignado: ADMIN_ID };
+      const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
+
+      try {
+        await obrasService.updateObra(obra.id, supabaseData as any);
+        console.log(`✅ Assigned obra ${obra.codigoObra} to admin`);
+      } catch (err) {
+        console.error(`❌ Failed to assign obra ${obra.codigoObra}:`, err);
+      }
+    }
+
+    // Update local state
+    setObras(prev => prev.map(o => ({ ...o, usuarioAsignado: ADMIN_ID })));
+    console.log('✅ All obras assigned to admin');
+  };
+
   const handleSaveEquipo = (equipo: Equipo) => {
     // Find the obra this equipment belongs to
     const obraAsociada = obras.find(o => o.equipoIds?.includes(equipo.id));
@@ -754,6 +776,7 @@ function AppContent() {
         onClose={() => setIsConfiguracionOpen(false)}
         onSaveDiasConfig={handleSaveDiasConfig}
         onSaveBudgetConfig={handleSaveBudgetConfig}
+        onAssignAllToAdmin={assignAllObrasyToAdmin}
       />
     </div>
   );
