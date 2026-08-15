@@ -105,19 +105,16 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   // atómica contra el resto de las obras.
   const equipoIdsActuales = editingObra?.equipoIds || [];
 
-  // Precompute which obra each equipo belongs to (only store the obra that contains it)
-  const equipoToObraMap = useMemo(() => {
-    const map = new Map<string, any>();
-    equipos.forEach((eq) => {
-      if (eq.id) {
-        const obraEncontrada = obras.find(o => (o.equipoIds || []).includes(eq.id));
-        if (obraEncontrada) {
-          map.set(eq.id, obraEncontrada);
-        }
+  // Map equipo ID to the obra it belongs to (computed during render, no dependency on obras which mutates)
+  const equipoToObraMap = new Map<string, any>();
+  equipos.forEach((eq) => {
+    if (eq.id) {
+      const obraEncontrada = obras.find(o => (o.equipoIds || []).includes(eq.id));
+      if (obraEncontrada) {
+        equipoToObraMap.set(eq.id, obraEncontrada);
       }
-    });
-    return map;
-  }, [equipos, obras]);
+    }
+  });
 
   const handleAddEquipo = (equipoId: string) => {
     if (!editingObra || !onUpdateObraEquipos) return;
