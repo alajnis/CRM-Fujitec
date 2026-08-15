@@ -525,16 +525,6 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                 fillOpacity={1}
                 fill="url(#colorVentas)"
               />
-              <Area
-                type="monotone"
-                dataKey={showEquipos ? "equiposPlan" : "planAcumuladoUSD"}
-                name={showEquipos ? "Plan Anual (Equipos)" : "Plan Acumulado USD"}
-                stroke="#B2BEC3"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                fillOpacity={1}
-                fill="url(#colorPlan)"
-              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
