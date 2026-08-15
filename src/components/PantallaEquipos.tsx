@@ -157,6 +157,40 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
     }
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedTipo('Todos');
+    setMinVelocidad(0);
+    setMaxVelocidad(10);
+    setMinCapacidad(0);
+    setMaxCapacidad(5000);
+    setSelectedModelo('');
+    setMinParadas(0);
+    setMaxParadas(100);
+    setMinAccesosFrente(0);
+    setMaxAccesosFrente(20);
+    setMinAccesosContrafrente(0);
+    setMaxAccesosContrafrente(20);
+    setSelectedUso('');
+    setMinAnchoCabina(0);
+    setMaxAnchoCabina(300);
+    setMinProfCabina(0);
+    setMaxProfCabina(300);
+    setMinAltoCabina(0);
+    setMaxAltoCabina(300);
+    setMinAnchoPasadizo(0);
+    setMaxAnchoPasadizo(300);
+    setMinProfPasadizo(0);
+    setMaxProfPasadizo(300);
+    setMinRise(0);
+    setMaxRise(30);
+    setMinInclinacion(0);
+    setMaxInclinacion(90);
+    setMinEscalones(0);
+    setMaxEscalones(100);
+    setShowFilters(false);
+  };
+
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
       {/* Header */}
@@ -344,39 +378,8 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedTipo('Todos');
-                setMinVelocidad(0);
-                setMaxVelocidad(10);
-                setMinCapacidad(0);
-                setMaxCapacidad(5000);
-                setSelectedModelo('');
-                setMinParadas(0);
-                setMaxParadas(100);
-                setMinAccesosFrente(0);
-                setMaxAccesosFrente(20);
-                setMinAccesosContrafrente(0);
-                setMaxAccesosContrafrente(20);
-                setSelectedUso('');
-                setMinAnchoCabina(0);
-                setMaxAnchoCabina(300);
-                setMinProfCabina(0);
-                setMaxProfCabina(300);
-                setMinAltoCabina(0);
-                setMaxAltoCabina(300);
-                setMinAnchoPasadizo(0);
-                setMaxAnchoPasadizo(300);
-                setMinProfPasadizo(0);
-                setMaxProfPasadizo(300);
-                setMinRise(0);
-                setMaxRise(30);
-                setMinInclinacion(0);
-                setMaxInclinacion(90);
-                setMinEscalones(0);
-                setMaxEscalones(100);
-                setShowFilters(false);
-              }}
+              type="button"
+              onClick={handleClearFilters}
               className="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition-all"
               title="Limpiar todos los filtros"
             >
