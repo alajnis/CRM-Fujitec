@@ -55,6 +55,22 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     }
   });
 
+  // Get equipoIds early (before useMemo) to avoid undefined in dependencies
+  const equipoIdsActuales = editingObra?.equipoIds || [];
+
+  // Compute equiposDisponibles early (before early return) to avoid hook order violations
+  const equiposDisponibles = useMemo(() => {
+    return equipos
+      .filter((eq) =>
+        !equipoIdsActuales.includes(eq.id) &&
+        !eq.isDeleted &&
+        (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+          eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
+          eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
+      )
+      .sort((a, b) => (a.codigoUnico || '').localeCompare(b.codigoUnico || ''));
+  }, [equipos, equipoIdsActuales, equipoSearchQuery]);
+
   useEffect(() => {
     if (editingObra) {
       // Obras legacy sin usuarioAsignado quedan asignadas a quien las edita
@@ -99,12 +115,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     return `${letra}-${nextNumber}`;
   };
 
-  // Los equipos se asignan/quitan de inmediato (no quedan "en borrador" hasta Guardar),
-  // igual que en la pantalla de Equipos y en la Ficha de Cliente, porque un equipo solo
-  // puede pertenecer a una obra a la vez y esa relación necesita resolverse de forma
-  // atómica contra el resto de las obras.
-  const equipoIdsActuales = editingObra?.equipoIds || [];
-
   // Map equipo ID to the obra it belongs to (computed during render, no dependency on obras which mutates)
   const equipoToObraMap = new Map<string, any>();
   equipos.forEach((eq) => {
@@ -141,18 +151,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     if (!editingObra || !onUpdateObraEquipos) return;
     onUpdateObraEquipos(editingObra.id, equipoIdsActuales.filter((id) => id !== equipoId));
   };
-
-  const equiposDisponibles = useMemo(() => {
-    return equipos
-      .filter((eq) =>
-        !equipoIdsActuales.includes(eq.id) &&
-        !eq.isDeleted &&
-        (eq.nombre.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
-          eq.modelo.toLowerCase().includes(equipoSearchQuery.toLowerCase()) ||
-          eq.codigoUnico.toLowerCase().includes(equipoSearchQuery.toLowerCase()))
-      )
-      .sort((a, b) => (a.codigoUnico || '').localeCompare(b.codigoUnico || ''));
-  }, [equipos, equipoIdsActuales, equipoSearchQuery]);
 
   const tipoIcono: Record<string, string> = {
     'Ascensor': '🛗',
