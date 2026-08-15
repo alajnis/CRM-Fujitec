@@ -28,7 +28,6 @@ import { Obra, FunnelStage, Region, EquipmentType, Equipo } from '../types';
 import { formatUSD, formatDateES, getDiasSinActualizar, tieneAlertaTemporal } from '../utils/semaforo';
 import { contarEquiposPorTipo, obtenerModeloPrincipal } from '../utils/equipoUtils';
 import { exportObrasToExcel } from '../utils/excelExport';
-import { StageTooltip } from './StageTooltip';
 import { SoftDeleteConfirm } from './SoftDeleteConfirm';
 import { ModalAdvertencia } from './ModalAdvertencia';
 import { ComponenteActividades } from './ComponenteActividades';
@@ -273,27 +272,25 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             const stageObras = filteredObras.filter((o) => o.estado === stage);
             const totalStageUSD = stageObras.reduce((s, o) => s + o.montoUSD, 0);
 
-            let headerBg = 'bg-white/80 border-[#E0E0E0] text-[#2D3436]';
-            let dotColor = 'bg-[#B2BEC3]';
-            if (stage === 'Solicitud') { headerBg = 'bg-slate-50/80 border-slate-200 text-slate-900'; dotColor = 'bg-slate-500'; }
-            if (stage === 'En estudio de proyecto') { headerBg = 'bg-cyan-50/80 border-cyan-200 text-cyan-900'; dotColor = 'bg-cyan-500'; }
-            if (stage === 'Estimado') { headerBg = 'bg-indigo-50/80 border-indigo-200 text-indigo-900'; dotColor = 'bg-indigo-500'; }
-            if (stage === 'Cotización') { headerBg = 'bg-amber-50/80 border-amber-200 text-amber-900'; dotColor = 'bg-amber-500'; }
-            if (stage === 'Contratadas') { headerBg = 'bg-emerald-50/80 border-emerald-200 text-emerald-900'; dotColor = 'bg-emerald-500'; }
-            if (stage === 'Finalizadas') { headerBg = 'bg-green-50/80 border-green-200 text-green-900'; dotColor = 'bg-green-600'; }
-            if (stage === 'Rechazadas') { headerBg = 'bg-red-50/80 border-red-200 text-red-900'; dotColor = 'bg-red-500'; }
+            let headerBg = 'bg-white/80 dark:bg-slate-700/80 border-[#E0E0E0] dark:border-slate-600 text-[#2D3436] dark:text-slate-100';
+            let dotColor = 'bg-[#B2BEC3] dark:bg-slate-500';
+            if (stage === 'Solicitud') { headerBg = 'bg-slate-50/80 dark:bg-slate-700/80 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100'; dotColor = 'bg-slate-500'; }
+            if (stage === 'En estudio de proyecto') { headerBg = 'bg-cyan-50/80 dark:bg-cyan-900/40 border-cyan-200 dark:border-cyan-800 text-cyan-900 dark:text-cyan-300'; dotColor = 'bg-cyan-500'; }
+            if (stage === 'Estimado') { headerBg = 'bg-indigo-50/80 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300'; dotColor = 'bg-indigo-500'; }
+            if (stage === 'Cotización') { headerBg = 'bg-amber-50/80 dark:bg-amber-900/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300'; dotColor = 'bg-amber-500'; }
+            if (stage === 'Contratadas') { headerBg = 'bg-emerald-50/80 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'; dotColor = 'bg-emerald-500'; }
+            if (stage === 'Finalizadas') { headerBg = 'bg-green-50/80 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-900 dark:text-green-300'; dotColor = 'bg-green-600'; }
+            if (stage === 'Rechazadas') { headerBg = 'bg-red-50/80 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-900 dark:text-red-300'; dotColor = 'bg-red-500'; }
 
             return (
               <div key={stage} className="flex flex-col rounded-2xl bg-white/40 backdrop-blur-md border border-[#E0E0E0] p-3.5 min-w-[270px] w-[270px] shrink-0 h-[calc(100vh-230px)] shadow-2xs snap-start">
                 {/* Stage Header */}
                 <div className={`p-3.5 rounded-xl border ${headerBg} mb-3 shadow-2xs backdrop-blur-sm`}>
                   <div className="flex items-center justify-between">
-                    <StageTooltip stage={stage}>
-                      <span className="font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-help">
-                        <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
-                        {stage}
-                      </span>
-                    </StageTooltip>
+                    <span className="font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+                      {stage}
+                    </span>
                     <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-white border border-[#E0E0E0] text-[#2D3436]">
                       {stageObras.length}
                     </span>
