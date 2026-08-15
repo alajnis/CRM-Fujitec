@@ -31,6 +31,14 @@
   background-color: #1a1f22 !important;
 }
 
+/* Slate backgrounds in dark mode */
+.dark [class*='dark:bg-slate-900'] {
+  background-color: #0f1117 !important;
+}
+.dark [class*='dark:bg-slate-800'] {
+  background-color: #1a1f22 !important;
+}
+
 /* Text */
 .dark [class*='text-[#2D3436]'] { color: #F1F3F5 !important; }
 .dark [class*='text-[#636E72]'] { color: #A7B0B4 !important; }
