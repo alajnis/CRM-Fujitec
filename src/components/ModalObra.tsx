@@ -34,6 +34,9 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   onToggleActividad,
   onUpdateObraEquipos
 }) => {
+  // Early return BEFORE any hooks - critical for hook ordering
+  if (!isOpen) return null;
+
   const { usuarios, usuarioActual } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
@@ -111,8 +114,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     // live update to `editingObra` (e.g. toggling an activity checkbox while open),
     // which would otherwise clobber unsaved edits to other fields.
   }, [editingObra?.id, isOpen, proximoCodigoObra, usuarioActual]);
-
-  if (!isOpen) return null;
 
   const generateNextCodigoObra = (currentCodigo: string): string => {
     const match = currentCodigo.match(/^([A-Z])-(\d+)$/);
