@@ -230,7 +230,7 @@ function AppContent() {
 
   // Testing helper: assign all obras to admin
   const handleAssignAllToAdmin = () => {
-    const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440001'; // Superadmin ID
+    const ADMIN_ID = 'user-1'; // Superadmin ID from AuthContext
     setObras((prev) =>
       prev.map((obra) => ({
         ...obra,
