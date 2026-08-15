@@ -59,10 +59,24 @@ const distributeValue = (total: number) => {
   return newMeses;
 };
 
-const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: number) => {
+const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: number, obras: Obra[] = []) => {
   const currentMonth = new Date().getMonth();
   const currentYearValue = new Date().getFullYear();
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  // Calculate real sales by month from contratadas obras
+  const ventasPorMes = Array(12).fill(0);
+  const equiposPorMes = Array(12).fill(0);
+
+  obras
+    .filter(o => o.estado === 'Contratadas')
+    .forEach(obra => {
+      const [year, month] = obra.fechaIngreso.split('-').map(Number);
+      if (year === selectedYear && month >= 1 && month <= 12) {
+        ventasPorMes[month - 1] += obra.montoUSD || 0;
+        equiposPorMes[month - 1] += 1;
+      }
+    });
 
   // Get budget for selected year
   const budgetConfig = budgetConfigs.find(b => b.año === selectedYear);
@@ -71,14 +85,20 @@ const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: numbe
     // Default budget if year not found
     const defaultMonto = 8500000;
     const defaultUnidades = 80;
-    return Array.from({ length: 12 }, (_, i) => ({
-      mes: meses[i] + (i === currentMonth && selectedYear === currentYearValue ? ' (YTD)' : i > currentMonth && selectedYear === currentYearValue ? ' (Proy)' : ''),
-      ventasRealesUSD: 0,
-      ventasAcumuladasUSD: 0,
-      planAcumuladoUSD: Math.round((defaultMonto / 12) * (i + 1)),
-      equiposVendidos: 0,
-      equiposPlan: Math.round((defaultUnidades / 12) * (i + 1))
-    }));
+    let ventasAcumuladas = 0;
+    let equiposAcumulados = 0;
+    return Array.from({ length: 12 }, (_, i) => {
+      ventasAcumuladas += ventasPorMes[i];
+      equiposAcumulados += equiposPorMes[i];
+      return {
+        mes: meses[i] + (i === currentMonth && selectedYear === currentYearValue ? ' (YTD)' : i > currentMonth && selectedYear === currentYearValue ? ' (Proy)' : ''),
+        ventasRealesUSD: ventasPorMes[i],
+        ventasAcumuladasUSD: ventasAcumuladas,
+        planAcumuladoUSD: Math.round((defaultMonto / 12) * (i + 1)),
+        equiposVendidos: equiposAcumulados,
+        equiposPlan: Math.round((defaultUnidades / 12) * (i + 1))
+      };
+    });
   }
 
   const mesesUSD = budgetConfig.mesesUSD || Array(12).fill(budgetConfig.montoAnualUSD / 12);
@@ -87,6 +107,8 @@ const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: numbe
   const monthlyData = [];
   let planAcumulado = 0;
   let equiposPlanAcumulados = 0;
+  let ventasAcumuladas = 0;
+  let equiposAcumulados = 0;
 
   for (let i = 0; i < 12; i++) {
     const mesNombre = meses[i];
@@ -102,13 +124,15 @@ const generateMonthlyDataFromBudget = (budgetConfigs: any[], selectedYear: numbe
 
     planAcumulado += mesesUSD[i] || 0;
     equiposPlanAcumulados += Math.round(unidadesMeses[i] || 0);
+    ventasAcumuladas += ventasPorMes[i];
+    equiposAcumulados += equiposPorMes[i];
 
     monthlyData.push({
       mes: label,
-      ventasRealesUSD: 0,
-      ventasAcumuladasUSD: 0,
+      ventasRealesUSD: ventasPorMes[i],
+      ventasAcumuladasUSD: ventasAcumuladas,
       planAcumuladoUSD: planAcumulado,
-      equiposVendidos: 0,
+      equiposVendidos: equiposAcumulados,
       equiposPlan: equiposPlanAcumulados
     });
   }
@@ -581,7 +605,7 @@ function AppContent() {
           {activeTab === 'dashboard' && (
             <PantallaDashboard
               obras={obras}
-              monthlyData={generateMonthlyDataFromBudget(budgetConfigs, selectedYear)}
+              monthlyData={generateMonthlyDataFromBudget(budgetConfigs, selectedYear, obras)}
               selectedRegion={selectedRegion}
               selectedEquipmentType={selectedEquipmentType}
               searchQuery={searchQuery}
