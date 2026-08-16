@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   TrendingUp,
-  Building2,
   DollarSign,
   CheckCircle2,
   AlertTriangle,
@@ -57,14 +56,12 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   onOpenViewActividades,
   getDiasMaximosForEtapa = () => 7
 }) => {
-  const { usuarioActual, usuarios } = useAuth();
+  const { usuarios } = useAuth();
   const getNombreUsuario = (usuarioId?: string): string => {
     if (!usuarioId) return 'Sin asignar';
     return usuarios.find(u => u.id === usuarioId)?.nombre || usuarioId;
   };
   const [showEquipos, setShowEquipos] = useState(false);
-  const [misObrasFilter, setMisObrasFilter] = useState<'todas' | 'alerta' | 'sin-alerta'>('todas');
-  const [misObrasSortBy, setMisObrasSortBy] = useState<'dias' | 'deadline' | 'stage' | 'nombre'>('dias');
 
   // Helper function to check if obra has alert using configured dias
   const checkAlerta = (obra: Obra): boolean => {
@@ -88,33 +85,6 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
     return matchRegion && matchEquipment && matchYear && matchQuery;
   });
 
-  // "Mis obras asignadas" - Filter for current user
-  const misObrasAsignadas = obras.filter(obra =>
-    obra.usuarioAsignado === usuarioActual?.id &&
-    obra.estado !== 'Finalizadas' &&
-    obra.estado !== 'Rechazadas'
-  );
-
-  // Apply mis obras filter
-  let misObrasFilteradas = misObrasAsignadas;
-  if (misObrasFilter === 'alerta') {
-    misObrasFilteradas = misObrasAsignadas.filter(o => checkAlerta(o));
-  } else if (misObrasFilter === 'sin-alerta') {
-    misObrasFilteradas = misObrasAsignadas.filter(o => !checkAlerta(o));
-  }
-
-  // Sort mis obras
-  misObrasFilteradas = [...misObrasFilteradas].sort((a, b) => {
-    if (misObrasSortBy === 'dias') {
-      return getDiasSinActualizar(b.fechaUltimaActualizacion) - getDiasSinActualizar(a.fechaUltimaActualizacion);
-    } else if (misObrasSortBy === 'nombre') {
-      return a.nombre.localeCompare(b.nombre);
-    } else if (misObrasSortBy === 'stage') {
-      const stages = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas'];
-      return stages.indexOf(a.estado) - stages.indexOf(b.estado);
-    }
-    return 0;
-  });
 
   // Calculate Key Performance Metrics (Indicadores Operacionales según PDF)
   const montoPlanAnualUSD = 8500000;
@@ -326,139 +296,6 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
         </div>
       </div>
 
-      {/* SECTION 1.5: MIS OBRAS ASIGNADAS (MANDATORY) */}
-      {usuarioActual && (
-        <div className="space-y-4">
-          <div className="mb-2">
-            <h2 className="text-base font-bold text-[#2D3436] flex items-center gap-2 mb-1">
-              <Building2 size={18} style={{ color: '#C8102E' }} />
-              Mis Obras Asignadas
-            </h2>
-            <p className="text-xs text-[#636E72]">
-              Proyectos asignados a {usuarioActual.nombre} • {misObrasFilteradas.length} de {misObrasAsignadas.length} obras
-            </p>
-          </div>
-
-          {/* Filters and Sort Controls */}
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-4 border border-[#E0E0E0] shadow-sm flex flex-col sm:flex-row gap-3">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setMisObrasFilter('todas')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  misObrasFilter === 'todas'
-                    ? 'bg-[#C8102E] text-white'
-                    : 'bg-[#F1F3F5] text-[#2D3436] hover:bg-[#E0E0E0]'
-                }`}
-              >
-                Todas ({misObrasAsignadas.length})
-              </button>
-              <button
-                onClick={() => setMisObrasFilter('alerta')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  misObrasFilter === 'alerta'
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
-                }`}
-              >
-                En Alerta ({misObrasAsignadas.filter(o => checkAlerta(o)).length})
-              </button>
-              <button
-                onClick={() => setMisObrasFilter('sin-alerta')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  misObrasFilter === 'sin-alerta'
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
-                }`}
-              >
-                Sin Alerta ({misObrasAsignadas.filter(o => !checkAlerta(o)).length})
-              </button>
-            </div>
-
-            <select
-              value={misObrasSortBy}
-              onChange={(e) => setMisObrasSortBy(e.target.value as any)}
-              className="sm:ml-auto px-3 py-1.5 bg-white border border-[#E0E0E0] rounded-lg text-xs font-bold text-[#2D3436] focus:outline-none focus:border-[#C8102E]"
-            >
-              <option value="dias">Ordenar por: Días sin acción</option>
-              <option value="nombre">Ordenar por: Nombre</option>
-              <option value="stage">Ordenar por: Estadio</option>
-            </select>
-          </div>
-
-          {/* Obras Table */}
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl border border-[#E0E0E0] shadow-sm overflow-hidden">
-            {misObrasFilteradas.length === 0 ? (
-              <div className="p-12 text-center space-y-3">
-                <CheckCircle2 size={40} className="mx-auto text-emerald-500" />
-                <p className="text-sm font-bold text-[#2D3436]">
-                  {misObrasFilter === 'alerta' ? '¡Sin obras en alerta!' : '¡Todo al día!'}
-                </p>
-                <p className="text-xs text-[#636E72]">
-                  {misObrasAsignadas.length === 0
-                    ? 'No tienes obras asignadas en estado activo'
-                    : misObrasFilter === 'alerta'
-                    ? 'Todas tus obras están dentro del plazo'
-                    : 'Accede a la sección Funnel Obras para gestionar nuevos proyectos'}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-[#F1F3F5] border-b border-[#E0E0E0]">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Código</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Proyecto</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Cliente</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Estadio</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Días</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436]">Estado</th>
-                      <th className="px-4 py-3 text-center font-bold text-[#2D3436]">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E0E0E0]">
-                    {misObrasFilteradas.map((obra) => {
-                      const dias = getDiasSinActualizar(obra.fechaUltimaActualizacion);
-                      const enAlerta = checkAlerta(obra);
-                      const cliente = obras.find(o => o.id === obra.id)?.clienteId || 'N/A';
-
-                      return (
-                        <tr key={obra.id} className="hover:bg-[#F9F9F9] transition-colors">
-                          <td className="px-4 py-3 font-mono font-bold text-[#C8102E]">{obra.codigo}</td>
-                          <td className="px-4 py-3 font-bold text-[#2D3436] truncate max-w-xs">{obra.nombre}</td>
-                          <td className="px-4 py-3 text-[#636E72]">Cliente</td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800">
-                              {obra.estado}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-[#2D3436] font-bold">{dias}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                              enAlerta
-                                ? 'bg-red-100 text-red-800 border border-red-300'
-                                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            }`}>
-                              {enAlerta ? 'Con Alerta' : 'Sin Alerta'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => onNavigateToObra(obra.id)}
-                              className="px-2 py-1 rounded-lg text-[#C8102E] hover:bg-[#F1F3F5] transition-all font-bold text-[11px]"
-                            >
-                              Ver →
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* SECTION 2: CENTRAL ACCUMULATED EVOLUTION CHART */}
       <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 border border-[#E0E0E0] shadow-sm space-y-4">

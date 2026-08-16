@@ -16,6 +16,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { PantallaDashboard } from './components/PantallaDashboard';
+import { PantallaMisObras } from './components/PantallaMisObras';
 import { PantallaObrasFunnel } from './components/PantallaObrasFunnel';
 import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
 import { PantallaCartaOferta } from './components/PantallaCartaOferta';
@@ -648,6 +649,14 @@ function AppContent() {
                 setSelectedObraForActividad(obra);
                 setIsModalActividadOpen(true);
               }}
+            />
+          )}
+
+          {activeTab === 'mis-obras' && (
+            <PantallaMisObras
+              obras={obras}
+              onNavigateToObra={handleNavigateToObra}
+              getDiasMaximosForEtapa={getDiasMaximosForEtapa}
             />
           )}
 

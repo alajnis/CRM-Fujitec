@@ -34,29 +34,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
       requiereAdmin: false
     },
     {
+      id: 'mis-obras',
+      label: '2. Mis Obras Asignadas',
+      sublabel: 'Proyectos asignados a ti',
+      icon: FileCheck,
+      requiereAdmin: false
+    },
+    {
       id: 'obras',
-      label: '2. Funnel Obras',
+      label: '3. Funnel Obras',
       sublabel: 'Embudo de Ventas & Kanban',
       icon: Building2,
       requiereAdmin: false
     },
     {
       id: 'ficha',
-      label: '3. Clientes',
+      label: '4. Clientes',
       sublabel: 'Gestión de Clientes & Contactos',
       icon: Users,
       requiereAdmin: false
     },
     {
       id: 'equipos',
-      label: '4. Equipos Fujitec',
+      label: '5. Equipos Fujitec',
       sublabel: 'Gestión de Catálogo de Equipos',
       icon: Cpu,
       requiereAdmin: false
     },
     {
       id: 'oferta',
-      label: '5. Propuesta técnico-económica',
+      label: '6. Propuesta técnico-económica',
       sublabel: 'Motor Documental Formal',
       icon: FileCheck,
       requiereAdmin: false
