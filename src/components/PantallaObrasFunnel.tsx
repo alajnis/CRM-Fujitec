@@ -22,7 +22,10 @@ import {
   Minimize2,
   TrendingUp,
   Trash2,
-  Download
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { Obra, FunnelStage, Region, EquipmentType, Equipo } from '../types';
 import { formatUSD, formatDateES, getDiasSinActualizar, tieneAlertaTemporal } from '../utils/semaforo';
@@ -75,6 +78,24 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   const [stageFilter, setStageFilter] = useState<string>('Todas');
   const [showFinalizadosRechazados, setShowFinalizadosRechazados] = useState<boolean>(false);
 
+  // Table sorting state
+  const [sortColumn, setSortColumn] = useState<'codigo' | 'nombre' | 'cliente' | 'estado' | 'monto' | null>('codigo');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleColumnSort = (column: 'codigo' | 'nombre' | 'cliente' | 'estado' | 'monto') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: 'codigo' | 'nombre' | 'cliente' | 'estado' | 'monto' }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="opacity-30" />;
+    return sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
+  };
+
   // Card view mode (persisted in localStorage)
   const [cardViewMode, setCardViewModeState] = useState<'complete' | 'summarized'>(() => {
     const saved = localStorage.getItem('kanban-view-mode');
@@ -100,7 +121,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   usuarios.forEach(u => usuarioMap.set(u.id, u.nombre));
 
   // Filter obras - simple inline
-  const filteredObras = obras.filter((obra) => {
+  let filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
     const matchEquipment = selectedEquipmentType === 'Todos';
     const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
@@ -117,6 +138,27 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     const matchFinalizadas = showFinalizadosRechazados || (obra.estado !== 'Finalizadas' && obra.estado !== 'Rechazadas');
 
     return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert && matchFinalizadas;
+  });
+
+  // Sort filtered obras by selected column
+  filteredObras = [...filteredObras].sort((a, b) => {
+    let compareValue = 0;
+
+    if (sortColumn === 'codigo') {
+      compareValue = a.codigo.localeCompare(b.codigo);
+    } else if (sortColumn === 'nombre') {
+      compareValue = a.nombre.localeCompare(b.nombre);
+    } else if (sortColumn === 'cliente') {
+      const clienteA = a.clienteId || '';
+      const clienteB = b.clienteId || '';
+      compareValue = clienteA.localeCompare(clienteB);
+    } else if (sortColumn === 'estado') {
+      compareValue = a.estado.localeCompare(b.estado);
+    } else if (sortColumn === 'monto') {
+      compareValue = a.montoUSD - b.montoUSD;
+    }
+
+    return sortDirection === 'asc' ? compareValue : -compareValue;
   });
 
   console.log('PantallaObrasFunnel - searchQuery:', searchQuery, 'filteredObras:', filteredObras.length, 'totalObras:', obras.length);
@@ -483,14 +525,34 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
             <table className="w-full text-left text-xs text-[#2D3436] border-collapse">
               <thead>
                 <tr className="bg-[#2D3436] text-white font-bold uppercase tracking-wider text-[11px]">
-                  <th className="p-4">Código</th>
-                  <th className="p-4">Proyecto</th>
-                  <th className="p-4">Cliente</th>
-                  <th className="p-4">Estado</th>
+                  <th className="p-4 cursor-pointer hover:bg-[#3D4344] transition-colors" onClick={() => handleColumnSort('codigo')}>
+                    <div className="inline-flex items-center gap-1.5">
+                      Código <SortIcon column="codigo" />
+                    </div>
+                  </th>
+                  <th className="p-4 cursor-pointer hover:bg-[#3D4344] transition-colors" onClick={() => handleColumnSort('nombre')}>
+                    <div className="inline-flex items-center gap-1.5">
+                      Proyecto <SortIcon column="nombre" />
+                    </div>
+                  </th>
+                  <th className="p-4 cursor-pointer hover:bg-[#3D4344] transition-colors" onClick={() => handleColumnSort('cliente')}>
+                    <div className="inline-flex items-center gap-1.5">
+                      Cliente <SortIcon column="cliente" />
+                    </div>
+                  </th>
+                  <th className="p-4 cursor-pointer hover:bg-[#3D4344] transition-colors" onClick={() => handleColumnSort('estado')}>
+                    <div className="inline-flex items-center gap-1.5">
+                      Estado <SortIcon column="estado" />
+                    </div>
+                  </th>
                   <th className="p-4">Asignado</th>
                   <th className="p-4">Ingreso</th>
                   <th className="p-4">Última Act.</th>
-                  <th className="p-4">Monto (USD)</th>
+                  <th className="p-4 cursor-pointer hover:bg-[#3D4344] transition-colors" onClick={() => handleColumnSort('monto')}>
+                    <div className="inline-flex items-center gap-1.5">
+                      Monto (USD) <SortIcon column="monto" />
+                    </div>
+                  </th>
                   <th className="p-4 text-center">Alerta</th>
                   <th className="p-4 text-right">Acciones</th>
                 </tr>
