@@ -154,28 +154,36 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
                     <tr>
                       <th
                         onClick={() => handleColumnSort('codigo')}
-                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors"
                       >
-                        Código <SortIcon column="codigo" />
+                        <div className="inline-flex items-center gap-1.5">
+                          Código <SortIcon column="codigo" />
+                        </div>
                       </th>
                       <th
                         onClick={() => handleColumnSort('nombre')}
-                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors"
                       >
-                        Proyecto <SortIcon column="nombre" />
+                        <div className="inline-flex items-center gap-1.5">
+                          Proyecto <SortIcon column="nombre" />
+                        </div>
                       </th>
                       <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Cliente</th>
                       <th
                         onClick={() => handleColumnSort('estado')}
-                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors"
                       >
-                        Estadio <SortIcon column="estado" />
+                        <div className="inline-flex items-center gap-1.5">
+                          Estadio <SortIcon column="estado" />
+                        </div>
                       </th>
                       <th
                         onClick={() => handleColumnSort('dias')}
-                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors"
                       >
-                        Días <SortIcon column="dias" />
+                        <div className="inline-flex items-center gap-1.5">
+                          Días <SortIcon column="dias" />
+                        </div>
                       </th>
                       <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Estado</th>
                       <th className="px-4 py-3 text-center font-bold text-[#2D3436] dark:text-slate-100">Acción</th>

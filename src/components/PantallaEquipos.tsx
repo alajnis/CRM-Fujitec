@@ -456,27 +456,35 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
                 <tr>
                   <th
                     onClick={() => handleColumnSort('codigo')}
-                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                   >
-                    Código <SortIcon column="codigo" />
+                    <div className="inline-flex items-center gap-2">
+                      Código <SortIcon column="codigo" />
+                    </div>
                   </th>
                   <th
                     onClick={() => handleColumnSort('nombre')}
-                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                   >
-                    Nombre <SortIcon column="nombre" />
+                    <div className="inline-flex items-center gap-2">
+                      Nombre <SortIcon column="nombre" />
+                    </div>
                   </th>
                   <th
                     onClick={() => handleColumnSort('modelo')}
-                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                   >
-                    Modelo <SortIcon column="modelo" />
+                    <div className="inline-flex items-center gap-2">
+                      Modelo <SortIcon column="modelo" />
+                    </div>
                   </th>
                   <th
                     onClick={() => handleColumnSort('tipo')}
-                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                   >
-                    Tipo <SortIcon column="tipo" />
+                    <div className="inline-flex items-center gap-2">
+                      Tipo <SortIcon column="tipo" />
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Specs</th>
                   <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Obra Asignada</th>
