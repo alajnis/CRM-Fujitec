@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Cpu, Search, Filter, Link2, Download } from 'lucide-react';
+import { Plus, Edit3, Trash2, Cpu, Search, Filter, Link2, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Equipo, Obra, Cliente } from '../types';
 import { exportEquiposToExcel } from '../utils/excelExport';
 import { ModalEquipo } from './ModalEquipo';
@@ -63,6 +63,22 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
   const [equipoToDelete, setEquipoToDelete] = useState<Equipo | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [equipoParaAsignar, setEquipoParaAsignar] = useState<Equipo | null>(null);
+  const [sortColumn, setSortColumn] = useState<'codigo' | 'nombre' | 'modelo' | 'tipo' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleColumnSort = (column: 'codigo' | 'nombre' | 'modelo' | 'tipo') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: 'codigo' | 'nombre' | 'modelo' | 'tipo' }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="opacity-30" />;
+    return sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
+  };
 
   // Technical filters
   const [minVelocidad, setMinVelocidad] = useState(0);
@@ -99,7 +115,7 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
   const modelos = ['', ...new Set(equipos.map(eq => eq.modelo))];
   const usos = ['', 'Pasajeros', 'Montacargas', 'Alta Velocidad'];
 
-  const filteredEquipos = equipos.filter((eq) => {
+  let filteredEquipos = equipos.filter((eq) => {
     const matchTipo = selectedTipo === 'Todos' || eq.tipo === selectedTipo;
     const matchSearch = !searchQuery ||
       eq.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -125,6 +141,23 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
       matchAnchoCabina && matchProfCabina && matchAltoCabina &&
       matchAnchoPasadizo && matchProfPasadizo &&
       matchRise && matchInclinacion && matchEscalones;
+  });
+
+  // Sort by selected column
+  filteredEquipos = [...filteredEquipos].sort((a, b) => {
+    let compareValue = 0;
+
+    if (sortColumn === 'codigo') {
+      compareValue = a.codigoUnico.localeCompare(b.codigoUnico);
+    } else if (sortColumn === 'nombre') {
+      compareValue = a.nombre.localeCompare(b.nombre);
+    } else if (sortColumn === 'modelo') {
+      compareValue = a.modelo.localeCompare(b.modelo);
+    } else if (sortColumn === 'tipo') {
+      compareValue = a.tipo.localeCompare(b.tipo);
+    }
+
+    return sortDirection === 'asc' ? compareValue : -compareValue;
   });
 
   const handleNewEquipo = () => {
@@ -421,10 +454,30 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
             <table className="w-full">
               <thead className="bg-[#F1F3F5] border-b border-[#E0E0E0]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Código</th>
-                  <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Nombre</th>
-                  <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Modelo</th>
-                  <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Tipo</th>
+                  <th
+                    onClick={() => handleColumnSort('codigo')}
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                  >
+                    Código <SortIcon column="codigo" />
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('nombre')}
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                  >
+                    Nombre <SortIcon column="nombre" />
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('modelo')}
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                  >
+                    Modelo <SortIcon column="modelo" />
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('tipo')}
+                    className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider cursor-pointer hover:bg-[#E0E0E0] transition-colors flex items-center gap-2"
+                  >
+                    Tipo <SortIcon column="tipo" />
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Specs</th>
                   <th className="px-6 py-4 text-left text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Obra Asignada</th>
                   <th className="px-6 py-4 text-center text-xs font-extrabold text-[#2D3436] uppercase tracking-wider">Acciones</th>

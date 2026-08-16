@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, CheckCircle2 } from 'lucide-react';
+import { Building2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Obra } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getDiasSinActualizar } from '../utils/semaforo';
@@ -17,7 +17,22 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
 }) => {
   const { usuarioActual } = useAuth();
   const [misObrasFilter, setMisObrasFilter] = useState<'todas' | 'alerta' | 'sin-alerta'>('todas');
-  const [misObrasSortBy, setMisObrasSortBy] = useState<'dias' | 'deadline' | 'stage' | 'nombre'>('dias');
+  const [sortColumn, setSortColumn] = useState<'codigo' | 'nombre' | 'cliente' | 'estado' | 'dias' | null>('dias');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleColumnSort = (column: 'codigo' | 'nombre' | 'cliente' | 'estado' | 'dias') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: 'codigo' | 'nombre' | 'cliente' | 'estado' | 'dias' }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="opacity-30" />;
+    return sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
+  };
 
   // Helper function to check if obra has alert using configured dias
   const checkAlerta = (obra: Obra): boolean => {
@@ -44,17 +59,22 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
     misObrasFilteradas = misObrasAsignadas.filter(o => !checkAlerta(o));
   }
 
-  // Sort mis obras
+  // Sort mis obras by selected column
   misObrasFilteradas = [...misObrasFilteradas].sort((a, b) => {
-    if (misObrasSortBy === 'dias') {
-      return getDiasSinActualizar(b.fechaUltimaActualizacion) - getDiasSinActualizar(a.fechaUltimaActualizacion);
-    } else if (misObrasSortBy === 'nombre') {
-      return a.nombre.localeCompare(b.nombre);
-    } else if (misObrasSortBy === 'stage') {
+    let compareValue = 0;
+
+    if (sortColumn === 'codigo') {
+      compareValue = a.codigo.localeCompare(b.codigo);
+    } else if (sortColumn === 'nombre') {
+      compareValue = a.nombre.localeCompare(b.nombre);
+    } else if (sortColumn === 'dias') {
+      compareValue = getDiasSinActualizar(a.fechaUltimaActualizacion) - getDiasSinActualizar(b.fechaUltimaActualizacion);
+    } else if (sortColumn === 'estado') {
       const stages = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas'];
-      return stages.indexOf(a.estado) - stages.indexOf(b.estado);
+      compareValue = stages.indexOf(a.estado) - stages.indexOf(b.estado);
     }
-    return 0;
+
+    return sortDirection === 'asc' ? compareValue : -compareValue;
   });
 
   return (
@@ -106,15 +126,9 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
               </button>
             </div>
 
-            <select
-              value={misObrasSortBy}
-              onChange={(e) => setMisObrasSortBy(e.target.value as any)}
-              className="sm:ml-auto px-3 py-1.5 bg-white dark:bg-slate-700 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-xs font-bold text-[#2D3436] dark:text-slate-100 focus:outline-none focus:border-[#C8102E]"
-            >
-              <option value="dias">Ordenar por: Días sin acción</option>
-              <option value="nombre">Ordenar por: Nombre</option>
-              <option value="stage">Ordenar por: Estadio</option>
-            </select>
+            <p className="sm:ml-auto text-xs text-[#636E72] dark:text-slate-400 font-medium flex items-center gap-1">
+              <span>Clickea en los títulos para ordenar</span>
+            </p>
           </div>
 
           {/* Obras Table */}
@@ -138,11 +152,31 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
                 <table className="w-full text-xs">
                   <thead className="bg-[#F1F3F5] dark:bg-slate-700/50 border-b border-[#E0E0E0] dark:border-slate-700">
                     <tr>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Código</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Proyecto</th>
+                      <th
+                        onClick={() => handleColumnSort('codigo')}
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                      >
+                        Código <SortIcon column="codigo" />
+                      </th>
+                      <th
+                        onClick={() => handleColumnSort('nombre')}
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                      >
+                        Proyecto <SortIcon column="nombre" />
+                      </th>
                       <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Cliente</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Estadio</th>
-                      <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Días</th>
+                      <th
+                        onClick={() => handleColumnSort('estado')}
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                      >
+                        Estadio <SortIcon column="estado" />
+                      </th>
+                      <th
+                        onClick={() => handleColumnSort('dias')}
+                        className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100 cursor-pointer hover:bg-[#E0E0E0] dark:hover:bg-slate-600/50 transition-colors flex items-center gap-1.5"
+                      >
+                        Días <SortIcon column="dias" />
+                      </th>
                       <th className="px-4 py-3 text-left font-bold text-[#2D3436] dark:text-slate-100">Estado</th>
                       <th className="px-4 py-3 text-center font-bold text-[#2D3436] dark:text-slate-100">Acción</th>
                     </tr>
