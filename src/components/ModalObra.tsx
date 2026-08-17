@@ -659,14 +659,34 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                       usuario: usuarioActual?.nombre || 'Sin usuario',
                       detalles: { reseteaDias: notaReseteaDias }
                     };
-                    setFormObra({
+
+                    const updatedFormObra: any = {
                       ...formObra,
                       historialLog: [...(formObra.historialLog || []), nuevoLog]
-                    });
+                    };
+
+                    // If checkbox is checked, reset the counter by updating fechaUltimaActualizacion
+                    if (notaReseteaDias) {
+                      const hoyISO = new Date().toISOString().split('T')[0];
+                      updatedFormObra.fechaUltimaActualizacion = hoyISO;
+                    }
+
+                    setFormObra(updatedFormObra);
                     setNotaContenido('');
                     setNotaReseteaDias(false);
                     setToast({ message: '✓ Nota agregada al log', type: 'success' });
                     setTimeout(() => setToast(null), 3000);
+
+                    // If reseteaDias is true, also save to Supabase immediately
+                    if (notaReseteaDias) {
+                      setTimeout(() => {
+                        const obraToSave: Obra = {
+                          ...editingObra,
+                          ...updatedFormObra
+                        };
+                        onSaveObra(obraToSave);
+                      }, 0);
+                    }
                   }}
                   disabled={!notaContenido.trim() || !editingObra}
                   className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg font-bold text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
