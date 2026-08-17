@@ -539,45 +539,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 </button>
               </div>
 
-              {/* Historial de Notas */}
-              {editingObra && editingObra.historialLog && editingObra.historialLog.filter(log => log.tipo === 'NOTA_AGREGADA').length > 0 && (
-                <div className="space-y-2 pt-3 border-t border-[#E0E0E0] dark:border-slate-600">
-                  <p className="text-xs font-bold text-[#636E72] dark:text-slate-400">
-                    Notas agregadas ({editingObra.historialLog.filter(log => log.tipo === 'NOTA_AGREGADA').length})
-                  </p>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {[...editingObra.historialLog]
-                      .filter(log => log.tipo === 'NOTA_AGREGADA')
-                      .reverse()
-                      .map((log) => (
-                        <div key={log.id} className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-[#E0E0E0] dark:border-slate-600 text-xs space-y-1">
-                          <div className="flex justify-between items-start gap-2">
-                            <p className="font-bold text-[#2D3436] dark:text-slate-100 leading-snug flex-1 min-w-0">
-                              {log.descripcion.replace('Nota: "', '').replace('"', '')}
-                            </p>
-                          </div>
-                          <p className="text-[#636E72] dark:text-slate-400 text-[10px]">
-                            {log.fecha} · {log.usuario}
-                          </p>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Observaciones Generales (Legacy) */}
-              <div className="space-y-2 pt-3 border-t border-[#E0E0E0] dark:border-slate-600">
-                <label className="block font-bold text-[#2D3436] dark:text-slate-100 text-xs">
-                  Observaciones Generales
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Notas personales que no aparecerán en el log de auditoría..."
-                  value={formObra.observaciones}
-                  onChange={(e) => setFormObra({...formObra, observaciones: e.target.value})}
-                  className="w-full p-3 bg-white dark:bg-slate-800 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E] dark:text-slate-100"
-                />
-              </div>
             </div>
           </div>
 

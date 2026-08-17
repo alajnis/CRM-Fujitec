@@ -118,14 +118,9 @@ export const ComponenteActividades: React.FC<ComponenteActividadesProps> = ({
                       key={actividad.id}
                       className={`flex items-start gap-1.5 p-1.5 rounded-md transition-all ${
                         isCurrentStage
-                          ? 'bg-white cursor-pointer hover:bg-[#F1F3F5]'
+                          ? 'bg-white hover:bg-[#F1F3F5]'
                           : 'bg-white/50 opacity-60'
                       }`}
-                      onClick={() => {
-                        if (isCurrentStage) {
-                          onToggleActividad(actividad.id, !actividad.completada);
-                        }
-                      }}
                     >
                       <button
                         type="button"
