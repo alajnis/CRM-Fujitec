@@ -177,14 +177,11 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
                   </label>
                   <div className="flex items-center gap-2">
                     <input
-                      type="text"
-                      inputMode="numeric"
+                      type="number"
+                      min="1"
+                      max="60"
                       value={config.diasMaximosSinAccion}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/^0+/, '') || '0';
-                        const num = Math.max(1, Math.min(60, parseInt(val) || 7));
-                        handleUpdateDias(config.etapa, num);
-                      }}
+                      onChange={(e) => handleUpdateDias(config.etapa, Math.max(1, Math.min(60, parseInt(e.target.value) || 7)))}
                       className="w-16 px-3 py-2 border border-[#E0E0E0] rounded-lg text-sm font-bold text-center focus:outline-none focus:border-[#C8102E]"
                     />
                     <span className="text-xs text-[#636E72] font-medium min-w-[40px]">días</span>
