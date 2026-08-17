@@ -60,6 +60,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   const [isPending, startTransition] = useTransition();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
   const [notaContenido, setNotaContenido] = useState('');
+  const [notaReseteaDias, setNotaReseteaDias] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
   const [confirmDialogState, setConfirmDialogState] = useState<{
     show: boolean;
@@ -633,6 +634,18 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                   onChange={(e) => setNotaContenido(e.target.value)}
                   className="w-full p-3 bg-white dark:bg-slate-800 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E] dark:text-slate-100"
                 />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notaReseteaDias"
+                    checked={notaReseteaDias}
+                    onChange={(e) => setNotaReseteaDias(e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <label htmlFor="notaReseteaDias" className="text-xs font-medium text-[#636E72] dark:text-slate-400 cursor-pointer">
+                    Reiniciar contador de días sin acción
+                  </label>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -642,20 +655,16 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                       id: `log-${Date.now()}`,
                       tipo: 'nota_agregada',
                       descripcion: `Nota: "${notaContenido}"`,
-                      fecha: new Date().toLocaleString('es-ES', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }),
-                      usuario: usuarioActual?.nombre || 'Sin usuario'
+                      fecha: getCurrentTimeGMT3(),
+                      usuario: usuarioActual?.nombre || 'Sin usuario',
+                      detalles: { reseteaDias: notaReseteaDias }
                     };
                     setFormObra({
                       ...formObra,
                       historialLog: [...(formObra.historialLog || []), nuevoLog]
                     });
                     setNotaContenido('');
+                    setNotaReseteaDias(false);
                     setToast({ message: '✓ Nota agregada al log', type: 'success' });
                     setTimeout(() => setToast(null), 3000);
                   }}
