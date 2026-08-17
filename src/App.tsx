@@ -469,13 +469,18 @@ function AppContent() {
             fechaUltimaActualizacion: completada ? new Date().toISOString().split('T')[0] : o.fechaUltimaActualizacion
           };
 
-          // Save to Supabase asynchronously
+          // Save actividad to Supabase asynchronously
           const actividadActualizada = updatedObra.actividadesPorEtapa?.find((a) => a.id === actividadId);
           if (actividadActualizada) {
             const supabaseData = supabaseAdapter.toSupabaseActividad(actividadActualizada, obraId);
             actividadesService.updateActividad(actividadId, supabaseData as any)
               .catch(err => console.error('Error updating actividad in Supabase:', err));
           }
+
+          // Save obra (with updated historialLog from logActividadCompletada) to Supabase
+          const supabaseObraData = supabaseAdapter.toSupabaseObra(updatedObra);
+          obrasService.updateObra(obraId, supabaseObraData as any)
+            .catch(err => console.error('Error updating obra historialLog in Supabase:', err));
 
           return updatedObra;
         }
