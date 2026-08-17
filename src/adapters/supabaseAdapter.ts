@@ -101,7 +101,9 @@ export const supabaseAdapter = {
     }
 
     // Only include historial_log if it exists and has content
+    console.log('📤 toSupabaseObra historialLog check - exists:', !!appObra.historialLog, 'isArray:', Array.isArray(appObra.historialLog), 'length:', appObra.historialLog?.length);
     if (appObra.historialLog && Array.isArray(appObra.historialLog) && appObra.historialLog.length > 0) {
+      console.log('📤 Adding historial_log to data:', appObra.historialLog);
       data.historial_log = appObra.historialLog;
     }
 
