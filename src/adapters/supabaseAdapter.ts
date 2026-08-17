@@ -80,7 +80,7 @@ export const supabaseAdapter = {
 
   // Convert App Obra to Supabase Obra
   toSupabaseObra(appObra: Obra) {
-    const data = {
+    const data: any = {
       nombre: appObra.nombre,
       cliente_id: appObra.clienteId,
       descripcion: appObra.observaciones,
@@ -88,17 +88,26 @@ export const supabaseAdapter = {
       provincia: appObra.region,
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
-      notas: appObra.observaciones,
-      created_by: appObra.usuarioAsignado
+      notas: appObra.observaciones
     };
+
+    // Only include created_by if it's a valid UUID (not mock user-N strings)
+    if (appObra.usuarioAsignado && this.isValidUUID(appObra.usuarioAsignado)) {
+      data.created_by = appObra.usuarioAsignado;
+    }
 
     // Only include historial_log if it exists and has content
     if (appObra.historialLog && Array.isArray(appObra.historialLog) && appObra.historialLog.length > 0) {
-      (data as any).historial_log = appObra.historialLog;
+      data.historial_log = appObra.historialLog;
     }
 
-    console.log('📤 toSupabaseObra data:', data);
     return data;
+  },
+
+  // Helper: Check if string is valid UUID format
+  isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   },
 
   // Convert Supabase Cliente to App Cliente
