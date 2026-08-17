@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
-import { MessageSquare, History } from 'lucide-react';
+import { History, Plus, RotateCw } from 'lucide-react';
 import { Obra, Cliente, FunnelStage, Region, EquipmentType, HardwareSpecs, Equipo } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ComponenteActividades } from './ComponenteActividades';
@@ -15,7 +15,6 @@ interface ModalObraProps {
   editingObra?: Obra | null;
   proximoCodigoObra: string;
   onUpdateProximoCodigo: (codigo: string) => void;
-  onOpenViewActividades?: (obra: Obra) => void;
   onToggleActividad?: (obraId: string, actividadId: string, completada: boolean) => void;
   onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
 }
@@ -30,7 +29,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   editingObra,
   proximoCodigoObra,
   onUpdateProximoCodigo,
-  onOpenViewActividades,
   onToggleActividad,
   onUpdateObraEquipos
 }) => {
@@ -40,6 +38,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   const { usuarios, usuarioActual } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [equipoSearchQuery, setEquipoSearchQuery] = useState('');
+  const [notaContenido, setNotaContenido] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
   const [confirmDialogState, setConfirmDialogState] = useState<{
     show: boolean;
@@ -267,23 +266,9 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 {editingObra ? 'Actualizar datos de la obra existente' : 'Crear nueva oportunidad comercial'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {editingObra && onOpenViewActividades && (
-                <button
-                  onClick={() => {
-                    onOpenViewActividades(editingObra);
-                    onClose();
-                  }}
-                  className="p-2 text-[#2D3436] hover:text-white hover:bg-[#2D3436] rounded-lg transition-all"
-                  title="Ver notas de esta obra"
-                >
-                  <MessageSquare size={20} />
-                </button>
-              )}
-              <button onClick={onClose} className="p-2 text-[#B2BEC3] dark:text-slate-400 hover:text-[#2D3436] dark:hover:text-slate-200 hover:bg-[#F1F3F5] dark:hover:bg-slate-700 rounded-lg transition-all">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
+            <button onClick={onClose} className="p-2 text-[#B2BEC3] dark:text-slate-400 hover:text-[#2D3436] dark:hover:text-slate-200 hover:bg-[#F1F3F5] dark:hover:bg-slate-700 rounded-lg transition-all">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
         </div>
 
@@ -503,15 +488,97 @@ export const ModalObra: React.FC<ModalObraProps> = ({
             </div>
           )}
 
-          <div className="p-4 bg-[#F1F3F5] rounded-xl border border-[#E0E0E0]">
-            <label className="block font-extrabold text-[#2D3436] mb-2 uppercase tracking-wide text-[11px]">Notas & Observaciones Comerciales</label>
-            <textarea
-              rows={3}
-              placeholder="Agregar notas sobre la oportunidad, observaciones técnicas, o estado actual..."
-              value={formObra.observaciones}
-              onChange={(e) => setFormObra({...formObra, observaciones: e.target.value})}
-              className="w-full p-3 bg-white border border-[#E0E0E0] rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-            />
+          {/* Notas & Observaciones - Unified */}
+          <div className="space-y-3">
+            <div className="p-4 bg-[#F1F3F5] dark:bg-slate-700/50 rounded-xl border border-[#E0E0E0] dark:border-slate-600 space-y-3">
+              <label className="block font-extrabold text-[#2D3436] dark:text-slate-100 uppercase tracking-wide text-[11px]">
+                Notas & Observaciones Comerciales
+              </label>
+
+              {/* Nueva Nota */}
+              <div className="space-y-2">
+                <textarea
+                  rows={3}
+                  placeholder="Escribe una nota sobre la oportunidad, observaciones técnicas, o estado actual..."
+                  value={notaContenido}
+                  onChange={(e) => setNotaContenido(e.target.value)}
+                  className="w-full p-3 bg-white dark:bg-slate-800 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E] dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!notaContenido.trim() || !editingObra) return;
+                    // Agregar nota al historialLog
+                    const nuevoLog = {
+                      id: `log-${Date.now()}`,
+                      tipo: 'NOTA_AGREGADA',
+                      descripcion: `Nota: "${notaContenido}"`,
+                      fecha: new Date().toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }),
+                      usuario: usuarioActual?.nombre || 'Sin usuario'
+                    };
+                    setFormObra({
+                      ...formObra,
+                      historialLog: [...(formObra.historialLog || []), nuevoLog]
+                    });
+                    setNotaContenido('');
+                    setToast({ message: '✓ Nota agregada al log', type: 'success' });
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  disabled={!notaContenido.trim() || !editingObra}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg font-bold text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: notaContenido.trim() && editingObra ? '#C8102E' : '#B2BEC3' }}
+                >
+                  <Plus size={16} />
+                  Agregar Nota al Log
+                </button>
+              </div>
+
+              {/* Historial de Notas */}
+              {editingObra && editingObra.historialLog && editingObra.historialLog.filter(log => log.tipo === 'NOTA_AGREGADA').length > 0 && (
+                <div className="space-y-2 pt-3 border-t border-[#E0E0E0] dark:border-slate-600">
+                  <p className="text-xs font-bold text-[#636E72] dark:text-slate-400">
+                    Notas agregadas ({editingObra.historialLog.filter(log => log.tipo === 'NOTA_AGREGADA').length})
+                  </p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {[...editingObra.historialLog]
+                      .filter(log => log.tipo === 'NOTA_AGREGADA')
+                      .reverse()
+                      .map((log) => (
+                        <div key={log.id} className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-[#E0E0E0] dark:border-slate-600 text-xs space-y-1">
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="font-bold text-[#2D3436] dark:text-slate-100 leading-snug flex-1 min-w-0">
+                              {log.descripcion.replace('Nota: "', '').replace('"', '')}
+                            </p>
+                          </div>
+                          <p className="text-[#636E72] dark:text-slate-400 text-[10px]">
+                            {log.fecha} · {log.usuario}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Observaciones Generales (Legacy) */}
+              <div className="space-y-2 pt-3 border-t border-[#E0E0E0] dark:border-slate-600">
+                <label className="block font-bold text-[#2D3436] dark:text-slate-100 text-xs">
+                  Observaciones Generales
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Notas personales que no aparecerán en el log de auditoría..."
+                  value={formObra.observaciones}
+                  onChange={(e) => setFormObra({...formObra, observaciones: e.target.value})}
+                  className="w-full p-3 bg-white dark:bg-slate-800 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E] dark:text-slate-100"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Log de Auditoría de la Obra */}
