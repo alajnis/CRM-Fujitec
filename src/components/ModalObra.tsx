@@ -214,10 +214,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     const hoyISO = new Date().toISOString().split('T')[0];
 
     const obraFinal: Obra = {
-      // Preserve every field not covered by this form (actividadesPorEtapa, historialLog,
-      // notas, equipoIds, etapaLogs, isDeleted, etc. — equipoIds/historialLog are already
-      // up to date here since equipo asignación escribe directo al estado global, no a
-      // formObra) — only the fields below are explicitly overridden here.
+      // Preserve every field not covered by this form (actividadesPorEtapa,
+      // equipoIds, etc. — only the fields below are explicitly overridden here.
       ...(editingObra || {}),
       id: editingObra ? editingObra.id : `obr-${Date.now()}`,
       codigo: formObra.codigo || 'A-5000',
@@ -238,7 +236,9 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         tipoSalaMaquinas: 'Sin Sala de Máquinas (MRL)',
         capacidadKg: 1000,
         modelo: 'Fujitec ZEXIA'
-      }
+      },
+      // Preserve historialLog from formObra (user-added notes via "Agregar Nota al Log")
+      historialLog: formObra.historialLog || editingObra?.historialLog || []
     };
 
     setToast({ message: '💾 Guardando...', type: 'loading' });
