@@ -505,10 +505,14 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           <div>
             <label className="block font-bold text-[#2D3436] mb-1">Monto Presupuesto (USD) *</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               required
               value={formObra.montoUSD}
-              onChange={(e) => setFormObra({...formObra, montoUSD: Number(e.target.value)})}
+              onChange={(e) => {
+                const val = e.target.value.replace(/^0+/, '') || '0';
+                setFormObra({...formObra, montoUSD: Math.max(0, parseInt(val) || 0)});
+              }}
               className="w-full p-2.5 bg-white border border-[#E0E0E0] rounded-xl font-extrabold text-[#2D3436]"
             />
           </div>

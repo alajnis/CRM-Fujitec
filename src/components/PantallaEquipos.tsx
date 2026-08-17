@@ -28,18 +28,24 @@ const FilterRange: React.FC<{
     <label className="block text-xs font-bold text-[#636E72] mb-2">{label}</label>
     <div className="flex gap-2">
       <input
-        type="number"
-        min="0"
+        type="text"
+        inputMode="numeric"
         value={min}
-        onChange={(e) => setMin(Number(e.target.value))}
+        onChange={(e) => {
+          const val = e.target.value.replace(/^0+/, '') || '0';
+          setMin(Math.max(0, parseInt(val) || 0));
+        }}
         placeholder="Min"
         className="w-full p-2 bg-[#F1F3F5] border border-[#E0E0E0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#C8102E]"
       />
       <input
-        type="number"
-        min="0"
+        type="text"
+        inputMode="numeric"
         value={max}
-        onChange={(e) => setMax(Number(e.target.value))}
+        onChange={(e) => {
+          const val = e.target.value.replace(/^0+/, '') || '0';
+          setMax(Math.max(0, parseInt(val) || 0));
+        }}
         placeholder="Max"
         className="w-full p-2 bg-[#F1F3F5] border border-[#E0E0E0] rounded-lg text-xs font-medium focus:outline-none focus:border-[#C8102E]"
       />
@@ -284,21 +290,25 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
             <label className="block text-xs font-bold text-[#636E72] mb-2">Velocidad (m/s)</label>
             <div className="flex gap-2 items-center">
               <input
-                type="number"
-                min="0"
-                max="10"
+                type="text"
+                inputMode="numeric"
                 value={minVelocidad}
-                onChange={(e) => setMinVelocidad(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+/, '') || '0';
+                  setMinVelocidad(Math.max(0, Math.min(10, parseInt(val) || 0)));
+                }}
                 placeholder="Min"
                 className="w-full p-2.5 bg-[#F1F3F5] border border-[#E0E0E0] rounded-xl text-sm font-medium focus:outline-none focus:border-[#C8102E]"
               />
               <span className="text-[#636E72]">-</span>
               <input
-                type="number"
-                min="0"
-                max="10"
+                type="text"
+                inputMode="numeric"
                 value={maxVelocidad}
-                onChange={(e) => setMaxVelocidad(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+/, '') || '0';
+                  setMaxVelocidad(Math.max(0, Math.min(10, parseInt(val) || 0)));
+                }}
                 placeholder="Max"
                 className="w-full p-2.5 bg-[#F1F3F5] border border-[#E0E0E0] rounded-xl text-sm font-medium focus:outline-none focus:border-[#C8102E]"
               />
@@ -310,21 +320,25 @@ export const PantallaEquipos: React.FC<PantallaEquiposProps> = ({
             <label className="block text-xs font-bold text-[#636E72] mb-2">Capacidad (kg)</label>
             <div className="flex gap-2 items-center">
               <input
-                type="number"
-                min="0"
-                max="5000"
+                type="text"
+                inputMode="numeric"
                 value={minCapacidad}
-                onChange={(e) => setMinCapacidad(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+/, '') || '0';
+                  setMinCapacidad(Math.max(0, Math.min(5000, parseInt(val) || 0)));
+                }}
                 placeholder="Min"
                 className="w-full p-2.5 bg-[#F1F3F5] border border-[#E0E0E0] rounded-xl text-sm font-medium focus:outline-none focus:border-[#C8102E]"
               />
               <span className="text-[#636E72]">-</span>
               <input
-                type="number"
-                min="0"
-                max="5000"
+                type="text"
+                inputMode="numeric"
                 value={maxCapacidad}
-                onChange={(e) => setMaxCapacidad(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+/, '') || '0';
+                  setMaxCapacidad(Math.max(0, Math.min(5000, parseInt(val) || 0)));
+                }}
                 placeholder="Max"
                 className="w-full p-2.5 bg-[#F1F3F5] border border-[#E0E0E0] rounded-xl text-sm font-medium focus:outline-none focus:border-[#C8102E]"
               />
