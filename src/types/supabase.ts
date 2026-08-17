@@ -46,6 +46,7 @@ export interface Obra {
   updated_at: string;
   created_by?: string;
   deleted_at?: string;
+  historial_log?: any; // JSONB: Array of audit log entries
 }
 
 export interface TipoEquipo {
