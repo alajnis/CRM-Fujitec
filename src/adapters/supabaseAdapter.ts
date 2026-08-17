@@ -84,13 +84,16 @@ export const supabaseAdapter = {
       nombre: appObra.nombre,
       cliente_id: appObra.clienteId,
       descripcion: appObra.observaciones,
-      ciudad: '',
       provincia: appObra.region,
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
-      notas: appObra.observaciones,
-      codigo: appObra.codigo
+      notas: appObra.observaciones
     };
+
+    // Only include codigo if it exists
+    if (appObra.codigo) {
+      data.codigo = appObra.codigo;
+    }
 
     // Only include created_by if it's a valid UUID (not mock user-N strings)
     if (appObra.usuarioAsignado && this.isValidUUID(appObra.usuarioAsignado)) {
@@ -102,6 +105,7 @@ export const supabaseAdapter = {
       data.historial_log = appObra.historialLog;
     }
 
+    console.log('📤 toSupabaseObra final data:', data);
     return data;
   },
 
