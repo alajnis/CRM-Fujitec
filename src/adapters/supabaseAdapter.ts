@@ -52,6 +52,18 @@ export const supabaseAdapter = {
       .filter(e => e.obra_id === supabaseObra.id && !e.deleted_at)
       .map(e => e.id);
 
+    // Parse historialLog from JSON string if exists
+    let historialLog = [];
+    try {
+      const logData = (supabaseObra as any).historial_log;
+      if (logData) {
+        historialLog = typeof logData === 'string' ? JSON.parse(logData) : logData;
+      }
+    } catch (e) {
+      console.error('Error parsing historial_log:', e);
+      historialLog = [];
+    }
+
     return {
       id: supabaseObra.id,
       codigo: `A-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
@@ -66,7 +78,8 @@ export const supabaseAdapter = {
       usuarioAsignado: supabaseObra.created_by,
       equipoIds,
       actividades: [],
-      actividadesPorEtapa: actividadesDelObra
+      actividadesPorEtapa: actividadesDelObra,
+      historialLog
     };
   },
 
@@ -81,7 +94,8 @@ export const supabaseAdapter = {
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
       notas: appObra.observaciones,
-      created_by: appObra.usuarioAsignado
+      created_by: appObra.usuarioAsignado,
+      historial_log: appObra.historialLog ? JSON.stringify(appObra.historialLog) : null
     };
   },
 
