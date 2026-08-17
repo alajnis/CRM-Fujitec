@@ -15,7 +15,6 @@ interface ModalObraProps {
   editingObra?: Obra | null;
   proximoCodigoObra: string;
   onUpdateProximoCodigo: (codigo: string) => void;
-  onToggleActividad?: (obraId: string, actividadId: string, completada: boolean) => void;
   onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
 }
 
@@ -29,7 +28,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   editingObra,
   proximoCodigoObra,
   onUpdateProximoCodigo,
-  onToggleActividad,
   onUpdateObraEquipos
 }) => {
   // Early return BEFORE any hooks - critical for hook ordering
@@ -83,32 +81,17 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 
   useEffect(() => {
     if (editingObra) {
-      // Merge strategy: preserve form state, sync live data from server
-      setFormObra((prevFormObra) => {
-        // Only reset if opening a NEW obra (different ID)
-        const isNewObra = !prevFormObra.id || prevFormObra.id !== editingObra.id;
+      // Only reset if opening a NEW obra (different ID)
+      const isNewObra = !formObra.id || formObra.id !== editingObra.id;
 
-        if (isNewObra) {
-          // First time opening this obra: full reset
-          return {
-            ...editingObra,
-            usuarioAsignado: editingObra.usuarioAsignado || usuarioActual?.id
-          };
-        } else {
-          // Same obra already open: merge live updates while preserving user edits
-          // Sync: actividadesPorEtapa, historialLog (server changes)
-          // Preserve: observaciones, historialLog additions via "Agregar Nota al Log"
-          return {
-            ...prevFormObra,
-            actividadesPorEtapa: editingObra.actividadesPorEtapa,
-            // Merge historialLog: keep existing + add any new server entries
-            historialLog: [
-              ...(prevFormObra.historialLog || []).filter((log) => log.tipo === 'NOTA_AGREGADA'),
-              ...(editingObra.historialLog || []).filter((log) => log.tipo !== 'NOTA_AGREGADA')
-            ]
-          };
-        }
-      });
+      if (isNewObra) {
+        // First time opening this obra: copy everything from editingObra
+        setFormObra({
+          ...editingObra,
+          usuarioAsignado: editingObra.usuarioAsignado || usuarioActual?.id
+        });
+      }
+      // If same obra already open, don't reset formObra - preserve local changes
     } else {
       setFormObra({
         codigo: proximoCodigoObra,
@@ -131,6 +114,59 @@ export const ModalObra: React.FC<ModalObraProps> = ({
       });
     }
   }, [editingObra?.id, isOpen, proximoCodigoObra, usuarioActual]);
+
+  // Handle activity toggle: update formObra immediately and autosave
+  const handleToggleActividadLocal = (actividadId: string, completada: boolean) => {
+    if (!editingObra || !usuarioActual) return;
+
+    const actividad = editingObra.actividadesPorEtapa?.find((a: any) => a.id === actividadId);
+    if (!actividad) return;
+
+    // Create log entry
+    const accion = completada ? 'actividad_completada' : 'actividad_desmarcada';
+    const descripcionTexto = completada
+      ? `Actividad completada en ${editingObra.estado}: ${actividad.descripcion}`
+      : `Actividad desmarcada en ${editingObra.estado}: ${actividad.descripcion}`;
+
+    const nuevoLogEntry = {
+      id: `log-${Date.now()}`,
+      fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      tipo: accion,
+      usuario: usuarioActual.nombre,
+      descripcion: descripcionTexto,
+      estadoAnterior: completada ? 'No completada' : 'Completada',
+      estadoNuevo: completada ? 'Completada' : 'No completada',
+      detalles: { etapa: editingObra.estado, actividad: actividad.descripcion }
+    };
+
+    // Update formObra with new activity state + log entry
+    const updatedFormObra: any = {
+      ...formObra,
+      actividadesPorEtapa: (formObra.actividadesPorEtapa || []).map((a: any) =>
+        a.id === actividadId
+          ? {
+              ...a,
+              completada,
+              fechaCompletada: completada ? new Date().toISOString().slice(0, 19).replace('T', ' ') : undefined,
+              completadaPor: completada ? usuarioActual.nombre : undefined
+            }
+          : a
+      ),
+      historialLog: [...(formObra.historialLog || []), nuevoLogEntry]
+    };
+
+    setFormObra(updatedFormObra);
+
+    // Immediately save with the updated data (don't wait for state)
+    setTimeout(() => {
+      const obraToSave: Obra = {
+        ...editingObra,
+        ...updatedFormObra,
+        fechaUltimaActualizacion: new Date().toISOString().split('T')[0]
+      };
+      onSaveObra(obraToSave);
+    }, 0);
+  };
 
   const generateNextCodigoObra = (currentCodigo: string): string => {
     const match = currentCodigo.match(/^([A-Z])-(\d+)$/);
@@ -214,8 +250,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     const hoyISO = new Date().toISOString().split('T')[0];
 
     const obraFinal: Obra = {
-      // Preserve every field not covered by this form (actividadesPorEtapa,
-      // equipoIds, etc. — only the fields below are explicitly overridden here.
+      // Preserve every field not covered by this form
       ...(editingObra || {}),
       id: editingObra ? editingObra.id : `obr-${Date.now()}`,
       codigo: formObra.codigo || 'A-5000',
@@ -225,8 +260,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
       montoUSD: Number(formObra.montoUSD) || 500000,
       estado: (formObra.estado as FunnelStage) || 'Solicitud',
       fechaIngreso: editingObra ? editingObra.fechaIngreso : hoyISO,
-      // No se pisa aquí: editar datos generales no reinicia el contador de días sin
-      // acción (solo lo hace un cambio de estadio, gestionado en App.tsx vía logCambioEstado).
       fechaUltimaActualizacion: editingObra ? editingObra.fechaUltimaActualizacion : hoyISO,
       observaciones: formObra.observaciones || '',
       usuarioAsignado: formObra.usuarioAsignado || usuarioActual?.id || 'user-1',
@@ -237,7 +270,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         capacidadKg: 1000,
         modelo: 'Fujitec ZEXIA'
       },
-      // Preserve historialLog from formObra (user-added notes via "Agregar Nota al Log")
+      actividadesPorEtapa: formObra.actividadesPorEtapa || editingObra?.actividadesPorEtapa || [],
       historialLog: formObra.historialLog || editingObra?.historialLog || []
     };
 
@@ -497,9 +530,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 actividadesPorEtapa={editingObra.actividadesPorEtapa}
                 etapaActual={editingObra.estado}
                 onToggleActividad={(actividadId, completada) => {
-                  if (onToggleActividad) {
-                    onToggleActividad(editingObra.id, actividadId, completada);
-                  }
+                  handleToggleActividadLocal(actividadId, completada);
                 }}
                 expanded={true}
               />
@@ -529,7 +560,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                     // Agregar nota al historialLog
                     const nuevoLog = {
                       id: `log-${Date.now()}`,
-                      tipo: 'NOTA_AGREGADA',
+                      tipo: 'nota_agregada',
                       descripcion: `Nota: "${notaContenido}"`,
                       fecha: new Date().toLocaleString('es-ES', {
                         year: 'numeric',

@@ -55,15 +55,11 @@ export const supabaseAdapter = {
     // Get historialLog from JSONB column
     let historialLog = [];
     const logData = (supabaseObra as any).historial_log;
-    console.log('📥 toAppObra logData type:', typeof logData, 'value:', logData);
     if (logData) {
       try {
-        // Handle both parsed objects and JSON strings
         if (typeof logData === 'string') {
-          console.log('📥 Parsing string JSON');
           historialLog = JSON.parse(logData);
         } else if (Array.isArray(logData)) {
-          console.log('📥 Using array directly');
           historialLog = logData;
         }
       } catch (e) {
@@ -71,7 +67,6 @@ export const supabaseAdapter = {
         historialLog = [];
       }
     }
-    console.log('📥 Final historialLog loaded:', historialLog.length, 'entries');
 
     return {
       id: supabaseObra.id,
@@ -115,13 +110,10 @@ export const supabaseAdapter = {
     }
 
     // Only include historial_log if it exists and has content
-    console.log('📤 toSupabaseObra historialLog check - exists:', !!appObra.historialLog, 'isArray:', Array.isArray(appObra.historialLog), 'length:', appObra.historialLog?.length);
     if (appObra.historialLog && Array.isArray(appObra.historialLog) && appObra.historialLog.length > 0) {
-      console.log('📤 Adding historial_log to data:', appObra.historialLog);
       data.historial_log = appObra.historialLog;
     }
 
-    console.log('📤 toSupabaseObra final data:', data);
     return data;
   },
 
@@ -238,7 +230,6 @@ export const supabaseAdapter = {
       data.usuario_asignado = appActividad.completadaPor;
     }
 
-    console.log('📤 toSupabaseActividad final data:', data);
     return data;
   }
 };

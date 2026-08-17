@@ -240,29 +240,17 @@ function AppContent() {
   };
 
   const handleSaveObra = (savedObra: Obra) => {
-    // Save to Supabase asynchronously
-    console.log('💾 handleSaveObra - savedObra:', savedObra);
-    console.log('💾 historialLog in savedObra:', savedObra.historialLog);
     const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
-    console.log('💾 supabaseData after adapter:', supabaseData);
 
     if (savedObra.id && savedObra.id.length > 0) {
-      // Update existing
-      console.log('💾 Updating existing obra:', savedObra.id);
       obrasService.updateObra(savedObra.id, supabaseData as any)
-        .catch(err => console.error('Error updating obra in Supabase:', err));
+        .catch(err => console.error('Error updating obra:', err));
     } else {
-      // Create new
-      console.log('💾 Creating new obra');
       obrasService.createObra(supabaseData as any)
-        .catch(err => console.error('Error creating obra in Supabase:', err));
+        .catch(err => console.error('Error creating obra:', err));
     }
 
-    // Update editingObra so modal sees the persisted historialLog
-    if (editingObra && editingObra.id === savedObra.id) {
-      setEditingObra(savedObra);
-    }
-
+    // Update local state
     setObras((prev) => {
       const exists = prev.some((o) => o.id === savedObra.id);
       let obraFinal = savedObra;
@@ -270,11 +258,9 @@ function AppContent() {
       if (exists) {
         const obraAnterior = prev.find((o) => o.id === savedObra.id);
         if (obraAnterior && usuarioActual) {
-          // Log estado changes
           if (obraAnterior.estado !== savedObra.estado) {
             obraFinal = logCambioEstado(obraFinal, obraAnterior.estado, savedObra.estado, usuarioActual.nombre, 'dropdown');
           }
-          // Log usuario assignment changes
           if (obraAnterior.usuarioAsignado !== savedObra.usuarioAsignado) {
             obraFinal = logCambioUsuarioAsignado(
               obraFinal,
@@ -481,6 +467,11 @@ function AppContent() {
           const supabaseObraData = supabaseAdapter.toSupabaseObra(updatedObra);
           obrasService.updateObra(obraId, supabaseObraData as any)
             .catch(err => console.error('Error updating obra historialLog in Supabase:', err));
+
+          // Update editingObra if it's open so modal sees the new historialLog
+          if (editingObra && editingObra.id === obraId) {
+            setEditingObra(updatedObra);
+          }
 
           return updatedObra;
         }
@@ -760,11 +751,6 @@ function AppContent() {
         editingObra={editingObraLive}
         proximoCodigoObra={proximoCodigoObra}
         onUpdateProximoCodigo={setProximoCodigoObra}
-        onOpenViewActividades={(obra) => {
-          setSelectedObraForActividad(obra);
-          setIsModalActividadOpen(true);
-        }}
-        onToggleActividad={handleToggleActividad}
         onUpdateObraEquipos={handleUpdateObraEquipos}
       />
 
