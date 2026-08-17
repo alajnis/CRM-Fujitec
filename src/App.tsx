@@ -258,6 +258,11 @@ function AppContent() {
         .catch(err => console.error('Error creating obra in Supabase:', err));
     }
 
+    // Update editingObra so modal sees the persisted historialLog
+    if (editingObra && editingObra.id === savedObra.id) {
+      setEditingObra(savedObra);
+    }
+
     setObras((prev) => {
       const exists = prev.some((o) => o.id === savedObra.id);
       let obraFinal = savedObra;
