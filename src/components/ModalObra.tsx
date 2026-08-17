@@ -543,16 +543,16 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           </div>
 
           {/* Log de Auditoría de la Obra */}
-          {editingObra && editingObra.historialLog && editingObra.historialLog.length > 0 && (
+          {formObra && formObra.historialLog && formObra.historialLog.length > 0 && (
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
               <div className="flex items-center gap-2">
                 <History size={16} className="text-blue-600" />
                 <label className="block font-extrabold text-[#2D3436] uppercase tracking-wide text-[11px]">
-                  Historial de Acciones ({editingObra.historialLog.length})
+                  Historial de Acciones ({formObra.historialLog.length})
                 </label>
               </div>
               <div className="space-y-2 max-h-52 overflow-y-auto">
-                {[...editingObra.historialLog].reverse().map((log) => (
+                {[...formObra.historialLog].reverse().map((log) => (
                   <div key={log.id} className="bg-white p-2.5 rounded-lg border border-blue-100 text-xs">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
