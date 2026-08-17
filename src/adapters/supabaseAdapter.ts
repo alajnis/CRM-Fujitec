@@ -211,7 +211,6 @@ export const supabaseAdapter = {
   // Convert App ActividadPorEtapa to Supabase Actividad
   toSupabaseActividad(appActividad: ActividadPorEtapa, obraId: string) {
     const data: any = {
-      obra_id: obraId,
       descripcion: appActividad.descripcion,
       estado: appActividad.completada ? 'completada' : 'pendiente',
       fecha_completacion: appActividad.completada ? appActividad.fechaCompletada : null,
@@ -223,6 +222,7 @@ export const supabaseAdapter = {
       data.usuario_asignado = appActividad.completadaPor;
     }
 
+    console.log('📤 toSupabaseActividad final data:', data);
     return data;
   }
 };
