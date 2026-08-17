@@ -206,13 +206,19 @@ export const supabaseAdapter = {
 
   // Convert App ActividadPorEtapa to Supabase Actividad
   toSupabaseActividad(appActividad: ActividadPorEtapa, obraId: string) {
-    return {
+    const data: any = {
       obra_id: obraId,
       descripcion: appActividad.descripcion,
       estado: appActividad.completada ? 'completada' : 'pendiente',
       fecha_completacion: appActividad.completada ? appActividad.fechaCompletada : null,
-      usuario_asignado: appActividad.completadaPor,
       tipo: mapFunnelStageToEtapa(appActividad.etapa)
     };
+
+    // Only include usuario_asignado if it's a valid UUID
+    if (appActividad.completadaPor && this.isValidUUID(appActividad.completadaPor)) {
+      data.usuario_asignado = appActividad.completadaPor;
+    }
+
+    return data;
   }
 };
