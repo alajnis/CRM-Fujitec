@@ -8,9 +8,24 @@ import { Toast } from './Toast';
 // Get current time in GMT-3 (Buenos Aires)
 const getCurrentTimeGMT3 = () => {
   const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const gmt3Time = new Date(utcTime - (3 * 60 * 60 * 1000));
-  return gmt3Time.toISOString().slice(0, 19).replace('T', ' ');
+  const formatter = new Intl.DateTimeFormat('es-AR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
+  });
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const hour = parts.find(p => p.type === 'hour')?.value;
+  const minute = parts.find(p => p.type === 'minute')?.value;
+  const second = parts.find(p => p.type === 'second')?.value;
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 };
 
 interface ModalObraProps {
