@@ -1,5 +1,13 @@
 import { Obra, LogEntry, FunnelStage } from '../types';
 
+// Get current time in GMT-3 (Buenos Aires)
+const getCurrentTimeGMT3 = () => {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const gmt3Time = new Date(utcTime - (3 * 60 * 60 * 1000));
+  return gmt3Time.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 export function agregarLogEntry(
   obra: Obra,
   entry: Omit<LogEntry, 'id' | 'fecha'>,
@@ -7,7 +15,7 @@ export function agregarLogEntry(
 ): Obra {
   const nuevoLog: LogEntry = {
     id: `log-${Date.now()}`,
-    fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    fecha: getCurrentTimeGMT3(),
     ...entry
   };
 

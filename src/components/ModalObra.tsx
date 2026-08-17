@@ -5,6 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { ComponenteActividades } from './ComponenteActividades';
 import { Toast } from './Toast';
 
+// Get current time in GMT-3 (Buenos Aires)
+const getCurrentTimeGMT3 = () => {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const gmt3Time = new Date(utcTime - (3 * 60 * 60 * 1000));
+  return gmt3Time.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 interface ModalObraProps {
   isOpen: boolean;
   onClose: () => void;
@@ -130,7 +138,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 
     const nuevoLogEntry = {
       id: `log-${Date.now()}`,
-      fecha: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      fecha: getCurrentTimeGMT3(),
       tipo: accion,
       usuario: usuarioActual.nombre,
       descripcion: descripcionTexto,
@@ -147,7 +155,7 @@ export const ModalObra: React.FC<ModalObraProps> = ({
           ? {
               ...a,
               completada,
-              fechaCompletada: completada ? new Date().toISOString().slice(0, 19).replace('T', ' ') : undefined,
+              fechaCompletada: completada ? getCurrentTimeGMT3() : undefined,
               completadaPor: completada ? usuarioActual.nombre : undefined
             }
           : a
@@ -191,17 +199,31 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   }, [obras]);
 
   const handleAddEquipo = (equipoId: string) => {
-    // Minimal work: only checks, no state updates in handler
-    if (!editingObra || !onUpdateObraEquipos) return;
+    if (!editingObra || !onUpdateObraEquipos || !usuarioActual) return;
     if (equipoIdsActuales.includes(equipoId)) return;
+
+    const equipo = equipos.find((e) => e.id === equipoId);
+    if (!equipo) return;
 
     const obraActual = equipoToObraMap.get(equipoId);
 
     if (obraActual) {
-      // Conflict: show dialog without doing work
       setConfirmDialogState({ show: true, equipoId, obraActual });
     } else {
-      // No conflict: defer all work to transition
+      const logEntry = {
+        id: `log-${Date.now()}`,
+        fecha: getCurrentTimeGMT3(),
+        tipo: 'equipo_agregado',
+        usuario: usuarioActual.nombre,
+        descripcion: `Equipo agregado: ${equipo.nombre}`,
+        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
+      };
+
+      setFormObra((prev: any) => ({
+        ...prev,
+        historialLog: [...(prev.historialLog || []), logEntry]
+      }));
+
       startTransition(() => {
         onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
         setEquipoSearchQuery('');
@@ -210,12 +232,37 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   };
 
   const handleConfirmMove = () => {
-    if (!editingObra || !onUpdateObraEquipos || !confirmDialogState.equipoId || !confirmDialogState.obraActual) return;
+    if (!editingObra || !onUpdateObraEquipos || !confirmDialogState.equipoId || !confirmDialogState.obraActual || !usuarioActual) return;
 
     const equipoId = confirmDialogState.equipoId;
     const obraActual = confirmDialogState.obraActual;
+    const equipo = equipos.find((e) => e.id === equipoId);
+    if (!equipo) return;
 
-    // All work deferred to transition
+    const logEntries = [
+      {
+        id: `log-${Date.now()}`,
+        fecha: getCurrentTimeGMT3(),
+        tipo: 'equipo_removido',
+        usuario: usuarioActual.nombre,
+        descripcion: `Equipo removido: ${equipo.nombre}`,
+        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
+      },
+      {
+        id: `log-${Date.now() + 1}`,
+        fecha: getCurrentTimeGMT3(),
+        tipo: 'equipo_agregado',
+        usuario: usuarioActual.nombre,
+        descripcion: `Equipo agregado: ${equipo.nombre}`,
+        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
+      }
+    ];
+
+    setFormObra((prev: any) => ({
+      ...prev,
+      historialLog: [...(prev.historialLog || []), ...logEntries]
+    }));
+
     startTransition(() => {
       onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));
     });
@@ -233,7 +280,25 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   };
 
   const handleRemoveEquipo = (equipoId: string) => {
-    if (!editingObra || !onUpdateObraEquipos) return;
+    if (!editingObra || !onUpdateObraEquipos || !usuarioActual) return;
+
+    const equipo = equipos.find((e) => e.id === equipoId);
+    if (!equipo) return;
+
+    const logEntry = {
+      id: `log-${Date.now()}`,
+      fecha: getCurrentTimeGMT3(),
+      tipo: 'equipo_removido',
+      usuario: usuarioActual.nombre,
+      descripcion: `Equipo removido: ${equipo.nombre}`,
+      detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
+    };
+
+    setFormObra((prev: any) => ({
+      ...prev,
+      historialLog: [...(prev.historialLog || []), logEntry]
+    }));
+
     onUpdateObraEquipos(editingObra.id, equipoIdsActuales.filter((id) => id !== equipoId));
   };
 

@@ -8,6 +8,14 @@
 import { BUILD_VERSION } from './BUILD_INFO';
 import React, { useState, useEffect } from 'react';
 
+// Get current time in GMT-3 (Buenos Aires)
+const getCurrentTimeGMT3 = () => {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const gmt3Time = new Date(utcTime - (3 * 60 * 60 * 1000));
+  return gmt3Time.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 // Ensure build info is included in bundle
 console.log('Build version:', BUILD_VERSION);
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -447,7 +455,7 @@ function AppContent() {
                 ? {
                     ...a,
                     completada,
-                    fechaCompletada: completada ? new Date().toISOString().slice(0, 19).replace('T', ' ') : undefined,
+                    fechaCompletada: completada ? getCurrentTimeGMT3() : undefined,
                     completadaPor: completada ? usuarioActual.nombre : undefined
                   }
                 : a
