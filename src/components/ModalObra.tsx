@@ -83,10 +83,31 @@ export const ModalObra: React.FC<ModalObraProps> = ({
 
   useEffect(() => {
     if (editingObra) {
-      // Obras legacy sin usuarioAsignado quedan asignadas a quien las edita
-      setFormObra({
-        ...editingObra,
-        usuarioAsignado: editingObra.usuarioAsignado || usuarioActual?.id
+      // Merge strategy: preserve form state, sync live data from server
+      setFormObra((prevFormObra) => {
+        // Only reset if opening a NEW obra (different ID)
+        const isNewObra = !prevFormObra.id || prevFormObra.id !== editingObra.id;
+
+        if (isNewObra) {
+          // First time opening this obra: full reset
+          return {
+            ...editingObra,
+            usuarioAsignado: editingObra.usuarioAsignado || usuarioActual?.id
+          };
+        } else {
+          // Same obra already open: merge live updates while preserving user edits
+          // Sync: actividadesPorEtapa, historialLog (server changes)
+          // Preserve: observaciones, historialLog additions via "Agregar Nota al Log"
+          return {
+            ...prevFormObra,
+            actividadesPorEtapa: editingObra.actividadesPorEtapa,
+            // Merge historialLog: keep existing + add any new server entries
+            historialLog: [
+              ...(prevFormObra.historialLog || []).filter((log) => log.tipo === 'NOTA_AGREGADA'),
+              ...(editingObra.historialLog || []).filter((log) => log.tipo !== 'NOTA_AGREGADA')
+            ]
+          };
+        }
       });
     } else {
       setFormObra({
@@ -109,9 +130,6 @@ export const ModalObra: React.FC<ModalObraProps> = ({
         }
       });
     }
-    // Reset only when the modal opens or a different obra is loaded — not on every
-    // live update to `editingObra` (e.g. toggling an activity checkbox while open),
-    // which would otherwise clobber unsaved edits to other fields.
   }, [editingObra?.id, isOpen, proximoCodigoObra, usuarioActual]);
 
   const generateNextCodigoObra = (currentCodigo: string): string => {
