@@ -52,11 +52,21 @@ export const supabaseAdapter = {
       .filter(e => e.obra_id === supabaseObra.id && !e.deleted_at)
       .map(e => e.id);
 
-    // Get historialLog from JSONB column (already parsed by Supabase)
+    // Get historialLog from JSONB column
     let historialLog = [];
     const logData = (supabaseObra as any).historial_log;
     if (logData) {
-      historialLog = Array.isArray(logData) ? logData : [];
+      try {
+        // Handle both parsed objects and JSON strings
+        if (typeof logData === 'string') {
+          historialLog = JSON.parse(logData);
+        } else if (Array.isArray(logData)) {
+          historialLog = logData;
+        }
+      } catch (e) {
+        console.error('Error parsing historial_log:', e);
+        historialLog = [];
+      }
     }
 
     return {
