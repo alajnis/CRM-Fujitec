@@ -28,6 +28,7 @@ export interface Cliente {
 
 export interface Obra {
   id: string;
+  codigo?: string;
   nombre: string;
   cliente_id: string;
   descripcion?: string;

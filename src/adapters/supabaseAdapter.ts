@@ -61,7 +61,7 @@ export const supabaseAdapter = {
 
     return {
       id: supabaseObra.id,
-      codigo: `A-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      codigo: (supabaseObra as any).codigo || `A-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
       nombre: supabaseObra.nombre,
       region: supabaseObra.provincia === 'Argentina' ? 'Argentina' : 'Uruguay',
       clienteId: supabaseObra.cliente_id,
@@ -88,7 +88,8 @@ export const supabaseAdapter = {
       provincia: appObra.region,
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
-      notas: appObra.observaciones
+      notas: appObra.observaciones,
+      codigo: appObra.codigo
     };
 
     // Only include created_by if it's a valid UUID (not mock user-N strings)
