@@ -241,14 +241,19 @@ function AppContent() {
 
   const handleSaveObra = (savedObra: Obra) => {
     // Save to Supabase asynchronously
+    console.log('💾 handleSaveObra - savedObra:', savedObra);
+    console.log('💾 historialLog in savedObra:', savedObra.historialLog);
     const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
+    console.log('💾 supabaseData after adapter:', supabaseData);
 
     if (savedObra.id && savedObra.id.length > 0) {
       // Update existing
+      console.log('💾 Updating existing obra:', savedObra.id);
       obrasService.updateObra(savedObra.id, supabaseData as any)
         .catch(err => console.error('Error updating obra in Supabase:', err));
     } else {
       // Create new
+      console.log('💾 Creating new obra');
       obrasService.createObra(supabaseData as any)
         .catch(err => console.error('Error creating obra in Supabase:', err));
     }
