@@ -80,7 +80,7 @@ export const supabaseAdapter = {
 
   // Convert App Obra to Supabase Obra
   toSupabaseObra(appObra: Obra) {
-    return {
+    const data = {
       nombre: appObra.nombre,
       cliente_id: appObra.clienteId,
       descripcion: appObra.observaciones,
@@ -89,9 +89,16 @@ export const supabaseAdapter = {
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
       notas: appObra.observaciones,
-      created_by: appObra.usuarioAsignado,
-      historial_log: appObra.historialLog ? appObra.historialLog : []
+      created_by: appObra.usuarioAsignado
     };
+
+    // Only include historial_log if it exists and has content
+    if (appObra.historialLog && Array.isArray(appObra.historialLog) && appObra.historialLog.length > 0) {
+      (data as any).historial_log = appObra.historialLog;
+    }
+
+    console.log('📤 toSupabaseObra data:', data);
+    return data;
   },
 
   // Convert Supabase Cliente to App Cliente
