@@ -55,12 +55,15 @@ export const supabaseAdapter = {
     // Get historialLog from JSONB column
     let historialLog = [];
     const logData = (supabaseObra as any).historial_log;
+    console.log('📥 toAppObra logData type:', typeof logData, 'value:', logData);
     if (logData) {
       try {
         // Handle both parsed objects and JSON strings
         if (typeof logData === 'string') {
+          console.log('📥 Parsing string JSON');
           historialLog = JSON.parse(logData);
         } else if (Array.isArray(logData)) {
+          console.log('📥 Using array directly');
           historialLog = logData;
         }
       } catch (e) {
@@ -68,6 +71,7 @@ export const supabaseAdapter = {
         historialLog = [];
       }
     }
+    console.log('📥 Final historialLog loaded:', historialLog.length, 'entries');
 
     return {
       id: supabaseObra.id,
