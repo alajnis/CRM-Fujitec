@@ -78,39 +78,14 @@ BEGIN
 END $$;
 
 -- ----------------------------------------------------------------------------
--- 4. USUARIOS: password gestionada por el admin
---    (requisito: el admin crea y puede ver/cambiar la contraseña)
+-- 4. USUARIOS
+--    La creación de public.users y sus usuarios base vive en
+--    03-crear-tabla-users.sql, que hay que correr ANTES que este script.
 -- ----------------------------------------------------------------------------
 DO $$
 BEGIN
-  IF to_regclass('public.users') IS NOT NULL THEN
-    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
-
-    -- Password inicial para usuarios que ya existen y no tienen una
-    UPDATE public.users SET password = 'fujitec2026' WHERE password IS NULL;
-
-    -- Usuarios base del sistema (mismas credenciales que la demo anterior).
-    -- Se usa UPDATE + INSERT en vez de ON CONFLICT porque no sabemos si hay
-    -- un índice único sobre email.
-    UPDATE public.users
-       SET password = 'admin123', role = 'admin', status = 'active'
-     WHERE email = 'superadmin@fujitec.com';
-
-    IF NOT FOUND THEN
-      INSERT INTO public.users (id, email, full_name, role, status, password)
-      VALUES (gen_random_uuid(), 'superadmin@fujitec.com', 'Admin Fujitec', 'admin', 'active', 'admin123');
-    END IF;
-
-    UPDATE public.users
-       SET password = 'vendedor123', role = 'vendedor', status = 'active'
-     WHERE email = 'vendedor@fujitec.com';
-
-    IF NOT FOUND THEN
-      INSERT INTO public.users (id, email, full_name, role, status, password)
-      VALUES (gen_random_uuid(), 'vendedor@fujitec.com', 'Vendedor Fujitec', 'vendedor', 'active', 'vendedor123');
-    END IF;
-
-    RAISE NOTICE '✅ users: password configurada y usuarios base listos';
+  IF to_regclass('public.users') IS NULL THEN
+    RAISE NOTICE '⚠️  public.users no existe — corré 03-crear-tabla-users.sql primero.';
   END IF;
 END $$;
 
