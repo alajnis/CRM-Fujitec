@@ -3,100 +3,40 @@
 --
 -- Afloja los NOT NULL que bloquean los inserts de la aplicación.
 --
--- Cada ALTER va en su propio DO block: si uno falla, no arrastra a los demás
--- (que es lo que pasaba antes, donde un UPDATE con error revertía el ALTER
--- que se había hecho unas líneas más arriba en la misma transacción).
+-- Los ALTER van sueltos, no dentro de un DO block: así, si alguno falla, el
+-- SQL Editor muestra el error concreto en vez de tragárselo. Cada uno es
+-- inofensivo si la columna ya es nullable (Postgres no se queja).
 -- ============================================================================
 
-SET search_path TO public;
+-- ----------------------------------------------------------------------------
+-- 1. EQUIPOS — un equipo puede existir sin obra asignada
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.equipos ALTER COLUMN obra_id            DROP NOT NULL;
+ALTER TABLE public.equipos ALTER COLUMN tipo_equipo_id     DROP NOT NULL;
+ALTER TABLE public.equipos ALTER COLUMN estado             DROP NOT NULL;
+ALTER TABLE public.equipos ALTER COLUMN estado_instalacion DROP NOT NULL;
 
 -- ----------------------------------------------------------------------------
--- 1. EQUIPOS — obra_id: un equipo puede existir sin obra asignada
+-- 2. OBRAS — el funnel usa etapa_actual; `estado` y created_by pueden faltar
 -- ----------------------------------------------------------------------------
-DO $$
-BEGIN
-  ALTER TABLE public.equipos ALTER COLUMN obra_id DROP NOT NULL;
-  RAISE NOTICE '✅ equipos.obra_id ahora acepta NULL';
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE '⚠️  equipos.obra_id: %', SQLERRM;
-END $$;
-
--- tipo_equipo_id es un FK heredado que la app no usa
-DO $$
-BEGIN
-  ALTER TABLE public.equipos ALTER COLUMN tipo_equipo_id DROP NOT NULL;
-  RAISE NOTICE '✅ equipos.tipo_equipo_id ahora acepta NULL';
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'ℹ️  equipos.tipo_equipo_id: %', SQLERRM;
-END $$;
-
--- Estos tienen default en la app pero pueden venir vacíos
-DO $$
-BEGIN
-  ALTER TABLE public.equipos ALTER COLUMN estado DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-  ALTER TABLE public.equipos ALTER COLUMN estado_instalacion DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
--- ----------------------------------------------------------------------------
--- 2. OBRAS — estado/etapa_actual los maneja la app; created_by puede no estar
--- ----------------------------------------------------------------------------
-DO $$
-BEGIN
-  ALTER TABLE public.obras ALTER COLUMN estado DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-  ALTER TABLE public.obras ALTER COLUMN created_by DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+ALTER TABLE public.obras ALTER COLUMN estado     DROP NOT NULL;
+ALTER TABLE public.obras ALTER COLUMN created_by DROP NOT NULL;
 
 -- ----------------------------------------------------------------------------
 -- 3. ACTIVIDADES
 -- ----------------------------------------------------------------------------
-DO $$
-BEGIN
-  ALTER TABLE public.actividades ALTER COLUMN usuario_asignado DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-  ALTER TABLE public.actividades ALTER COLUMN usuario_creador DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+ALTER TABLE public.actividades ALTER COLUMN usuario_asignado DROP NOT NULL;
+ALTER TABLE public.actividades ALTER COLUMN usuario_creador  DROP NOT NULL;
 
 -- ----------------------------------------------------------------------------
 -- 4. CLIENTES
 -- ----------------------------------------------------------------------------
-DO $$
-BEGIN
-  ALTER TABLE public.clientes ALTER COLUMN created_by DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-  ALTER TABLE public.clientes ALTER COLUMN tipo DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-  ALTER TABLE public.clientes ALTER COLUMN estado DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+ALTER TABLE public.clientes ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE public.clientes ALTER COLUMN tipo       DROP NOT NULL;
+ALTER TABLE public.clientes ALTER COLUMN estado     DROP NOT NULL;
 
 -- ----------------------------------------------------------------------------
--- 5. VERIFICACIÓN
---    Todas las columnas listadas deberían decir YES en nullable.
+-- 5. VERIFICACIÓN — todas las filas tienen que decir ✅
 -- ----------------------------------------------------------------------------
 SELECT
   table_name,
@@ -115,7 +55,7 @@ ORDER BY table_name, column_name;
 
 -- ----------------------------------------------------------------------------
 -- 6. Columnas NOT NULL sin default que todavía puedan romper un insert.
---    Lo que aparezca acá hay que mandarlo siempre desde la app.
+--    Lo que aparezca acá la app tiene que mandarlo siempre.
 -- ----------------------------------------------------------------------------
 SELECT
   table_name,

@@ -30,6 +30,10 @@ const explicar = (err: any): string => {
 
   if (code === '23502') {
     const col = message.match(/column "([^"]+)"/)?.[1];
+    // Caso conocido: la columna sigue en NOT NULL y hay que aflojarla en la base.
+    if (col === 'obra_id') {
+      return 'La base exige que el equipo tenga una obra asignada. Corré scripts/04-fix-constraints.sql en Supabase para permitir equipos sin obra.';
+    }
     return `Falta un dato obligatorio${col ? ` (${col})` : ''} en la base de datos.`;
   }
   if (code === '23503') return 'El registro referencia algo que no existe (clave foránea).';
