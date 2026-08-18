@@ -90,7 +90,9 @@ export const supabaseAdapter = {
       fechaIngreso: supabaseObra.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
       fechaUltimaActualizacion: supabaseObra.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
       observaciones: supabaseObra.notas || '',
-      usuarioAsignado: supabaseObra.created_by,
+      // El responsable vive en usuario_asignado; created_by es sólo quién la
+      // cargó y se usa como respaldo para las obras anteriores a esa columna.
+      usuarioAsignado: (supabaseObra as any).usuario_asignado || supabaseObra.created_by,
       equipoIds,
       actividades: [],
       actividadesPorEtapa: actividadesDelObra,
@@ -118,9 +120,12 @@ export const supabaseAdapter = {
       data.codigo = appObra.codigo;
     }
 
-    // Only include created_by if it's a valid UUID (not mock user-N strings)
+    // Responsable comercial de la obra. Es lo que filtra "Mis obras asignadas",
+    // por eso va en su propia columna y no en created_by.
     if (appObra.usuarioAsignado && this.isValidUUID(appObra.usuarioAsignado)) {
-      data.created_by = appObra.usuarioAsignado;
+      data.usuario_asignado = appObra.usuarioAsignado;
+    } else if (appObra.usuarioAsignado === null) {
+      data.usuario_asignado = null;
     }
 
     // Only include historial_log if it exists and has content

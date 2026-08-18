@@ -90,9 +90,10 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[#2D3436]/50 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
-      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-lg w-full p-8">
+      {/* Alto acotado a la ventana: header y footer fijos, cuerpo scrolleable */}
+      <div className="bg-white rounded-3xl border border-[#E0E0E0] shadow-2xl max-w-lg w-full max-h-[calc(100vh-32px)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-[#F1F3F5]">
           <div>
             <h2 className="text-xl font-bold text-[#2D3436]">
               {usuario ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
@@ -110,7 +111,7 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
         </div>
 
         {/* Form */}
-        <form className="space-y-4 mb-6">
+        <form className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Nombre */}
           <div>
             <label className="block text-xs font-bold text-[#2D3436] mb-2">Nombre</label>
@@ -250,7 +251,7 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
         </form>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3">
+        <div className="flex-shrink-0 flex justify-end gap-3 p-6 border-t border-[#F1F3F5]">
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-lg bg-[#F1F3F5] hover:bg-[#E0E0E0] transition-colors font-bold text-[#2D3436] text-sm"

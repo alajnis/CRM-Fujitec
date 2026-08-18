@@ -47,6 +47,8 @@ export interface Obra {
   created_at: string;
   updated_at: string;
   created_by?: string;
+  /** Responsable comercial actual. Distinto de created_by (quién la cargó). */
+  usuario_asignado?: string;
   deleted_at?: string;
   historial_log?: any; // JSONB: Array of audit log entries
 }

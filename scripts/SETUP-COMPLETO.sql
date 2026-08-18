@@ -92,9 +92,12 @@ ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cargo              VARCHAR(
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cuit_rut           VARCHAR(50);
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS contactos          JSONB DEFAULT '[]'::jsonb;
 
--- Obras: código secuencial y log de auditoría
-ALTER TABLE public.obras ADD COLUMN IF NOT EXISTS codigo        VARCHAR(20);
-ALTER TABLE public.obras ADD COLUMN IF NOT EXISTS historial_log JSONB DEFAULT '[]'::jsonb;
+-- Obras: código secuencial, log de auditoría y responsable comercial.
+-- `usuario_asignado` es distinto de `created_by`: quién gestiona la obra hoy,
+-- no quién la cargó. Es lo que filtra la pantalla "Mis obras asignadas".
+ALTER TABLE public.obras ADD COLUMN IF NOT EXISTS codigo           VARCHAR(20);
+ALTER TABLE public.obras ADD COLUMN IF NOT EXISTS historial_log    JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.obras ADD COLUMN IF NOT EXISTS usuario_asignado UUID;
 
 
 -- ============================================================================
@@ -145,17 +148,59 @@ CREATE POLICY "acceso_total_users"       ON public.users       FOR ALL USING (tr
 
 
 -- ============================================================================
--- PASO 5 — ÍNDICES
+-- PASO 5 — REPARTIR LAS OBRAS ENTRE LOS USUARIOS ACTIVOS
+-- ============================================================================
+-- Distribuye en round-robin las obras que no tengan responsable, para que
+-- "Mis obras asignadas" no quede vacía. Sólo toca las que están sin asignar:
+-- correrlo de nuevo no reasigna lo que ya tiene dueño.
+
+WITH usuarios_activos AS (
+  SELECT id, row_number() OVER (ORDER BY email) - 1 AS pos,
+         count(*) OVER () AS total
+    FROM public.users
+   WHERE status = 'active'
+),
+obras_sin_asignar AS (
+  SELECT id, row_number() OVER (ORDER BY created_at) - 1 AS pos
+    FROM public.obras
+   WHERE deleted_at IS NULL
+     AND usuario_asignado IS NULL
+     AND nombre <> '__EQUIPOS_SIN_OBRA__'
+)
+UPDATE public.obras o
+   SET usuario_asignado = u.id
+  FROM obras_sin_asignar os
+  JOIN usuarios_activos u
+    ON u.pos = os.pos % u.total
+ WHERE o.id = os.id;
+
+-- Cuántas obras quedó con cada usuario
+SELECT
+  u.email,
+  u.full_name,
+  count(o.id) AS obras_asignadas
+FROM public.users u
+LEFT JOIN public.obras o
+       ON o.usuario_asignado = u.id
+      AND o.deleted_at IS NULL
+WHERE u.status = 'active'
+GROUP BY u.email, u.full_name
+ORDER BY u.email;
+
+
+-- ============================================================================
+-- PASO 6 — ÍNDICES
 -- ============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_equipos_obra_id     ON public.equipos(obra_id);
-CREATE INDEX IF NOT EXISTS idx_actividades_obra_id ON public.actividades(obra_id);
-CREATE INDEX IF NOT EXISTS idx_obras_cliente_id    ON public.obras(cliente_id);
-CREATE INDEX IF NOT EXISTS idx_obras_created_by    ON public.obras(created_by);
+CREATE INDEX IF NOT EXISTS idx_equipos_obra_id          ON public.equipos(obra_id);
+CREATE INDEX IF NOT EXISTS idx_actividades_obra_id      ON public.actividades(obra_id);
+CREATE INDEX IF NOT EXISTS idx_obras_cliente_id         ON public.obras(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_obras_created_by         ON public.obras(created_by);
+CREATE INDEX IF NOT EXISTS idx_obras_usuario_asignado   ON public.obras(usuario_asignado);
 
 
 -- ============================================================================
--- PASO 6 — VERIFICACIÓN FINAL
+-- PASO 7 — VERIFICACIÓN FINAL
 -- ============================================================================
 -- Las tres consultas tienen que dar OK.
 
