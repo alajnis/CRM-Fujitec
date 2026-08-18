@@ -9,17 +9,21 @@ export const LoginScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      if (!login(email, password)) {
+    try {
+      const ok = await login(email, password);
+      if (!ok) {
         setError('Email o contraseña inválidos');
       }
+    } catch {
+      setError('No se pudo conectar. Intentá de nuevo.');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (

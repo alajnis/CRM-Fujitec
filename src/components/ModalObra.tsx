@@ -139,6 +139,27 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     }
   }, [editingObra?.id, isOpen, proximoCodigoObra, usuarioActual]);
 
+  // Algunas acciones (alta/baja de equipos) escriben el log en App.tsx. Traemos
+  // esas entradas nuevas al formulario sin pisar las que se agregaron localmente
+  // (notas y toggles de actividades, que aún no viajaron al padre).
+  useEffect(() => {
+    if (!editingObra?.historialLog) return;
+
+    setFormObra((prev) => {
+      if (prev.id !== editingObra.id) return prev;
+
+      const idsLocales = new Set((prev.historialLog || []).map((l: any) => l.id));
+      const nuevasDelPadre = editingObra.historialLog!.filter((l: any) => !idsLocales.has(l.id));
+      if (nuevasDelPadre.length === 0) return prev;
+
+      return {
+        ...prev,
+        equipoIds: editingObra.equipoIds,
+        historialLog: [...(prev.historialLog || []), ...nuevasDelPadre]
+      };
+    });
+  }, [editingObra?.historialLog, editingObra?.id, editingObra?.equipoIds]);
+
   // Handle activity toggle: update formObra immediately and autosave
   const handleToggleActividadLocal = (actividadId: string, completada: boolean) => {
     if (!editingObra || !usuarioActual) return;
@@ -214,32 +235,18 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     return map;
   }, [obras]);
 
+  // Alta/baja de equipos: el log lo escribe App.tsx (handleUpdateObraEquipos),
+  // que es el dueño del estado de obras. Acá sólo disparamos la acción — duplicar
+  // el log local generaba entradas de "agregado" y "removido" a la vez.
   const handleAddEquipo = (equipoId: string) => {
-    if (!editingObra || !onUpdateObraEquipos || !usuarioActual) return;
+    if (!editingObra || !onUpdateObraEquipos) return;
     if (equipoIdsActuales.includes(equipoId)) return;
-
-    const equipo = equipos.find((e) => e.id === equipoId);
-    if (!equipo) return;
 
     const obraActual = equipoToObraMap.get(equipoId);
 
     if (obraActual) {
       setConfirmDialogState({ show: true, equipoId, obraActual });
     } else {
-      const logEntry = {
-        id: `log-${Date.now()}`,
-        fecha: getCurrentTimeGMT3(),
-        tipo: 'equipo_agregado',
-        usuario: usuarioActual.nombre,
-        descripcion: `Equipo agregado: ${equipo.nombre}`,
-        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
-      };
-
-      setFormObra((prev: any) => ({
-        ...prev,
-        historialLog: [...(prev.historialLog || []), logEntry]
-      }));
-
       startTransition(() => {
         onUpdateObraEquipos(editingObra.id, [...equipoIdsActuales, equipoId]);
         setEquipoSearchQuery('');
@@ -248,36 +255,10 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   };
 
   const handleConfirmMove = () => {
-    if (!editingObra || !onUpdateObraEquipos || !confirmDialogState.equipoId || !confirmDialogState.obraActual || !usuarioActual) return;
+    if (!editingObra || !onUpdateObraEquipos || !confirmDialogState.equipoId || !confirmDialogState.obraActual) return;
 
     const equipoId = confirmDialogState.equipoId;
     const obraActual = confirmDialogState.obraActual;
-    const equipo = equipos.find((e) => e.id === equipoId);
-    if (!equipo) return;
-
-    const logEntries = [
-      {
-        id: `log-${Date.now()}`,
-        fecha: getCurrentTimeGMT3(),
-        tipo: 'equipo_removido',
-        usuario: usuarioActual.nombre,
-        descripcion: `Equipo removido: ${equipo.nombre}`,
-        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
-      },
-      {
-        id: `log-${Date.now() + 1}`,
-        fecha: getCurrentTimeGMT3(),
-        tipo: 'equipo_agregado',
-        usuario: usuarioActual.nombre,
-        descripcion: `Equipo agregado: ${equipo.nombre}`,
-        detalles: { equipoId: equipo.id, equipoNombre: equipo.nombre }
-      }
-    ];
-
-    setFormObra((prev: any) => ({
-      ...prev,
-      historialLog: [...(prev.historialLog || []), ...logEntries]
-    }));
 
     startTransition(() => {
       onUpdateObraEquipos(obraActual.id, (obraActual.equipoIds || []).filter((id) => id !== equipoId));

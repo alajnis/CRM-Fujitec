@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, X, Save, AlertTriangle, Plus, Edit3, ToggleRight, ToggleLeft, DollarSign, Target } from 'lucide-react';
+import { Settings, X, Save, AlertTriangle, Plus, Edit3, ToggleRight, ToggleLeft, DollarSign, Target, Eye, EyeOff } from 'lucide-react';
 import { FunnelStage, ConfiguracionDiasEtapa, Usuario } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ModalUsuario } from './ModalUsuario';
@@ -36,6 +36,7 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
   const [isModalUsuarioOpen, setIsModalUsuarioOpen] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
+  const [passwordsVisibles, setPasswordsVisibles] = useState<Record<string, boolean>>({});
   // Función para distribuir un valor entre 12 meses
   const distributeValue = (total: number) => {
     const baseAmount = Math.floor(total / 12);
@@ -78,11 +79,20 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
     );
   };
 
-  const handleSaveUsuario = (usuario: Omit<Usuario, 'id'> | Usuario) => {
-    if (usuarioEditando && 'id' in usuario) {
-      actualizarUsuario(usuario.id, usuario);
-    } else {
-      crearUsuario(usuario as Omit<Usuario, 'id'>);
+  const handleSaveUsuario = async (usuario: Omit<Usuario, 'id'> | Usuario) => {
+    setToast({ message: '💾 Guardando usuario...', type: 'loading' });
+    try {
+      if (usuarioEditando && 'id' in usuario) {
+        await actualizarUsuario(usuario.id, usuario);
+      } else {
+        await crearUsuario(usuario as Omit<Usuario, 'id'>);
+      }
+      setToast({ message: '✅ Usuario guardado', type: 'success' });
+      setTimeout(() => setToast(null), 2500);
+    } catch (e) {
+      console.error('Error guardando usuario:', e);
+      setToast({ message: '❌ Error al guardar el usuario', type: 'error' });
+      setTimeout(() => setToast(null), 3500);
     }
     setIsModalUsuarioOpen(false);
     setUsuarioEditando(null);
@@ -320,6 +330,22 @@ export const PantallaConfiguracion: React.FC<PantallaConfiguracionProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-[#636E72] mt-1">{usuario.email}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold uppercase text-[#B2BEC3]">Contraseña:</span>
+                        <code className="text-xs font-mono text-[#2D3436] bg-[#F1F3F5] px-1.5 py-0.5 rounded border border-[#E0E0E0]">
+                          {passwordsVisibles[usuario.id] ? (usuario.password || '—') : '••••••••'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPasswordsVisibles((prev) => ({ ...prev, [usuario.id]: !prev[usuario.id] }))
+                          }
+                          className="p-1 text-[#636E72] hover:text-[#2D3436] rounded transition-colors"
+                          title={passwordsVisibles[usuario.id] ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        >
+                          {passwordsVisibles[usuario.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       <button

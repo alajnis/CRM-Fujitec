@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Usuario } from '../types';
+
+const generarPassword = (): string => {
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
 
 interface ModalUsuarioProps {
   isOpen: boolean;
@@ -19,9 +24,11 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
     nombre: '',
     email: '',
     rol: 'usuario' as 'usuario' | 'superusuario',
-    activo: true
+    activo: true,
+    password: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   useEffect(() => {
     if (usuario) {
@@ -29,17 +36,20 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
-        activo: usuario.activo
+        activo: usuario.activo,
+        password: usuario.password || ''
       });
     } else {
       setFormData({
         nombre: '',
         email: '',
         rol: 'usuario',
-        activo: true
+        activo: true,
+        password: generarPassword()
       });
     }
     setErrors({});
+    setMostrarPassword(false);
   }, [usuario, isOpen]);
 
   const validateForm = (): boolean => {
@@ -53,6 +63,12 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
       newErrors.email = 'El email es requerido';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Email inválido';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Mínimo 6 caracteres';
     }
 
     setErrors(newErrors);
@@ -133,6 +149,58 @@ export const ModalUsuario: React.FC<ModalUsuarioProps> = ({
               placeholder="Ej: juan@fujitec.com"
             />
             {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
+          </div>
+
+          {/* Contraseña */}
+          <div>
+            <label className="block text-xs font-bold text-[#2D3436] mb-2">
+              Contraseña de acceso
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (errors.password) setErrors({ ...errors, password: '' });
+                  }}
+                  className={`w-full px-4 py-2.5 pr-11 rounded-xl border font-mono text-sm focus:outline-none transition-colors ${
+                    errors.password
+                      ? 'border-red-500 bg-red-50 focus:border-red-600'
+                      : 'border-[#E0E0E0] bg-[#F1F3F5] focus:border-[#C8102E]'
+                  }`}
+                  placeholder="Contraseña del usuario"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword(!mostrarPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[#636E72] hover:text-[#2D3436] rounded-lg hover:bg-[#E0E0E0] transition-colors"
+                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {mostrarPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({ ...formData, password: generarPassword() });
+                  setMostrarPassword(true);
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                }}
+                className="px-3 rounded-xl border border-[#E0E0E0] bg-[#F1F3F5] hover:bg-[#E0E0E0] text-[#2D3436] transition-colors"
+                title="Generar contraseña"
+              >
+                <RefreshCw size={16} />
+              </button>
+            </div>
+            {errors.password ? (
+              <p className="text-xs text-red-600 mt-1">{errors.password}</p>
+            ) : (
+              <p className="text-xs text-[#636E72] mt-1.5">
+                El usuario ingresa al sistema con su email y esta contraseña.
+              </p>
+            )}
           </div>
 
           {/* Rol */}

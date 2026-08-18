@@ -136,7 +136,11 @@ export interface Usuario {
   nombre: string;
   rol: UserRole;
   activo: boolean;
-  passwordHash?: string; // No enviar en frontend
+  /**
+   * Contraseña de acceso. El admin la define al crear el usuario y puede
+   * verla/cambiarla desde Configuración → Usuarios.
+   */
+  password?: string;
 }
 
 export interface EtapaLog {

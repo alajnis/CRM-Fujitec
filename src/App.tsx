@@ -72,7 +72,7 @@ import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
 import { obrasService, clientesService, equiposService, actividadesService } from './services';
 import { configuracionService } from './services/configuracionService';
-import { seedActividades } from './utils/seedActividades';
+import { seedActividades, seedActividadesParaObra } from './utils/seedActividades';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -206,19 +206,17 @@ function AppContent() {
     }
   }, []);
 
-  // Update state when Supabase data is loaded
+  // Update state when Supabase data is loaded.
+  // Importante: NO se reasigna usuarioAsignado acá. Antes se pisaba con el
+  // usuario logueado, lo que hacía que todos vieran todas las obras en
+  // "Mis obras asignadas". El responsable vive en la obra, no en la sesión.
   useEffect(() => {
     if (!isLoading && obrasFromSupabase.length > 0) {
-      // Auto-assign all obras to admin
-      const obrasWithAdmin = obrasFromSupabase.map(o => ({
-        ...o,
-        usuarioAsignado: usuarioActual?.id || o.usuarioAsignado
-      }));
-      setObras(obrasWithAdmin);
+      setObras(obrasFromSupabase);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
     }
-  }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading, usuarioActual?.id]);
+  }, [obrasFromSupabase, clientesFromSupabase, equiposFromSupabase, isLoading]);
   const [proximoCodigoObra, setProximoCodigoObra] = useState<string>('A-5300');
   const [budgetConfigs, setBudgetConfigs] = useState<any[]>([
     {
@@ -263,13 +261,33 @@ function AppContent() {
   };
 
   const handleSaveObra = (savedObra: Obra) => {
-    const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
+    // An obra is "existing" only when its id is a real Supabase UUID. New obras
+    // arrive with a placeholder id like `obr-1699...`, which must not be sent to
+    // updateObra (that silently matches zero rows and the obra is lost on reload).
+    const esExistente = !!savedObra.id && supabaseAdapter.isValidUUID(savedObra.id);
 
-    if (savedObra.id && savedObra.id.length > 0) {
+    if (esExistente) {
+      const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
       obrasService.updateObra(savedObra.id, supabaseData as any)
         .catch(err => console.error('Error updating obra:', err));
     } else {
+      // Assign a real UUID up-front so activities can reference the obra
+      const nuevoId = crypto.randomUUID();
+      savedObra = { ...savedObra, id: nuevoId };
+      const supabaseData = { ...supabaseAdapter.toSupabaseObra(savedObra), id: nuevoId };
+
       obrasService.createObra(supabaseData as any)
+        .then(() => seedActividadesParaObra(nuevoId))
+        .then((actividadesCreadas) => {
+          // Reflect the seeded activities locally so the checkboxes show up
+          // without waiting for a reload.
+          const actividadesApp = actividadesCreadas.map((a: any) =>
+            supabaseAdapter.toAppActividadPorEtapa(a)
+          );
+          setObras((prev) =>
+            prev.map((o) => (o.id === nuevoId ? { ...o, actividadesPorEtapa: actividadesApp } : o))
+          );
+        })
         .catch(err => console.error('Error creating obra:', err));
     }
 
@@ -371,6 +389,13 @@ function AppContent() {
       }
       return [clienteWithId, ...prev];
     });
+  };
+
+  const handleDeleteCliente = (clienteId: string) => {
+    clientesService.softDeleteCliente(clienteId)
+      .catch(err => console.error('Error deleting cliente in Supabase:', err));
+
+    setClientes((prev) => prev.filter((c) => c.id !== clienteId));
   };
 
   const handleSaveCartaOferta = (nuevaCarta: CartaOferta) => {
@@ -579,38 +604,34 @@ function AppContent() {
     setIsConfiguracionOpen(false);
   };
 
-  // TESTING: Assign all obras to admin (call once on demand)
-  const assignAllObrasyToAdmin = async () => {
-    const ADMIN_ID = 'user-1';
-    console.log('🔄 Assigning all obras to admin...');
-
-    // Update local state immediately
-    setObras(prev => prev.map(o => ({ ...o, usuarioAsignado: ADMIN_ID })));
-
-    console.log(`✅ Assigned ${obras.length} obras to admin in React`);
-  };
-
   const handleSaveEquipo = (equipo: Equipo) => {
     // Find the obra this equipment belongs to
     const obraAsociada = obras.find(o => o.equipoIds?.includes(equipo.id));
     const obraId = obraAsociada?.id || '';
 
-    // Save to Supabase
-    const supabaseData = supabaseAdapter.toSupabaseEquipo(equipo, obraId);
-    if (equipo.id && equipo.id.length > 0) {
+    // Igual que en obras: sólo es "existente" si el id ya es un UUID de Supabase.
+    // Un equipo nuevo trae un id local y debe crearse, no actualizarse.
+    const esExistente = !!equipo.id && supabaseAdapter.isValidUUID(equipo.id);
+    let equipoFinal = equipo;
+
+    if (esExistente) {
+      const supabaseData = supabaseAdapter.toSupabaseEquipo(equipo, obraId);
       equiposService.updateEquipo(equipo.id, supabaseData as any)
         .catch(err => console.error('Error updating equipo in Supabase:', err));
     } else {
+      const nuevoId = crypto.randomUUID();
+      equipoFinal = { ...equipo, id: nuevoId };
+      const supabaseData = { ...supabaseAdapter.toSupabaseEquipo(equipoFinal, obraId), id: nuevoId };
       equiposService.createEquipo(supabaseData as any)
         .catch(err => console.error('Error creating equipo in Supabase:', err));
     }
 
     setEquipos((prev) => {
-      const exists = prev.some((e) => e.id === equipo.id);
+      const exists = prev.some((e) => e.id === equipoFinal.id);
       if (exists) {
-        return prev.map((e) => (e.id === equipo.id ? equipo : e));
+        return prev.map((e) => (e.id === equipoFinal.id ? equipoFinal : e));
       } else {
-        return [...prev, equipo];
+        return [...prev, equipoFinal];
       }
     });
   };
@@ -721,6 +742,8 @@ function AppContent() {
               searchQuery={searchQuery}
               onSelectObraForOffer={handleGenerarOferta}
               onSaveCliente={handleSaveCliente}
+              onDeleteCliente={handleDeleteCliente}
+              onSaveObra={handleSaveObra}
               onOpenEditCliente={handleEditCliente}
               onOpenEditClienteContacts={handleEditClienteContacts}
               onOpenViewActividades={(obra) => {
@@ -813,7 +836,6 @@ function AppContent() {
         onClose={() => setIsConfiguracionOpen(false)}
         onSaveDiasConfig={handleSaveDiasConfig}
         onSaveBudgetConfig={handleSaveBudgetConfig}
-        onAssignAllToAdmin={assignAllObrasyToAdmin}
       />
     </div>
   );

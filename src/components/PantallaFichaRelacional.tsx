@@ -29,6 +29,8 @@ interface PantallaFichaRelacionalProps {
   searchQuery?: string;
   onSelectObraForOffer: (obra: Obra) => void;
   onSaveCliente: (cliente: Cliente) => void;
+  onDeleteCliente?: (clienteId: string) => void;
+  onSaveObra?: (obra: Obra) => void;
   onOpenEditClienteContacts?: (cliente: Cliente) => void;
   onOpenEditCliente?: (cliente: Cliente) => void;
   onOpenViewActividades?: (obra: Obra) => void;
@@ -43,6 +45,8 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
   searchQuery: globalSearchQuery = '',
   onSelectObraForOffer,
   onSaveCliente,
+  onDeleteCliente,
+  onSaveObra,
   onOpenEditClienteContacts,
   onOpenEditCliente,
   onOpenViewActividades,
@@ -712,10 +716,12 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
           obras={obras}
           clientes={clientes}
           onAsignarObras={(clienteId, obraIds) => {
+            // Reasignar una obra es guardar la OBRA con el nuevo clienteId
+            // (antes se llamaba a onSaveCliente con una obra, y no persistía nada).
             obraIds.forEach(obraId => {
               const obra = obras.find(o => o.id === obraId);
-              if (obra) {
-                onSaveCliente({...obra, clienteId} as any);
+              if (obra && onSaveObra) {
+                onSaveObra({ ...obra, clienteId });
               }
             });
             setIsAsignarObrasModalOpen(false);
@@ -731,8 +737,11 @@ export const PantallaFichaRelacional: React.FC<PantallaFichaRelacionalProps> = (
           setIsDeleteConfirmOpen(false);
         }}
         onConfirm={() => {
-          if (clienteToDelete) {
-            console.log('Soft delete cliente:', clienteToDelete.id);
+          if (clienteToDelete && onDeleteCliente) {
+            onDeleteCliente(clienteToDelete.id);
+            // Mover la selección a otro cliente para no quedar en una ficha vacía
+            const siguiente = clientes.find((c) => c.id !== clienteToDelete.id);
+            setSelectedClienteId(siguiente?.id || '');
           }
           setClienteToDelete(null);
           setIsDeleteConfirmOpen(false);

@@ -5,6 +5,7 @@ export interface User {
   role: 'admin' | 'vendedor' | 'vendor' | 'supervisor' | 'cliente';
   status: string;
   phone?: string;
+  password?: string;
   created_at: string;
   updated_at: string;
 }

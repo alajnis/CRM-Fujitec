@@ -125,6 +125,21 @@ export const supabaseAdapter = {
 
   // Convert Supabase Cliente to App Cliente
   toAppCliente(supabaseCliente: SupabaseCliente): Cliente {
+    // contactos es JSONB: puede llegar como array ya parseado o como string
+    let contactos: any[] = [];
+    const contactosData = (supabaseCliente as any).contactos;
+    if (contactosData) {
+      try {
+        if (typeof contactosData === 'string') {
+          contactos = JSON.parse(contactosData);
+        } else if (Array.isArray(contactosData)) {
+          contactos = contactosData;
+        }
+      } catch (e) {
+        console.error('Error parsing contactos:', e);
+      }
+    }
+
     return {
       id: supabaseCliente.id,
       razonSocial: supabaseCliente.nombre,
@@ -134,7 +149,8 @@ export const supabaseAdapter = {
       telefono: supabaseCliente.telefono || '',
       direccion: supabaseCliente.direccion || '',
       region: supabaseCliente.provincia === 'Argentina' ? 'Argentina' : 'Uruguay',
-      cuitRut: ''
+      cuitRut: (supabaseCliente as any).cuit_rut || '',
+      contactos
     };
   },
 
@@ -147,6 +163,8 @@ export const supabaseAdapter = {
       email: appCliente.email || '',
       telefono: appCliente.telefono || '',
       direccion: appCliente.direccion || '',
+      cuit_rut: appCliente.cuitRut || '',
+      contactos: appCliente.contactos || [],
       ciudad: '',
       provincia: appCliente.region || 'Uruguay',
       pais: 'Argentina',
@@ -190,8 +208,7 @@ export const supabaseAdapter = {
 
   // Convert App Equipo to Supabase Equipo
   toSupabaseEquipo(appEquipo: Equipo, obraId: string) {
-    return {
-      obra_id: obraId,
+    const data: any = {
       tipo: appEquipo.tipo,
       modelo: appEquipo.modelo,
       serial: appEquipo.codigoUnico,
@@ -200,6 +217,11 @@ export const supabaseAdapter = {
       puertas: appEquipo.paradas,
       notas: appEquipo.observaciones
     };
+
+    // obra_id is a UUID column: send a valid UUID or explicit null, never ''
+    data.obra_id = obraId && this.isValidUUID(obraId) ? obraId : null;
+
+    return data;
   },
 
   // Convert Supabase Actividad to App ActividadPorEtapa

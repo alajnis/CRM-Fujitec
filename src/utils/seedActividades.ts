@@ -65,6 +65,43 @@ const mapEtapaToSupabaseEtapa = (etapa: FunnelStage): string => {
   return mapping[etapa] || 'prospeccion';
 };
 
+/**
+ * Crea el set completo de actividades por etapa para una obra recién creada.
+ * Devuelve las actividades insertadas para que el caller pueda reflejarlas en
+ * el estado local sin esperar a la próxima recarga.
+ */
+export const seedActividadesParaObra = async (obraId: string) => {
+  const stages: FunnelStage[] = ['Solicitud', 'En estudio de proyecto', 'Estimado', 'Cotización', 'Contratadas', 'Finalizadas', 'Rechazadas'];
+  const activitiesToInsert: any[] = [];
+
+  for (const stage of stages) {
+    const supabaseEtapa = mapEtapaToSupabaseEtapa(stage);
+    for (const texto of actividadTextos[stage]) {
+      activitiesToInsert.push({
+        id: crypto.randomUUID(),
+        obra_id: obraId,
+        descripcion: texto,
+        estado: 'pendiente',
+        tipo: supabaseEtapa,
+        fecha_creacion: new Date().toISOString(),
+        usuario_creador: null
+      });
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('actividades')
+    .insert(activitiesToInsert)
+    .select();
+
+  if (error) {
+    console.error(`❌ Error creating activities for obra ${obraId}:`, error);
+    throw error;
+  }
+
+  return data || [];
+};
+
 export const seedActividades = async () => {
   try {
     console.log('🌱 Starting activities seed...');
