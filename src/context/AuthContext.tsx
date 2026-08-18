@@ -19,14 +19,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mapeo entre el rol de la app y el rol que guarda Supabase
 const rolAppToSupabase = (rol: string) => (rol === 'superusuario' ? 'admin' : 'vendedor');
-const rolSupabaseToApp = (role: string) => (role === 'admin' ? 'superusuario' : 'usuario');
+const rolSupabaseToApp = (role: string) =>
+  ['admin', 'superadmin', 'superusuario'].includes(role) ? 'superusuario' : 'usuario';
+
+/**
+ * Admin de emergencia: sólo se usa si la tabla `users` todavía no tiene ese
+ * email cargado, para no quedar sin forma de entrar a Configuración y crear
+ * los usuarios. Una vez que el usuario existe en la base, manda la base.
+ */
+const ADMIN_FALLBACK = {
+  id: 'admin-fallback',
+  email: 'superadmin@fujitec.com',
+  password: 'admin123'
+};
 
 const toAppUsuario = (u: SupabaseUser): Usuario => ({
   id: u.id,
   email: u.email,
-  nombre: u.full_name,
+  nombre: u.full_name || u.email,
   rol: rolSupabaseToApp(u.role) as Usuario['rol'],
-  activo: u.status === 'active',
+  // Sólo se considera inactivo si el status lo dice explícitamente;
+  // filas viejas pueden tener status null y no deben quedar bloqueadas.
+  activo: !u.status || u.status === 'active',
   password: u.password || ''
 });
 
@@ -59,16 +73,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const user = await usersService.getUserByEmail(email);
-      if (!user || user.password !== password || user.status !== 'active') {
+
+      if (!user) {
+        console.warn('🔐 Login: no existe un usuario con el email', email);
+        // Fallback: si la tabla users todavía no está poblada, el admin igual
+        // tiene que poder entrar para cargarla desde Configuración.
+        if (email.trim().toLowerCase() === ADMIN_FALLBACK.email && password === ADMIN_FALLBACK.password) {
+          console.warn('🔐 Entrando con el admin de emergencia (users está vacía)');
+          const usuario: Usuario = {
+            id: ADMIN_FALLBACK.id,
+            email: ADMIN_FALLBACK.email,
+            nombre: 'Admin Fujitec',
+            rol: 'superusuario',
+            activo: true,
+            password: ADMIN_FALLBACK.password
+          };
+          setUsuarioActual(usuario);
+          localStorage.setItem('usuarioActual', JSON.stringify(usuario));
+          return true;
+        }
+        return false;
+      }
+      if (user.password !== password) {
+        console.warn('🔐 Login: contraseña incorrecta para', email);
+        return false;
+      }
+      // status puede venir null en filas viejas: sólo bloqueamos si dice inactivo
+      if (user.status && user.status !== 'active') {
+        console.warn('🔐 Login: usuario inactivo (status =', user.status, ')');
         return false;
       }
 
       const usuario = toAppUsuario(user);
       setUsuarioActual(usuario);
       localStorage.setItem('usuarioActual', JSON.stringify(usuario));
+      await cargarUsuarios();
       return true;
     } catch (e) {
-      console.error('Error en login:', e);
+      console.error('🔐 Error en login:', e);
       return false;
     }
   };

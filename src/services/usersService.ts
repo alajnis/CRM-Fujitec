@@ -23,15 +23,25 @@ export const usersService = {
     return data as User;
   },
 
+  /**
+   * Busca un usuario por email. Devuelve null si no existe en vez de tirar:
+   * `.single()` falla tanto con 0 filas como con más de 1 (email duplicado),
+   * y en el login necesitamos distinguir "no está" de "error de conexión".
+   * El email se compara sin distinguir mayúsculas ni espacios al borde.
+   */
   async getUserByEmail(email: string) {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
-      .single();
+      .ilike('email', email.trim());
 
-    if (error) throw error;
-    return data as User;
+    if (error) {
+      console.error('❌ Error consultando users por email:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) return null;
+    return data[0] as User;
   },
 
   async getUsersByRole(role: string) {
