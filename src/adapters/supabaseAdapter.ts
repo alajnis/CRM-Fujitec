@@ -96,7 +96,10 @@ export const supabaseAdapter = {
       provincia: appObra.region,
       presupuesto: appObra.montoUSD,
       etapa_actual: mapFunnelStageToEtapa(appObra.estado),
-      notas: appObra.observaciones
+      notas: appObra.observaciones,
+      // `estado` es NOT NULL en la tabla y no lo maneja la app (usa
+      // etapa_actual para el funnel), así que va siempre con un valor fijo.
+      estado: 'activa'
     };
 
     // Only include codigo if it exists
@@ -215,10 +218,14 @@ export const supabaseAdapter = {
       velocidad: `${appEquipo.velocidadMS} m/s`,
       capacidad: `${appEquipo.capacidadKg} kg`,
       puertas: appEquipo.paradas,
-      notas: appEquipo.observaciones
+      notas: appEquipo.observaciones,
+      // La tabla tiene estos campos como NOT NULL sin default, así que se
+      // mandan siempre con un valor por defecto.
+      estado: 'activo',
+      estado_instalacion: 'pendiente'
     };
 
-    // obra_id is a UUID column: send a valid UUID or explicit null, never ''
+    // obra_id es UUID: mandamos un UUID válido o null, nunca ''
     data.obra_id = obraId && this.isValidUUID(obraId) ? obraId : null;
 
     return data;

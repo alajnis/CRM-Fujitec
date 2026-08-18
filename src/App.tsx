@@ -73,6 +73,8 @@ import { supabaseAdapter } from './adapters/supabaseAdapter';
 import { obrasService, clientesService, equiposService, actividadesService } from './services';
 import { configuracionService } from './services/configuracionService';
 import { seedActividades, seedActividadesParaObra } from './utils/seedActividades';
+import { reportarErrorGuardado } from './utils/errorGuardado';
+import { BannerErrorGuardado } from './components/BannerErrorGuardado';
 
 const distributeValue = (total: number) => {
   const baseAmount = Math.floor(total / 12);
@@ -269,7 +271,7 @@ function AppContent() {
     if (esExistente) {
       const supabaseData = supabaseAdapter.toSupabaseObra(savedObra);
       obrasService.updateObra(savedObra.id, supabaseData as any)
-        .catch(err => console.error('Error updating obra:', err));
+        .catch(err => reportarErrorGuardado('la obra', 'actualizar', err));
     } else {
       // Assign a real UUID up-front so activities can reference the obra
       const nuevoId = crypto.randomUUID();
@@ -288,7 +290,7 @@ function AppContent() {
             prev.map((o) => (o.id === nuevoId ? { ...o, actividadesPorEtapa: actividadesApp } : o))
           );
         })
-        .catch(err => console.error('Error creating obra:', err));
+        .catch(err => reportarErrorGuardado('la obra', 'crear', err));
     }
 
     // Update local state
@@ -332,7 +334,7 @@ function AppContent() {
           // Save to Supabase asynchronously
           const supabaseData = supabaseAdapter.toSupabaseObra(updatedObra);
           obrasService.updateObra(obraId, supabaseData as any)
-            .catch(err => console.error('Error updating obra state in Supabase:', err));
+            .catch(err => reportarErrorGuardado('el estado de la obra', 'actualizar', err));
 
           return updatedObra;
         }
@@ -393,7 +395,7 @@ function AppContent() {
 
   const handleDeleteCliente = (clienteId: string) => {
     clientesService.softDeleteCliente(clienteId)
-      .catch(err => console.error('Error deleting cliente in Supabase:', err));
+      .catch(err => reportarErrorGuardado('el cliente', 'eliminar', err));
 
     setClientes((prev) => prev.filter((c) => c.id !== clienteId));
   };
@@ -465,7 +467,7 @@ function AppContent() {
           // Save to Supabase asynchronously
           const supabaseData = supabaseAdapter.toSupabaseActividad(newActividad, obraId);
           actividadesService.createActividad(supabaseData as any)
-            .catch(err => console.error('Error creating actividad in Supabase:', err));
+            .catch(err => reportarErrorGuardado('la actividad', 'crear', err));
 
           return {
             ...o,
@@ -508,13 +510,13 @@ function AppContent() {
           if (actividadActualizada) {
             const supabaseData = supabaseAdapter.toSupabaseActividad(actividadActualizada, obraId);
             actividadesService.updateActividad(actividadId, supabaseData as any)
-              .catch(err => console.error('Error updating actividad in Supabase:', err));
+              .catch(err => reportarErrorGuardado('la actividad', 'actualizar', err));
           }
 
           // Save obra (with updated historialLog from logActividadCompletada) to Supabase
           const supabaseObraData = supabaseAdapter.toSupabaseObra(updatedObra);
           obrasService.updateObra(obraId, supabaseObraData as any)
-            .catch(err => console.error('Error updating obra historialLog in Supabase:', err));
+            .catch(err => reportarErrorGuardado('el historial de la obra', 'actualizar', err));
 
           // Update editingObra if it's open so modal sees the new historialLog
           if (editingObra && editingObra.id === obraId) {
@@ -546,7 +548,7 @@ function AppContent() {
             // Save equipo to Supabase with obra_id
             const supabaseEquipoData = supabaseAdapter.toSupabaseEquipo(eq, obraId);
             equiposService.updateEquipo(id, supabaseEquipoData as any)
-              .catch(err => console.error('Error assigning equipo to obra in Supabase:', err));
+              .catch(err => reportarErrorGuardado('la asignación del equipo', 'actualizar', err));
           }
         });
         quitados.forEach((id) => {
@@ -556,14 +558,14 @@ function AppContent() {
             // Remove equipo from obra in Supabase
             const supabaseEquipoData = supabaseAdapter.toSupabaseEquipo(eq, '');
             equiposService.updateEquipo(id, supabaseEquipoData as any)
-              .catch(err => console.error('Error removing equipo from obra in Supabase:', err));
+              .catch(err => reportarErrorGuardado('la baja del equipo', 'actualizar', err));
           }
         });
 
         // Also update the obra's log in Supabase
         const supabaseData = supabaseAdapter.toSupabaseObra(obraLogged);
         obrasService.updateObra(obraId, supabaseData as any)
-          .catch(err => console.error('Error updating obra in Supabase:', err));
+          .catch(err => reportarErrorGuardado('la obra', 'actualizar', err));
 
         return obraLogged;
       })
@@ -617,13 +619,13 @@ function AppContent() {
     if (esExistente) {
       const supabaseData = supabaseAdapter.toSupabaseEquipo(equipo, obraId);
       equiposService.updateEquipo(equipo.id, supabaseData as any)
-        .catch(err => console.error('Error updating equipo in Supabase:', err));
+        .catch(err => reportarErrorGuardado('el equipo', 'actualizar', err));
     } else {
       const nuevoId = crypto.randomUUID();
       equipoFinal = { ...equipo, id: nuevoId };
       const supabaseData = { ...supabaseAdapter.toSupabaseEquipo(equipoFinal, obraId), id: nuevoId };
       equiposService.createEquipo(supabaseData as any)
-        .catch(err => console.error('Error creating equipo in Supabase:', err));
+        .catch(err => reportarErrorGuardado('el equipo', 'crear', err));
     }
 
     setEquipos((prev) => {
@@ -639,7 +641,7 @@ function AppContent() {
   const handleDeleteEquipo = (equipoId: string) => {
     // Soft delete to Supabase
     equiposService.softDeleteEquipo(equipoId)
-      .catch(err => console.error('Error deleting equipo in Supabase:', err));
+      .catch(err => reportarErrorGuardado('el equipo', 'eliminar', err));
 
     setEquipos((prev) => prev.filter((e) => e.id !== equipoId));
   };
@@ -820,7 +822,7 @@ function AppContent() {
             // Save to Supabase
             const supabaseData = supabaseAdapter.toSupabaseCliente(updatedCliente);
             clientesService.updateCliente(updatedCliente.id, supabaseData as any)
-              .catch(err => console.error('Error updating cliente in Supabase:', err));
+              .catch(err => reportarErrorGuardado('el cliente', 'actualizar', err));
 
             setClientes((prev) =>
               prev.map((c) => (c.id === updatedCliente.id ? updatedCliente : c))
@@ -837,6 +839,9 @@ function AppContent() {
         onSaveDiasConfig={handleSaveDiasConfig}
         onSaveBudgetConfig={handleSaveBudgetConfig}
       />
+
+      {/* Avisa cuando un guardado falla, para que no pase inadvertido */}
+      <BannerErrorGuardado />
     </div>
   );
 }

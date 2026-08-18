@@ -8,8 +8,14 @@ Ejecutar en el **SQL Editor de Supabase**, en este orden.
 |---|--------|----------|
 | 1 | `03-crear-tabla-users.sql` | Crea `public.users` y los usuarios base. **Necesario para que funcione el login.** |
 | 2 | `fix-schema-completo.sql` | Columnas faltantes en clientes/obras/equipos, RLS e índices. |
+| 3 | `04-fix-constraints.sql` | Afloja los NOT NULL que bloquean los inserts (equipos sin obra, etc.). |
 
-Ambos son idempotentes: se pueden correr más de una vez sin romper nada.
+Los tres son idempotentes: se pueden correr más de una vez sin romper nada.
+
+Al final de `04` hay dos queries de verificación. La segunda lista las columnas
+`NOT NULL` sin default que quedan: **todo lo que aparezca ahí la app tiene que
+mandarlo sí o sí en cada insert**. Si aparece algo inesperado, hay que agregarlo
+al adapter en `src/adapters/supabaseAdapter.ts`.
 
 ## Credenciales base
 
