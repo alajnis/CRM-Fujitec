@@ -1,5 +1,14 @@
 import { Obra, Cliente, Equipo, FunnelStage, ActividadPorEtapa } from '../types';
 import type { Obra as SupabaseObra, Cliente as SupabaseCliente, Equipo as SupabaseEquipo } from '../types/supabase';
+import { SIN_OBRA_TAG } from '../services/equiposService';
+
+/**
+ * Un equipo marcado así no está realmente asignado a la obra que dice su
+ * `obra_id`: la columna es NOT NULL, así que un equipo del catálogo sin obra
+ * igual necesita apuntar a alguna.
+ */
+const esEquipoSinObra = (equipo: any): boolean =>
+  typeof equipo?.notas === 'string' && equipo.notas.includes(SIN_OBRA_TAG);
 
 // Map Supabase etapa_actual to app FunnelStage
 const mapEtapaToFunnelStage = (etapa: string | undefined): FunnelStage => {
@@ -47,9 +56,11 @@ export const supabaseAdapter = {
       .filter(a => a.obra_id === supabaseObra.id && !a.deleted_at)
       .map(a => this.toAppActividadPorEtapa(a));
 
-    // Build equipoIds from equipos that have this obra_id
+    // Build equipoIds from equipos that have this obra_id.
+    // Se excluyen los marcados como sin obra: su obra_id es relleno para
+    // satisfacer el NOT NULL de la columna, no una asignación real.
     const equipoIds = equipos
-      .filter(e => e.obra_id === supabaseObra.id && !e.deleted_at)
+      .filter(e => e.obra_id === supabaseObra.id && !e.deleted_at && !esEquipoSinObra(e))
       .map(e => e.id);
 
     // Get historialLog from JSONB column
@@ -204,7 +215,8 @@ export const supabaseAdapter = {
       velocidadMS,
       capacidadKg,
       paradas: supabaseEquipo.puertas || 0,
-      observaciones: supabaseEquipo.notas || '',
+      // La marca interna de "sin obra" no se le muestra al usuario
+      observaciones: (supabaseEquipo.notas || '').replace(SIN_OBRA_TAG, '').trim(),
       isDeleted: !!supabaseEquipo.deleted_at
     };
   },

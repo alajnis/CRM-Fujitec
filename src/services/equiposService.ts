@@ -4,6 +4,12 @@ import { Equipo } from '../types/supabase';
 /** Obra técnica que agrupa los equipos del catálogo todavía sin obra real. */
 const OBRA_CONTENEDORA = '__EQUIPOS_SIN_OBRA__';
 
+/**
+ * Marca en `notas` que el equipo no tiene obra real: su `obra_id` sólo existe
+ * porque la columna es NOT NULL. La UI usa esto para no mostrarlo asignado.
+ */
+export const SIN_OBRA_TAG = '[[sin-obra]]';
+
 export const equiposService = {
   async getEquipos() {
     const { data, error } = await supabase
@@ -56,19 +62,18 @@ export const equiposService = {
   },
 
   /**
-   * Crea un equipo. Si viene sin obra, lo cuelga de una obra contenedora
-   * interna: la columna `equipos.obra_id` es NOT NULL en la base y un equipo
-   * del catálogo tiene que poder existir antes de asignarse a una obra.
-   *
-   * La obra contenedora nace con `deleted_at`, así que queda fuera del funnel,
-   * de los listados y de los totales. Al asignar el equipo a una obra real,
-   * `obra_id` se sobrescribe y el vínculo con el contenedor desaparece.
+   * Crea un equipo. La columna `equipos.obra_id` es NOT NULL, pero un equipo
+   * del catálogo tiene que poder existir antes de asignarse a una obra, así
+   * que en ese caso apunta a una obra contenedora y se marca con SIN_OBRA_TAG.
+   * El adapter usa esa marca para no mostrarlo como asignado en ninguna vista.
    */
   async createEquipo(equipo: Omit<Equipo, 'id' | 'created_at' | 'updated_at'>) {
-    let payload: any = { ...equipo };
+    const payload: any = { ...equipo };
 
     if (!payload.obra_id) {
       payload.obra_id = await this.obtenerObraContenedora();
+      // Dejamos constancia de que ese obra_id es sólo relleno
+      payload.notas = `${payload.notas || ''} ${SIN_OBRA_TAG}`.trim();
     }
 
     const { data, error } = await supabase
@@ -82,55 +87,97 @@ export const equiposService = {
   },
 
   /**
-   * Id de la obra contenedora de equipos sin asignar, creándola si hace falta.
-   * Se cachea en memoria porque se consulta en cada alta de equipo.
+   * Id de la obra contenedora de equipos sin asignar.
+   *
+   * Primero busca la obra técnica; si no está, intenta crearla reutilizando el
+   * cliente de una obra existente (obras.cliente_id también es NOT NULL). Si
+   * tampoco puede crearla, cae a cualquier obra ya borrada, y como último
+   * recurso a la más antigua: lo importante es tener un obra_id válido, porque
+   * un equipo sin ancla directamente no se puede guardar.
    */
   _obraContenedoraId: null as string | null,
 
   async obtenerObraContenedora(): Promise<string | null> {
     if (this._obraContenedoraId) return this._obraContenedoraId;
 
-    const { data } = await supabase
+    const { data: existente } = await supabase
       .from('obras')
       .select('id')
       .eq('nombre', OBRA_CONTENEDORA)
       .limit(1);
 
-    if (data && data.length > 0) {
-      this._obraContenedoraId = data[0].id;
+    if (existente && existente.length > 0) {
+      this._obraContenedoraId = existente[0].id;
       return this._obraContenedoraId;
     }
 
-    const { data: creada, error } = await supabase
+    // Necesitamos un cliente_id válido: tomamos el de cualquier obra existente
+    const { data: obraModelo } = await supabase
       .from('obras')
-      .insert([{
-        id: crypto.randomUUID(),
-        nombre: OBRA_CONTENEDORA,
-        descripcion: 'Registro interno: agrupa los equipos que aún no tienen obra asignada.',
-        etapa_actual: 'prospeccion',
-        estado: 'activa',
-        // Nace marcada como borrada para quedar fuera de toda vista de negocio
-        deleted_at: new Date().toISOString()
-      }])
-      .select('id')
-      .single();
+      .select('cliente_id')
+      .not('cliente_id', 'is', null)
+      .limit(1);
 
-    if (error) {
-      console.error('No se pudo crear la obra contenedora de equipos:', error);
-      return null;
+    const clienteId = obraModelo?.[0]?.cliente_id;
+
+    if (clienteId) {
+      const { data: creada, error } = await supabase
+        .from('obras')
+        .insert([{
+          id: crypto.randomUUID(),
+          nombre: OBRA_CONTENEDORA,
+          cliente_id: clienteId,
+          descripcion: 'Registro interno: agrupa los equipos que aún no tienen obra asignada.',
+          etapa_actual: 'prospeccion',
+          estado: 'activa',
+          // Nace marcada como borrada para quedar fuera de toda vista de negocio
+          deleted_at: new Date().toISOString()
+        }])
+        .select('id')
+        .single();
+
+      if (!error && creada) {
+        this._obraContenedoraId = creada.id;
+        return this._obraContenedoraId;
+      }
+      console.warn('No se pudo crear la obra contenedora, se usa una existente:', error);
     }
 
-    this._obraContenedoraId = creada.id;
+    // Fallback: una obra ya borrada, o la más antigua que haya
+    const { data: borrada } = await supabase
+      .from('obras')
+      .select('id')
+      .not('deleted_at', 'is', null)
+      .limit(1);
+
+    if (borrada && borrada.length > 0) {
+      this._obraContenedoraId = borrada[0].id;
+      return this._obraContenedoraId;
+    }
+
+    const { data: cualquiera } = await supabase
+      .from('obras')
+      .select('id')
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    this._obraContenedoraId = cualquiera?.[0]?.id ?? null;
     return this._obraContenedoraId;
   },
 
   async updateEquipo(id: string, updates: Partial<Equipo>) {
     const payload: any = { ...updates, updated_at: new Date().toISOString() };
 
-    // Desasignar de una obra no puede dejar obra_id en null (la columna es
-    // NOT NULL): el equipo vuelve a la obra contenedora del catálogo.
-    if ('obra_id' in payload && !payload.obra_id) {
-      payload.obra_id = await this.obtenerObraContenedora();
+    if ('obra_id' in payload) {
+      if (!payload.obra_id) {
+        // Desasignar no puede dejar obra_id en null (la columna es NOT NULL):
+        // el equipo vuelve al contenedor y queda marcado como sin obra.
+        payload.obra_id = await this.obtenerObraContenedora();
+        payload.notas = `${(payload.notas || '').replace(SIN_OBRA_TAG, '').trim()} ${SIN_OBRA_TAG}`.trim();
+      } else {
+        // Se asigna a una obra real: sacamos la marca
+        payload.notas = (payload.notas || '').replace(SIN_OBRA_TAG, '').trim();
+      }
     }
 
     const { data, error } = await supabase
