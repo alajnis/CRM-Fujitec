@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabaseClient';
 import { Obra, Cliente, Equipo } from '../types/supabase';
+import { completarCamposHeredados } from '../utils/camposHeredados';
 
 export const obrasService = {
   async getObras() {
@@ -61,9 +62,13 @@ export const obrasService = {
   },
 
   async createObra(obra: Omit<Obra, 'id' | 'created_at' | 'updated_at'>) {
+    const payload: any = { ...obra };
+    // Completa las columnas NOT NULL heredadas que la app no envía
+    await completarCamposHeredados('obras', payload);
+
     const { data, error } = await supabase
       .from('obras')
-      .insert([obra])
+      .insert([payload])
       .select()
       .single();
 

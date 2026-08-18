@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabaseClient';
 import { Equipo } from '../types/supabase';
+import { completarCamposHeredados } from '../utils/camposHeredados';
 
 /** Obra técnica que agrupa los equipos del catálogo todavía sin obra real. */
 const OBRA_CONTENEDORA = '__EQUIPOS_SIN_OBRA__';
@@ -76,6 +77,11 @@ export const equiposService = {
       payload.notas = `${payload.notas || ''} ${SIN_OBRA_TAG}`.trim();
     }
 
+    // La tabla tiene columnas NOT NULL que la app no maneja (heredadas de un
+    // modelo anterior). En vez de irlas descubriendo de a una por error, se
+    // completan copiando los valores de un equipo que ya exista.
+    await completarCamposHeredados('equipos', payload);
+
     const { data, error } = await supabase
       .from('equipos')
       .insert([payload])
@@ -121,18 +127,21 @@ export const equiposService = {
     const clienteId = obraModelo?.[0]?.cliente_id;
 
     if (clienteId) {
+      const obraContenedora: any = {
+        id: crypto.randomUUID(),
+        nombre: OBRA_CONTENEDORA,
+        cliente_id: clienteId,
+        descripcion: 'Registro interno: agrupa los equipos que aún no tienen obra asignada.',
+        etapa_actual: 'prospeccion',
+        estado: 'activa',
+        // Nace marcada como borrada para quedar fuera de toda vista de negocio
+        deleted_at: new Date().toISOString()
+      };
+      await completarCamposHeredados('obras', obraContenedora);
+
       const { data: creada, error } = await supabase
         .from('obras')
-        .insert([{
-          id: crypto.randomUUID(),
-          nombre: OBRA_CONTENEDORA,
-          cliente_id: clienteId,
-          descripcion: 'Registro interno: agrupa los equipos que aún no tienen obra asignada.',
-          etapa_actual: 'prospeccion',
-          estado: 'activa',
-          // Nace marcada como borrada para quedar fuera de toda vista de negocio
-          deleted_at: new Date().toISOString()
-        }])
+        .insert([obraContenedora])
         .select('id')
         .single();
 

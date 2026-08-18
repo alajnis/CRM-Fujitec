@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabaseClient';
 import { Actividad } from '../types/supabase';
+import { completarCamposHeredados } from '../utils/camposHeredados';
 
 export const actividadesService = {
   async getActividades() {
@@ -50,9 +51,13 @@ export const actividadesService = {
   },
 
   async createActividad(actividad: Omit<Actividad, 'id' | 'created_at' | 'updated_at'>) {
+    const payload: any = { ...actividad };
+    // Completa las columnas NOT NULL heredadas que la app no envía
+    await completarCamposHeredados('actividades', payload);
+
     const { data, error } = await supabase
       .from('actividades')
-      .insert([actividad])
+      .insert([payload])
       .select()
       .single();
 

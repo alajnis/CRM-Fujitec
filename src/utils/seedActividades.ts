@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { FunnelStage } from '../types';
+import { completarCamposHeredados } from './camposHeredados';
 
 const actividadTextos: Record<FunnelStage, string[]> = {
   'Solicitud': [
@@ -87,6 +88,11 @@ export const seedActividadesParaObra = async (obraId: string) => {
         usuario_creador: null
       });
     }
+  }
+
+  // Completar las columnas NOT NULL heredadas en cada actividad
+  for (const actividad of activitiesToInsert) {
+    await completarCamposHeredados('actividades', actividad);
   }
 
   const { data, error } = await supabase
