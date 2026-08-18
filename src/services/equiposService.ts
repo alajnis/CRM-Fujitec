@@ -1,6 +1,9 @@
 import { supabase } from '../utils/supabaseClient';
 import { Equipo } from '../types/supabase';
 
+/** Obra técnica que agrupa los equipos del catálogo todavía sin obra real. */
+const OBRA_CONTENEDORA = '__EQUIPOS_SIN_OBRA__';
+
 export const equiposService = {
   async getEquipos() {
     const { data, error } = await supabase
@@ -52,78 +55,87 @@ export const equiposService = {
     return (data || []) as Equipo[];
   },
 
+  /**
+   * Crea un equipo. Si viene sin obra, lo cuelga de una obra contenedora
+   * interna: la columna `equipos.obra_id` es NOT NULL en la base y un equipo
+   * del catálogo tiene que poder existir antes de asignarse a una obra.
+   *
+   * La obra contenedora nace con `deleted_at`, así que queda fuera del funnel,
+   * de los listados y de los totales. Al asignar el equipo a una obra real,
+   * `obra_id` se sobrescribe y el vínculo con el contenedor desaparece.
+   */
   async createEquipo(equipo: Omit<Equipo, 'id' | 'created_at' | 'updated_at'>) {
+    let payload: any = { ...equipo };
+
+    if (!payload.obra_id) {
+      payload.obra_id = await this.obtenerObraContenedora();
+    }
+
     const { data, error } = await supabase
       .from('equipos')
-      .insert([equipo])
+      .insert([payload])
       .select()
       .single();
 
-    if (!error) return data as Equipo;
-
-    // Si la base todavía exige obra_id (NOT NULL sin aflojar), reintentamos
-    // colgando el equipo de una obra placeholder para no perder la carga.
-    // Lo correcto es correr scripts/04-fix-constraints.sql; esto es la red.
-    const esObraIdRequerida =
-      error.code === '23502' && String(error.message).includes('obra_id');
-
-    if (esObraIdRequerida && !(equipo as any).obra_id) {
-      const obraPlaceholder = await this.obtenerObraPlaceholder();
-      if (obraPlaceholder) {
-        console.warn(
-          '⚠️ equipos.obra_id sigue en NOT NULL: el equipo se asocia a la obra placeholder. ' +
-          'Corré scripts/04-fix-constraints.sql para permitir equipos sin obra.'
-        );
-        const reintento = await supabase
-          .from('equipos')
-          .insert([{ ...equipo, obra_id: obraPlaceholder }])
-          .select()
-          .single();
-
-        if (!reintento.error) return reintento.data as Equipo;
-      }
-    }
-
-    throw error;
+    if (error) throw error;
+    return data as Equipo;
   },
 
   /**
-   * Obra técnica que sirve de contenedor para equipos sin obra real, usada
-   * sólo mientras equipos.obra_id siga siendo NOT NULL en la base.
+   * Id de la obra contenedora de equipos sin asignar, creándola si hace falta.
+   * Se cachea en memoria porque se consulta en cada alta de equipo.
    */
-  async obtenerObraPlaceholder(): Promise<string | null> {
+  _obraContenedoraId: null as string | null,
+
+  async obtenerObraContenedora(): Promise<string | null> {
+    if (this._obraContenedoraId) return this._obraContenedoraId;
+
     const { data } = await supabase
       .from('obras')
       .select('id')
-      .eq('nombre', '__SIN_OBRA__')
+      .eq('nombre', OBRA_CONTENEDORA)
       .limit(1);
 
-    if (data && data.length > 0) return data[0].id;
+    if (data && data.length > 0) {
+      this._obraContenedoraId = data[0].id;
+      return this._obraContenedoraId;
+    }
 
     const { data: creada, error } = await supabase
       .from('obras')
       .insert([{
         id: crypto.randomUUID(),
-        nombre: '__SIN_OBRA__',
-        descripcion: 'Contenedor interno para equipos sin obra asignada',
+        nombre: OBRA_CONTENEDORA,
+        descripcion: 'Registro interno: agrupa los equipos que aún no tienen obra asignada.',
         etapa_actual: 'prospeccion',
         estado: 'activa',
-        deleted_at: new Date().toISOString() // nace borrada: no aparece en el funnel
+        // Nace marcada como borrada para quedar fuera de toda vista de negocio
+        deleted_at: new Date().toISOString()
       }])
       .select('id')
       .single();
 
     if (error) {
-      console.error('No se pudo crear la obra placeholder:', error);
+      console.error('No se pudo crear la obra contenedora de equipos:', error);
       return null;
     }
-    return creada.id;
+
+    this._obraContenedoraId = creada.id;
+    return this._obraContenedoraId;
   },
 
   async updateEquipo(id: string, updates: Partial<Equipo>) {
+    const payload: any = { ...updates, updated_at: new Date().toISOString() };
+
+    // Desasignar de una obra no puede dejar obra_id en null (la columna es
+    // NOT NULL): el equipo vuelve a la obra contenedora del catálogo.
+    if ('obra_id' in payload && !payload.obra_id) {
+      payload.obra_id = await this.obtenerObraContenedora();
+    }
+
     const { data, error } = await supabase
       .from('equipos')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
