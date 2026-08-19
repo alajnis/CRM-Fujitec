@@ -51,6 +51,10 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
     obra.estado !== 'Rechazadas'
   );
 
+  // Para distinguir "no hay obras asignadas a nadie" de "las hay, pero el id
+  // de mi sesión no coincide con el guardado en la obra".
+  const obrasConResponsable = obras.filter(o => !!o.usuarioAsignado).length;
+
   // Apply mis obras filter
   let misObrasFilteradas = misObrasAsignadas;
   if (misObrasFilter === 'alerta') {
@@ -146,6 +150,15 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
                     ? 'Todas tus obras están dentro del plazo'
                     : 'Accede a la sección Funnel Obras para gestionar nuevos proyectos'}
                 </p>
+                {/* Si hay obras con responsable pero ninguna es tuya, casi
+                    siempre es porque el id de la sesión quedó desactualizado. */}
+                {misObrasAsignadas.length === 0 && obrasConResponsable > 0 && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 max-w-md mx-auto">
+                    Hay {obrasConResponsable} obras con responsable asignado, pero ninguna
+                    figura a tu nombre. Cerrá sesión y volvé a entrar para refrescar tu
+                    usuario.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -22,17 +22,6 @@ const rolAppToSupabase = (rol: string) => (rol === 'superusuario' ? 'admin' : 'v
 const rolSupabaseToApp = (role: string) =>
   ['admin', 'superadmin', 'superusuario'].includes(role) ? 'superusuario' : 'usuario';
 
-/**
- * Admin de emergencia: sólo se usa si la tabla `users` todavía no tiene ese
- * email cargado, para no quedar sin forma de entrar a Configuración y crear
- * los usuarios. Una vez que el usuario existe en la base, manda la base.
- */
-const ADMIN_FALLBACK = {
-  id: 'admin-fallback',
-  email: 'superadmin@fujitec.com',
-  password: 'admin123'
-};
-
 const toAppUsuario = (u: SupabaseUser): Usuario => ({
   id: u.id,
   email: u.email,
@@ -58,16 +47,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Restaurar sesión previa
-    const usuarioGuardado = localStorage.getItem('usuarioActual');
-    if (usuarioGuardado) {
+    const restaurarSesion = async () => {
+      const usuarioGuardado = localStorage.getItem('usuarioActual');
+      if (!usuarioGuardado) {
+        cargarUsuarios();
+        return;
+      }
+
+      let guardado: Usuario;
       try {
-        setUsuarioActual(JSON.parse(usuarioGuardado));
+        guardado = JSON.parse(usuarioGuardado);
       } catch (e) {
         console.error('Error restaurando usuario:', e);
+        cargarUsuarios();
+        return;
       }
-    }
-    cargarUsuarios();
+
+      // La sesión en localStorage puede tener un id viejo (del admin de
+      // emergencia o de los usuarios mock user-1/user-2). Como las obras se
+      // filtran por ese id, hay que revalidarlo contra la base o "Mis obras
+      // asignadas" queda vacía aunque la obra sí tenga responsable.
+      try {
+        const enBase = await usersService.getUserByEmail(guardado.email);
+        if (enBase) {
+          const actualizado = toAppUsuario(enBase);
+          if (actualizado.id !== guardado.id) {
+            console.warn(
+              `🔐 Sesión con id desactualizado (${guardado.id} → ${actualizado.id}). Se resincroniza.`
+            );
+          }
+          setUsuarioActual(actualizado);
+          localStorage.setItem('usuarioActual', JSON.stringify(actualizado));
+        } else {
+          setUsuarioActual(guardado);
+        }
+      } catch {
+        setUsuarioActual(guardado);
+      }
+
+      cargarUsuarios();
+    };
+
+    restaurarSesion();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -76,22 +97,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!user) {
         console.warn('🔐 Login: no existe un usuario con el email', email);
-        // Fallback: si la tabla users todavía no está poblada, el admin igual
-        // tiene que poder entrar para cargarla desde Configuración.
-        if (email.trim().toLowerCase() === ADMIN_FALLBACK.email && password === ADMIN_FALLBACK.password) {
-          console.warn('🔐 Entrando con el admin de emergencia (users está vacía)');
-          const usuario: Usuario = {
-            id: ADMIN_FALLBACK.id,
-            email: ADMIN_FALLBACK.email,
-            nombre: 'Admin Fujitec',
-            rol: 'superusuario',
-            activo: true,
-            password: ADMIN_FALLBACK.password
-          };
-          setUsuarioActual(usuario);
-          localStorage.setItem('usuarioActual', JSON.stringify(usuario));
-          return true;
-        }
         return false;
       }
       if (user.password !== password) {

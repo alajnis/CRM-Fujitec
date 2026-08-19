@@ -178,14 +178,26 @@ UPDATE public.obras o
 SELECT
   u.email,
   u.full_name,
+  u.id AS id_usuario,
   count(o.id) AS obras_asignadas
 FROM public.users u
 LEFT JOIN public.obras o
        ON o.usuario_asignado = u.id
       AND o.deleted_at IS NULL
 WHERE u.status = 'active'
-GROUP BY u.email, u.full_name
+GROUP BY u.email, u.full_name, u.id
 ORDER BY u.email;
+
+-- Obras cuyo responsable no corresponde a ningún usuario existente.
+-- Si aparecen filas acá, esas obras no las va a ver nadie en "Mis obras".
+SELECT
+  o.codigo,
+  o.nombre,
+  o.usuario_asignado AS id_huerfano
+FROM public.obras o
+WHERE o.deleted_at IS NULL
+  AND o.usuario_asignado IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM public.users u WHERE u.id = o.usuario_asignado);
 
 
 -- ============================================================================
