@@ -413,11 +413,11 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                 let barColor = 'bg-[#C8102E]';
 
                 if (item.etapa === 'Solicitud') {
-                  badgeColor = 'bg-red-100 text-red-800';
-                  barColor = 'bg-red-500';
+                  badgeColor = 'bg-slate-100 text-slate-800';
+                  barColor = 'bg-slate-500';
                 } else if (item.etapa === 'En estudio de proyecto') {
-                  badgeColor = 'bg-red-100 text-red-800';
-                  barColor = 'bg-red-500';
+                  badgeColor = 'bg-cyan-100 text-cyan-800';
+                  barColor = 'bg-cyan-500';
                 } else if (item.etapa === 'Estimado') {
                   badgeColor = 'bg-indigo-100 text-indigo-800';
                   barColor = 'bg-indigo-500';
@@ -425,8 +425,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                   badgeColor = 'bg-amber-100 text-amber-900';
                   barColor = 'bg-amber-500';
                 } else if (item.etapa === 'Contratadas') {
-                  badgeColor = 'bg-green-100 text-green-800';
-                  barColor = 'bg-green-500';
+                  badgeColor = 'bg-emerald-100 text-emerald-800';
+                  barColor = 'bg-emerald-500';
                 } else if (item.etapa === 'Finalizadas') {
                   badgeColor = 'bg-green-100 text-green-800';
                   barColor = 'bg-green-600';
