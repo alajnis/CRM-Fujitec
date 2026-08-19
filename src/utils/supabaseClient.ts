@@ -26,9 +26,10 @@ if (proyectoActual && proyectoActual !== PROYECTO_ESPERADO) {
 }
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  console.error('VITE_SUPABASE_URL:', supabaseUrl);
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey);
+  // No se loguea el valor de la key: aunque es pública por diseño (queda en
+  // el bundle igual), imprimirla en claro facilita exponerla sin querer en
+  // una captura de pantalla o una sesión de soporte compartida.
+  console.error('❌ Missing Supabase environment variables (URL exists:', !!supabaseUrl, ', KEY exists:', !!supabaseAnonKey, ')');
   throw new Error('Missing Supabase environment variables');
 }
 

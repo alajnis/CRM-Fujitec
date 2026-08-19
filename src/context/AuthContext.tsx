@@ -33,6 +33,17 @@ const toAppUsuario = (u: SupabaseUser): Usuario => ({
   password: u.password || ''
 });
 
+/**
+ * Guarda la sesión sin el campo `password`. Nada en la UI lee la contraseña
+ * desde la sesión (Configuración la muestra a partir de la lista `usuarios`),
+ * así que no hace falta que quede en claro y persistente en localStorage,
+ * legible con un simple `localStorage.getItem('usuarioActual')`.
+ */
+const guardarSesion = (usuario: Usuario) => {
+  const { password, ...sinPassword } = usuario;
+  localStorage.setItem('usuarioActual', JSON.stringify(sinPassword));
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [usuarioActual, setUsuarioActual] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -77,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             );
           }
           setUsuarioActual(actualizado);
-          localStorage.setItem('usuarioActual', JSON.stringify(actualizado));
+          guardarSesion(actualizado);
         } else {
           setUsuarioActual(guardado);
         }
@@ -111,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const usuario = toAppUsuario(user);
       setUsuarioActual(usuario);
-      localStorage.setItem('usuarioActual', JSON.stringify(usuario));
+      guardarSesion(usuario);
       await cargarUsuarios();
       return true;
     } catch (e) {
@@ -128,6 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isSuperuser = (): boolean => usuarioActual?.rol === 'superusuario' || false;
 
   const crearUsuario = async (usuario: Omit<Usuario, 'id'>): Promise<Usuario> => {
+    if (!usuario.password) {
+      // ModalUsuario ya exige y autogenera una password antes de llegar acá;
+      // si esto dispara, hay un caller nuevo que se saltó esa validación.
+      // Mejor fallar explícito que crear una cuenta con contraseña predecible.
+      throw new Error('crearUsuario requiere una contraseña');
+    }
+
     const nuevoId = crypto.randomUUID();
     const creado = await usersService.createUser({
       id: nuevoId,
@@ -135,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       full_name: usuario.nombre,
       role: rolAppToSupabase(usuario.rol) as SupabaseUser['role'],
       status: usuario.activo ? 'active' : 'inactive',
-      password: usuario.password || 'fujitec2026'
+      password: usuario.password
     } as any);
 
     const nuevoUsuario = toAppUsuario(creado);
@@ -159,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (usuarioActual?.id === id) {
         const actualizado = { ...usuarioActual, ...datos };
         setUsuarioActual(actualizado);
-        localStorage.setItem('usuarioActual', JSON.stringify(actualizado));
+        guardarSesion(actualizado);
       }
       return true;
     } catch (e) {

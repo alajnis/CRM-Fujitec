@@ -11,6 +11,33 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "5mb" }));
 
+/**
+ * Los endpoints de Gemini no requieren login (no hay sesión de servidor: el
+ * login de la app es contra Supabase desde el cliente) y consumen la
+ * GEMINI_API_KEY del servidor. Sin límite, cualquiera que descubra la URL
+ * pública de Vercel puede pegarle directo con curl y generar costos en la
+ * cuenta de Google AI. Rate limit simple en memoria por IP: alcanza para
+ * frenar abuso automatizado sin agregar una dependencia ni un store externo.
+ */
+const LIMITE_IA_POR_MINUTO = 15;
+const solicitudesPorIp = new Map<string, number[]>();
+
+function limitarSolicitudesIA(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const ip = req.ip || req.socket.remoteAddress || 'desconocida';
+  const ahora = Date.now();
+  const ventana = 60_000;
+
+  const previas = (solicitudesPorIp.get(ip) || []).filter((t) => ahora - t < ventana);
+  if (previas.length >= LIMITE_IA_POR_MINUTO) {
+    res.status(429).json({ success: false, error: "Demasiadas solicitudes. Esperá un minuto e intentá de nuevo." });
+    return;
+  }
+
+  previas.push(ahora);
+  solicitudesPorIp.set(ip, previas);
+  next();
+}
+
 // Initialize Gemini AI Client if API key is present
 let ai: GoogleGenAI | null = null;
 function getGenAI(): GoogleGenAI {
@@ -37,7 +64,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // API Endpoint 1: Generar Resumen Comercial / Carta Oferta con IA
-app.post("/api/gemini/assist-offer", async (req, res) => {
+app.post("/api/gemini/assist-offer", limitarSolicitudesIA, async (req, res) => {
   try {
     const { nombreObra, cliente, montoUSD, cantidadEquipos, modelo, velocidad, paradas, garantiaAnos } = req.body;
 
@@ -79,7 +106,7 @@ Usa un tono corporativo formal, limpio y convincente. Mención explicita a Fujit
 });
 
 // API Endpoint 2: Asistente Virtual Comercial Fujitec Chat
-app.post("/api/gemini/commercial-chat", async (req, res) => {
+app.post("/api/gemini/commercial-chat", limitarSolicitudesIA, async (req, res) => {
   try {
     const { message, contextObras } = req.body;
 
