@@ -410,9 +410,30 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                 const pct = Math.round((item.montoUSD / totalMonto) * 100);
 
                 let badgeColor = 'bg-[#F1F3F5] text-[#2D3436]';
-                if (item.etapa === 'Adjudicada') badgeColor = 'bg-emerald-100 text-emerald-800';
-                if (item.etapa === 'Perdida') badgeColor = 'bg-red-50 text-red-700';
-                if (item.etapa === 'En Negociación') badgeColor = 'bg-blue-100 text-blue-800';
+                let barColor = 'bg-[#C8102E]';
+
+                if (item.etapa === 'Solicitud') {
+                  badgeColor = 'bg-red-100 text-red-800';
+                  barColor = 'bg-red-500';
+                } else if (item.etapa === 'En estudio de proyecto') {
+                  badgeColor = 'bg-red-100 text-red-800';
+                  barColor = 'bg-red-500';
+                } else if (item.etapa === 'Estimado') {
+                  badgeColor = 'bg-indigo-100 text-indigo-800';
+                  barColor = 'bg-indigo-500';
+                } else if (item.etapa === 'Cotización') {
+                  badgeColor = 'bg-amber-100 text-amber-900';
+                  barColor = 'bg-amber-500';
+                } else if (item.etapa === 'Contratadas') {
+                  badgeColor = 'bg-green-100 text-green-800';
+                  barColor = 'bg-green-500';
+                } else if (item.etapa === 'Finalizadas') {
+                  badgeColor = 'bg-green-100 text-green-800';
+                  barColor = 'bg-green-600';
+                } else if (item.etapa === 'Rechazadas') {
+                  badgeColor = 'bg-red-100 text-red-800';
+                  barColor = 'bg-red-500';
+                }
 
                 return (
                   <div key={item.etapa} className="space-y-1">
@@ -426,13 +447,8 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
                       <span className="font-extrabold text-[#2D3436]">{formatUSD(item.montoUSD)}</span>
                     </div>
                     <div className="w-full bg-[#F1F3F5] h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${
-                          item.etapa === 'Adjudicada' ? 'bg-emerald-500' :
-                          item.etapa === 'En Negociación' ? 'bg-blue-500' :
-                          item.etapa === 'Presentada' ? 'bg-amber-500' :
-                          item.etapa === 'Cotización' ? 'bg-indigo-500' : 'bg-red-400'
-                        }`}
+                      <div
+                        className={`h-full rounded-full ${barColor}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -449,7 +465,7 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
             <div className="flex items-center justify-between border-b border-[#F1F3F5] pb-3 mb-3">
               <h3 className="text-sm font-bold text-[#2D3436] flex items-center gap-1.5">
                 <AlertTriangle size={16} className="text-amber-500" />
-                Alertas Temporales (&gt;7d)
+                Alertas Temporales
               </h3>
               <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap">
                 {obrasAlertas.length} requeridos
