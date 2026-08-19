@@ -127,6 +127,17 @@ ALTER TABLE public.clientes ALTER COLUMN estado     DROP NOT NULL;
 -- PASO 4 — RLS
 -- ============================================================================
 -- Sin estas policies los INSERT/UPDATE/DELETE de la app fallan.
+--
+-- Nota sobre el warning "RLS Policy Always True" del Advisor de Supabase:
+-- es correcto y queda así a propósito por ahora. La app no usa Supabase Auth
+-- (login propio contra public.users, con contraseña visible para el admin),
+-- así que auth.uid() siempre es null y toda conexión pasa con la misma anon
+-- key. Una policy que exigiera "usuario autenticado" bloquearía a la app real
+-- junto con cualquiera. Arreglarlo de raíz implica migrar a Supabase Auth
+-- (login, sesiones y estas policies), que es tarea aparte y además rompe el
+-- requisito de que el admin vea las contraseñas en texto plano (Auth las
+-- hashea). Mientras tanto, la URL y la anon key de Supabase no deben
+-- compartirse fuera del equipo: son la única barrera de acceso que queda.
 
 ALTER TABLE public.clientes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.obras       ENABLE ROW LEVEL SECURITY;
