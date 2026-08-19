@@ -146,6 +146,31 @@ CREATE POLICY "acceso_total_equipos"     ON public.equipos     FOR ALL USING (tr
 CREATE POLICY "acceso_total_actividades" ON public.actividades FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "acceso_total_users"       ON public.users       FOR ALL USING (true) WITH CHECK (true);
 
+-- El aviso de Supabase ("Table publicly accessible") puede venir de una tabla
+-- que la app no usa, heredada de un esquema anterior (p. ej. tipos_equipo).
+-- Este bloque habilita RLS con la misma policy abierta en CUALQUIER tabla de
+-- public que todavía no la tenga, sin necesidad de conocer su nombre.
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOR t IN
+    SELECT c.relname
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = 'public'
+       AND c.relkind = 'r'          -- sólo tablas normales
+       AND NOT c.relrowsecurity     -- RLS todavía apagado
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR ALL USING (true) WITH CHECK (true)',
+      'acceso_total_' || t, t
+    );
+    RAISE NOTICE '✅ RLS habilitado en tabla no reconocida: %', t;
+  END LOOP;
+END $$;
+
 
 -- ============================================================================
 -- PASO 5 — REPARTIR LAS OBRAS ENTRE LOS USUARIOS ACTIVOS
@@ -246,3 +271,14 @@ WHERE table_schema = 'public'
     (table_name = 'clientes'    AND column_name IN ('created_by','tipo','estado'))
   )
 ORDER BY table_name, column_name;
+
+-- 6d) RLS: esta lista tiene que salir VACÍA. Si aparece alguna fila, es la
+-- tabla que reportaba Supabase como "Table publicly accessible".
+SELECT
+  '6d. RLS PENDIENTE' AS check,
+  c.relname AS tabla_sin_rls
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relkind = 'r'
+  AND NOT c.relrowsecurity;
