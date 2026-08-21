@@ -27,16 +27,12 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { Obra, Region, EquipmentType, MonthlySalesData } from '../types';
+import { Obra, MonthlySalesData } from '../types';
 import { getSemaforoComercial, formatUSD, tieneAlertaTemporal, getDiasSinActualizar } from '../utils/semaforo';
-import { useAuth } from '../context/AuthContext';
 
 interface PantallaDashboardProps {
   obras: Obra[];
   monthlyData: MonthlySalesData[];
-  selectedRegion: Region;
-  selectedEquipmentType: EquipmentType;
-  searchQuery?: string;
   onNavigateToObra: (obraId: string) => void;
   onNavigateToFunnel: () => void;
   selectedYear?: number;
@@ -47,20 +43,12 @@ interface PantallaDashboardProps {
 export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
   obras,
   monthlyData,
-  selectedRegion,
-  selectedEquipmentType,
-  searchQuery = '',
   onNavigateToObra,
   onNavigateToFunnel,
   selectedYear = new Date().getFullYear(),
   onOpenViewActividades,
   getDiasMaximosForEtapa = () => 7
 }) => {
-  const { usuarios } = useAuth();
-  const getNombreUsuario = (usuarioId?: string): string => {
-    if (!usuarioId) return 'Sin asignar';
-    return usuarios.find(u => u.id === usuarioId)?.nombre || usuarioId;
-  };
   const [showEquipos, setShowEquipos] = useState(false);
 
   // Helper function to check if obra has alert using configured dias
@@ -69,20 +57,11 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
     return tieneAlertaTemporal(obra, diasMaximos);
   };
 
-  // Filter obras based on selectedRegion & selectedEquipmentType & selectedYear & searchQuery
+  // Filter obras based on selectedYear ONLY - Dashboard shows full year data, not affected by Region/Equipment/Search filters
   const filteredObras = obras.filter((obra) => {
-    const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
-    // Equipment filter: if 'Todos' selected, match all; otherwise check if obra has matching equipment type
-    const matchEquipment = selectedEquipmentType === 'Todos' || obra.tipoEquipo === selectedEquipmentType;
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
-    const q = searchQuery.toLowerCase();
-    const matchQuery = !q ||
-      obra.codigo.toLowerCase().includes(q) ||
-      obra.nombre.toLowerCase().includes(q) ||
-      getNombreUsuario(obra.usuarioAsignado).toLowerCase().includes(q) ||
-      (obra.hardwareSpecs?.modelo || '').toLowerCase().includes(q);
-    return matchRegion && matchEquipment && matchYear && matchQuery;
+    return matchYear;
   });
 
 
@@ -137,25 +116,6 @@ export const PantallaDashboard: React.FC<PantallaDashboardProps> = ({
 
   return (
     <div className="p-8 space-y-8 bg-[#F1F3F5] min-h-screen">
-      {/* Dynamic Header Banner for Active Filters */}
-      {(selectedRegion !== 'Todas' || selectedEquipmentType !== 'Todos') && (
-        <div className="p-4 bg-white/80 backdrop-blur-md rounded-2xl border border-[#E0E0E0] text-xs text-[#636E72] flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#2D3436]">Filtros Dashboard Activos:</span>
-            {selectedRegion !== 'Todas' && (
-              <span className="px-2.5 py-1 rounded-lg bg-white border border-[#E0E0E0] font-bold text-[#2D3436]">
-                Región: {selectedRegion}
-              </span>
-            )}
-            {selectedEquipmentType !== 'Todos' && (
-              <span className="px-2.5 py-1 rounded-lg bg-white border border-[#E0E0E0] font-bold text-[#2D3436]">
-                Equipo: {selectedEquipmentType}
-              </span>
-            )}
-          </div>
-          <span className="text-[#B2BEC3] font-medium">Mostrando {filteredObras.length} de {obras.length} obras</span>
-        </div>
-      )}
 
       {/* SECTION 1: ESTADÍSTICAS COMERCIALES (SEGÚN FICHA INDICADORES) */}
       <div className="mb-2">

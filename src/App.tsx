@@ -36,6 +36,7 @@ console.log('Build version:', BUILD_VERSION);
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DarkModeProvider } from './context/DarkModeContext';
 import { LoginScreen } from './components/LoginScreen';
+import { LoadingScreen } from './components/LoadingScreen';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { PantallaDashboard } from './components/PantallaDashboard';
@@ -690,9 +691,6 @@ function AppContent() {
             <PantallaDashboard
               obras={obras}
               monthlyData={generateMonthlyDataFromBudget(budgetConfigs, selectedYear, obras)}
-              selectedRegion={selectedRegion}
-              selectedEquipmentType={selectedEquipmentType}
-              searchQuery={searchQuery}
               onNavigateToObra={handleNavigateToObra}
               onNavigateToFunnel={() => setActiveTab('obras')}
               selectedYear={selectedYear}
@@ -847,7 +845,11 @@ function AppContent() {
 }
 
 function AppWithAuth() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   if (!isAuthenticated) {
     return <LoginScreen />;

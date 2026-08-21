@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
   isSuperuser: () => boolean;
   crearUsuario: (usuario: Omit<Usuario, 'id'>) => Promise<Usuario>;
   actualizarUsuario: (id: string, usuario: Partial<Usuario>) => Promise<boolean>;
@@ -47,6 +48,7 @@ const guardarSesion = (usuario: Usuario) => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [usuarioActual, setUsuarioActual] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const cargarUsuarios = async () => {
     try {
@@ -120,13 +122,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
+      setIsLoading(true);
       const usuario = toAppUsuario(user);
       setUsuarioActual(usuario);
       guardarSesion(usuario);
       await cargarUsuarios();
+
+      // Keep loading screen for 1-2 seconds
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setIsLoading(false);
       return true;
     } catch (e) {
       console.error('🔐 Error en login:', e);
+      setIsLoading(false);
       return false;
     }
   };
@@ -197,6 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         isAuthenticated: usuarioActual !== null,
+        isLoading,
         isSuperuser,
         crearUsuario,
         actualizarUsuario,
