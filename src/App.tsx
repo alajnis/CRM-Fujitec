@@ -71,7 +71,7 @@ import {
 import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
-import { obrasService, clientesService, equiposService, actividadesService, notasService } from './services';
+import { obrasService, clientesService, equiposService, actividadesService } from './services';
 import { configuracionService } from './services/configuracionService';
 import { seedActividades, seedActividadesParaObra } from './utils/seedActividades';
 import { reportarErrorGuardado } from './utils/errorGuardado';
@@ -215,22 +215,9 @@ function AppContent() {
   // "Mis obras asignadas". El responsable vive en la obra, no en la sesión.
   useEffect(() => {
     if (!isLoading && obrasFromSupabase.length > 0) {
-      // Load notas for each obra
-      const loadNotas = async () => {
-        const obrasConNotas = await Promise.all(
-          obrasFromSupabase.map(async (obra) => {
-            const notas = await notasService.getNotasByObraId(obra.id);
-            if (notas.length > 0) {
-              console.log(`✅ Obra ${obra.codigo} tiene ${notas.length} nota(s)`);
-            }
-            return { ...obra, notas };
-          })
-        );
-        console.log('🎯 Loaded notas for all obras:', obrasConNotas.filter(o => o.notas && o.notas.length > 0).length, 'obras con notas');
-        setObras(obrasConNotas);
-      };
-
-      loadNotas();
+      // TODO: Load notas for each obra from Supabase when the notas table is properly set up
+      // For now, obras come with notas from the API if they exist
+      setObras(obrasFromSupabase);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
     }
