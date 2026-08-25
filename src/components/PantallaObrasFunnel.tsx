@@ -209,7 +209,11 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   };
 
   const handleObraMouseEnter = (obra: Obra, e: React.MouseEvent) => {
-    if (!obra.notas || obra.notas.length === 0) return;
+    console.log('Mouse enter en obra:', obra.codigo, 'Notas:', obra.notas?.length || 0);
+    if (!obra.notas || obra.notas.length === 0) {
+      console.log('Sin notas, retornando');
+      return;
+    }
 
     const timeoutId = setTimeout(() => {
       const lastNota = obra.notas![obra.notas!.length - 1];
