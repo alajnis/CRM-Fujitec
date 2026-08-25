@@ -220,9 +220,13 @@ function AppContent() {
         const obrasConNotas = await Promise.all(
           obrasFromSupabase.map(async (obra) => {
             const notas = await notasService.getNotasByObraId(obra.id);
+            if (notas.length > 0) {
+              console.log(`✅ Obra ${obra.codigo} tiene ${notas.length} nota(s)`);
+            }
             return { ...obra, notas };
           })
         );
+        console.log('🎯 Loaded notas for all obras:', obrasConNotas.filter(o => o.notas && o.notas.length > 0).length, 'obras con notas');
         setObras(obrasConNotas);
       };
 
