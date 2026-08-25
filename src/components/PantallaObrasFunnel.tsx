@@ -129,6 +129,9 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   });
   const [hoverTimeoutId, setHoverTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
+  // Track which obra is currently hovered
+  const [currentHoveredObraId, setCurrentHoveredObraId] = useState<string | null>(null);
+
   // Setup event delegation for obra cards
   useEffect(() => {
     const handleCardMouseOver = (e: MouseEvent) => {
@@ -137,20 +140,23 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
       const obraId = card.getAttribute('data-obra-id');
       const obra = obras.find((o: any) => o.id === obraId);
-      if (!obra) return;
+      if (!obra || !obra.notas || obra.notas.length === 0) return;
 
-      console.log('💡 Event delegation - Mouse over:', obra.codigo, 'Notas:', obra.notas?.length || 0);
+      setCurrentHoveredObraId(obraId);
       handleObraMouseEnter(obra, e as any);
     };
 
     const handleCardMouseMove = (e: MouseEvent) => {
+      if (!currentHoveredObraId) return;
+
       const card = (e.target as HTMLElement).closest('[data-obra-id]');
-      if (card) {
+      if (card?.getAttribute('data-obra-id') === currentHoveredObraId) {
         handleObraMouseMove(e as any);
       }
     };
 
     const handleCardMouseOut = () => {
+      setCurrentHoveredObraId(null);
       handleObraMouseLeave();
     };
 
@@ -163,7 +169,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
       document.removeEventListener('mousemove', handleCardMouseMove, false);
       document.removeEventListener('mouseout', handleCardMouseOut, false);
     };
-  }, [obras]);
+  }, [obras, currentHoveredObraId]);
 
   // Build usuario map for quick lookup
   const usuarioMap = new Map<string, string>();
@@ -245,15 +251,10 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   };
 
   const handleObraMouseEnter = (obra: Obra, e: React.MouseEvent) => {
-    console.log('Mouse enter en obra:', obra.codigo, 'Notas:', obra.notas?.length || 0);
-    if (!obra.notas || obra.notas.length === 0) {
-      console.log('Sin notas, retornando');
-      return;
-    }
+    if (!obra.notas || obra.notas.length === 0) return;
 
     const timeoutId = setTimeout(() => {
       const lastNota = obra.notas![obra.notas!.length - 1];
-      console.log('Mostrando nota:', lastNota);
 
       setNotaTooltip({
         visible: true,
@@ -479,10 +480,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           onDragStart={() => setDraggedObra(obra)}
                           onDragEnd={() => setDraggedObra(null)}
                           onClick={() => onEditObra(obra)}
-                          onMouseEnter={(e: any) => {
-                            console.log('KANBAN - Mouse enter:', obra.codigo);
-                            handleObraMouseEnter(obra, e);
-                          }}
                           className={`bg-white/90 backdrop-blur-md rounded-xl border shadow-2xs transition-all hover:shadow-md relative group cursor-pointer active:cursor-grabbing w-full min-w-0 max-w-full overflow-hidden box-border ${
                             cardViewMode === 'summarized' ? 'p-2.5 space-y-1' : 'p-4 space-y-2.5'
                           } ${
@@ -688,13 +685,8 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                     return (
                       <tr
                         key={obra.id}
+                        data-obra-id={obra.id}
                         onClick={() => onEditObra(obra)}
-                        onMouseEnter={(e: any) => {
-                          console.log('LISTA - Mouse enter:', obra.codigo);
-                          handleObraMouseEnter(obra, e);
-                        }}
-                        onMouseMove={handleObraMouseMove}
-                        onMouseLeave={handleObraMouseLeave}
                         className={`hover:bg-white/90 transition-colors cursor-pointer ${
                           alerta ? 'bg-amber-50/50' : ''
                         }`}
