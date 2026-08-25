@@ -140,7 +140,8 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
       const obraId = card.getAttribute('data-obra-id');
       const obra = obras.find((o: any) => o.id === obraId);
-      if (!obra || !obra.notas || obra.notas.length === 0) return;
+      const tieneNotas = (obra?.historialLog || []).some((log: any) => log.tipo === 'nota_agregada');
+      if (!obra || !tieneNotas) return;
 
       setCurrentHoveredObraId(obraId);
       handleObraMouseEnter(obra, e as any);
@@ -250,20 +251,33 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     }
   };
 
+  // Las "notas" se guardan como entradas tipo 'nota_agregada' dentro del
+  // historialLog de la obra (ver ModalObra), no en una tabla notas separada.
+  const getUltimaNota = (obra: Obra) => {
+    const notasLog = (obra.historialLog || []).filter((log) => log.tipo === 'nota_agregada');
+    if (notasLog.length === 0) return null;
+
+    const ultima = notasLog[notasLog.length - 1];
+    // descripcion tiene el formato: Nota: "contenido"
+    const match = ultima.descripcion.match(/^Nota: "([\s\S]*)"$/);
+    const texto = match ? match[1] : ultima.descripcion;
+
+    return {
+      texto,
+      fecha: ultima.fecha,
+      autor: ultima.usuario,
+    };
+  };
+
   const handleObraMouseEnter = (obra: Obra, e: React.MouseEvent) => {
-    if (!obra.notas || obra.notas.length === 0) return;
+    const ultimaNota = getUltimaNota(obra);
+    if (!ultimaNota) return;
 
     const timeoutId = setTimeout(() => {
-      const lastNota = obra.notas![obra.notas!.length - 1];
-
       setNotaTooltip({
         visible: true,
         position: { x: e.clientX, y: e.clientY },
-        nota: {
-          texto: lastNota.contenido,
-          fecha: lastNota.fecha,
-          autor: lastNota.autor,
-        },
+        nota: ultimaNota,
       });
     }, 1000);
 

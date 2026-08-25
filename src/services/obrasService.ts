@@ -19,40 +19,7 @@ export const obrasService = {
       // Filter out deleted records in memory
       const filtered = (data || []).filter(o => !o.deleted_at);
       console.log(`✅ getObras returned ${filtered.length} records (${data?.length} total before filtering)`);
-
-      // Load notas for each obra
-      console.log('📝 Loading notas for', filtered.length, 'obras...');
-      const obrasWithNotas = await Promise.all(
-        filtered.map(async (obra: any) => {
-          try {
-            const { data: notasData, error: notasError } = await supabase
-              .from('notas')
-              .select('*')
-              .eq('obra_id', obra.id)
-              .order('fecha', { ascending: false });
-
-            if (notasError) {
-              console.warn(`⚠️ Error loading notas for obra ${obra.codigo}:`, notasError);
-              return { ...obra, notas: [] };
-            }
-
-            if (notasData && notasData.length > 0) {
-              console.log(`✅ Obra ${obra.codigo} has ${notasData.length} nota(s)`);
-            }
-
-            return {
-              ...obra,
-              notas: notasData || []
-            };
-          } catch (err) {
-            console.warn(`⚠️ Exception loading notas for obra ${obra.codigo}:`, err);
-            return { ...obra, notas: [] };
-          }
-        })
-      );
-
-      console.log('📋 Total obras with notas:', obrasWithNotas.filter(o => o.notas && o.notas.length > 0).length);
-      return obrasWithNotas as Obra[];
+      return filtered as Obra[];
     } catch (err) {
       console.error('❌ Exception in getObras:', err);
       throw err;
