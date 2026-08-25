@@ -131,15 +131,15 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
   // Setup event delegation for obra cards
   useEffect(() => {
-    const handleCardMouseEnter = (e: MouseEvent) => {
+    const handleCardMouseOver = (e: MouseEvent) => {
       const card = (e.target as HTMLElement).closest('[data-obra-id]');
       if (!card) return;
 
       const obraId = card.getAttribute('data-obra-id');
-      const obra = obras.find(o => o.id === obraId);
+      const obra = obras.find((o: any) => o.id === obraId);
       if (!obra) return;
 
-      console.log('💡 Event delegation - Mouse enter:', obra.codigo);
+      console.log('💡 Event delegation - Mouse over:', obra.codigo, 'Notas:', obra.notas?.length || 0);
       handleObraMouseEnter(obra, e as any);
     };
 
@@ -150,18 +150,18 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
       }
     };
 
-    const handleCardMouseLeave = () => {
+    const handleCardMouseOut = () => {
       handleObraMouseLeave();
     };
 
-    document.addEventListener('mouseenter', handleCardMouseEnter, true);
-    document.addEventListener('mousemove', handleCardMouseMove, true);
-    document.addEventListener('mouseleave', handleCardMouseLeave, true);
+    document.addEventListener('mouseover', handleCardMouseOver, false);
+    document.addEventListener('mousemove', handleCardMouseMove, false);
+    document.addEventListener('mouseout', handleCardMouseOut, false);
 
     return () => {
-      document.removeEventListener('mouseenter', handleCardMouseEnter, true);
-      document.removeEventListener('mousemove', handleCardMouseMove, true);
-      document.removeEventListener('mouseleave', handleCardMouseLeave, true);
+      document.removeEventListener('mouseover', handleCardMouseOver, false);
+      document.removeEventListener('mousemove', handleCardMouseMove, false);
+      document.removeEventListener('mouseout', handleCardMouseOut, false);
     };
   }, [obras]);
 
