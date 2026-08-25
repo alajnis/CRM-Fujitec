@@ -215,8 +215,10 @@ function AppContent() {
   // "Mis obras asignadas". El responsable vive en la obra, no en la sesión.
   useEffect(() => {
     if (!isLoading && obrasFromSupabase.length > 0) {
-      // TODO: Load notas for each obra from Supabase when the notas table is properly set up
-      // For now, obras come with notas from the API if they exist
+      // Obras already have notas loaded by obrasService.getObras()
+      const obrasWithNotasCount = obrasFromSupabase.filter(o => o.notas && o.notas.length > 0).length;
+      console.log(`✅ Loaded ${obrasWithNotasCount} obras with notas out of ${obrasFromSupabase.length} total`);
+
       setObras(obrasFromSupabase);
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
