@@ -34,6 +34,7 @@ import { exportObrasToExcel } from '../utils/excelExport';
 import { SoftDeleteConfirm } from './SoftDeleteConfirm';
 import { ModalAdvertencia } from './ModalAdvertencia';
 import { ComponenteActividades } from './ComponenteActividades';
+import { NotaTooltip } from './NotaTooltip';
 import { useAuth } from '../context/AuthContext';
 
 interface PantallaObrasFunnelProps {
@@ -116,6 +117,18 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   const [pendingStageChange, setPendingStageChange] = useState<{ obra: Obra; nuevoEstado: FunnelStage } | null>(null);
   const [isAdvertenciaOpen, setIsAdvertenciaOpen] = useState(false);
 
+  // Tooltip state for notas
+  const [notaTooltip, setNotaTooltip] = useState<{
+    visible: boolean;
+    position: { x: number; y: number };
+    nota: { texto: string; fecha: string; autor: string } | null;
+  }>({
+    visible: false,
+    position: { x: 0, y: 0 },
+    nota: null,
+  });
+  const [hoverTimeoutId, setHoverTimeoutId] = useState<NodeJS.Timeout | null>(null);
+
   // Build usuario map for quick lookup
   const usuarioMap = new Map<string, string>();
   usuarios.forEach(u => usuarioMap.set(u.id, u.nombre));
@@ -193,6 +206,44 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
       setPendingStageChange(null);
       setIsAdvertenciaOpen(false);
     }
+  };
+
+  const handleObraMouseEnter = (obra: Obra, e: React.MouseEvent) => {
+    if (!obra.notas || obra.notas.length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      const lastNota = obra.notas![obra.notas!.length - 1];
+
+      setNotaTooltip({
+        visible: true,
+        position: { x: e.clientX, y: e.clientY },
+        nota: {
+          texto: lastNota.contenido,
+          fecha: lastNota.fecha,
+          autor: lastNota.autor,
+        },
+      });
+    }, 1000);
+
+    setHoverTimeoutId(timeoutId);
+  };
+
+  const handleObraMouseMove = (e: React.MouseEvent) => {
+    setNotaTooltip((prev: any) => ({
+      ...prev,
+      position: { x: e.clientX, y: e.clientY },
+    }));
+  };
+
+  const handleObraMouseLeave = () => {
+    if (hoverTimeoutId) {
+      clearTimeout(hoverTimeoutId);
+      setHoverTimeoutId(null);
+    }
+    setNotaTooltip((prev: any) => ({
+      ...prev,
+      visible: false,
+    }));
   };
 
   return (
@@ -376,6 +427,9 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           onDragStart={() => setDraggedObra(obra)}
                           onDragEnd={() => setDraggedObra(null)}
                           onClick={() => onEditObra(obra)}
+                          onMouseEnter={(e) => handleObraMouseEnter(obra, e)}
+                          onMouseMove={handleObraMouseMove}
+                          onMouseLeave={handleObraMouseLeave}
                           className={`bg-white/90 backdrop-blur-md rounded-xl border shadow-2xs transition-all hover:shadow-md relative group cursor-pointer active:cursor-grabbing w-full min-w-0 max-w-full overflow-hidden box-border ${
                             cardViewMode === 'summarized' ? 'p-2.5 space-y-1' : 'p-4 space-y-2.5'
                           } ${
@@ -582,6 +636,9 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       <tr
                         key={obra.id}
                         onClick={() => onEditObra(obra)}
+                        onMouseEnter={(e: any) => handleObraMouseEnter(obra, e)}
+                        onMouseMove={handleObraMouseMove}
+                        onMouseLeave={handleObraMouseLeave}
                         className={`hover:bg-white/90 transition-colors cursor-pointer ${
                           alerta ? 'bg-amber-50/50' : ''
                         }`}
@@ -769,6 +826,13 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
           etapaActual={pendingStageChange.obra.estado}
         />
       )}
+
+      {/* Nota Tooltip */}
+      <NotaTooltip
+        nota={notaTooltip.nota}
+        position={notaTooltip.position}
+        visible={notaTooltip.visible}
+      />
     </div>
   );
 };
