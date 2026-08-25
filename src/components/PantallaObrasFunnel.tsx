@@ -434,7 +434,10 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                           onDragStart={() => setDraggedObra(obra)}
                           onDragEnd={() => setDraggedObra(null)}
                           onClick={() => onEditObra(obra)}
-                          onMouseEnter={(e) => handleObraMouseEnter(obra, e)}
+                          onMouseEnter={(e: any) => {
+                            console.log('KANBAN - Mouse enter:', obra.codigo);
+                            handleObraMouseEnter(obra, e);
+                          }}
                           onMouseMove={handleObraMouseMove}
                           onMouseLeave={handleObraMouseLeave}
                           className={`bg-white/90 backdrop-blur-md rounded-xl border shadow-2xs transition-all hover:shadow-md relative group cursor-pointer active:cursor-grabbing w-full min-w-0 max-w-full overflow-hidden box-border ${
@@ -643,7 +646,10 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       <tr
                         key={obra.id}
                         onClick={() => onEditObra(obra)}
-                        onMouseEnter={(e: any) => handleObraMouseEnter(obra, e)}
+                        onMouseEnter={(e: any) => {
+                          console.log('LISTA - Mouse enter:', obra.codigo);
+                          handleObraMouseEnter(obra, e);
+                        }}
                         onMouseMove={handleObraMouseMove}
                         onMouseLeave={handleObraMouseLeave}
                         className={`hover:bg-white/90 transition-colors cursor-pointer ${
