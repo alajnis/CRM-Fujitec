@@ -75,8 +75,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   // Toggle between Sub-view 1: Vista Lista Tradicional, Sub-view 2: Vista Funnel Kanban
   const [subView, setSubView] = useState<'lista' | 'kanban'>('kanban');
 
-  // Filter by Stage local filter
-  const [stageFilter, setStageFilter] = useState<string>('Todas');
   const [showFinalizadosRechazados, setShowFinalizadosRechazados] = useState<boolean>(false);
 
   // Table sorting state
@@ -180,7 +178,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   let filteredObras = obras.filter((obra) => {
     const matchRegion = selectedRegion === 'Todas' || obra.region === selectedRegion;
     const matchEquipment = selectedEquipmentType === 'Todos';
-    const matchStage = stageFilter === 'Todas' || obra.estado === stageFilter;
     const obraYear = parseInt(obra.fechaIngreso.split('-')[0], 10);
     const matchYear = obraYear === selectedYear;
     const q = searchQuery.toLowerCase();
@@ -193,7 +190,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     const matchAlert = !showOnlyAlerts || tieneAlertaTemporal(obra);
     const matchFinalizadas = showFinalizadosRechazados || (obra.estado !== 'Finalizadas' && obra.estado !== 'Rechazadas');
 
-    return matchRegion && matchEquipment && matchStage && matchQuery && matchYear && matchAlert && matchFinalizadas;
+    return matchRegion && matchEquipment && matchQuery && matchYear && matchAlert && matchFinalizadas;
   });
 
   // Sort filtered obras by selected column
@@ -340,21 +337,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
         {/* Local Filter & Totals */}
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#636E72] font-bold">Etapa:</span>
-            <select
-              value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
-              className="bg-white border border-[#E0E0E0] font-bold text-[#2D3436] py-1.5 px-3 rounded-xl focus:outline-none shadow-2xs"
-              id="select-stage-filter"
-            >
-              <option value="Todas">Todas las etapas ({filteredObras.length})</option>
-              {stages.map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          </div>
-
           <button
             onClick={() => setShowFinalizadosRechazados(!showFinalizadosRechazados)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -750,14 +732,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                             id={`btn-table-edit-${obra.id}`}
                           >
                             Editar
-                          </button>
-                          <button
-                            onClick={() => onGenerarOferta(obra)}
-                            className="px-3 py-1.5 rounded-lg text-white font-bold text-xs transition-all shadow-xs hover:bg-[#A60D26]"
-                            style={{ backgroundColor: '#C8102E' }}
-                            id={`btn-table-oferta-${obra.id}`}
-                          >
-                            Carta Oferta
                           </button>
                           {isSuperuser() && (
                             <button
