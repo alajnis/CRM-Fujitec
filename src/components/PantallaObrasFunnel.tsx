@@ -417,6 +417,14 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       setDraggedObra(null);
                     }
                   }}
+                  onMouseMove={(e: any) => {
+                    const target = e.target as HTMLElement;
+                    const obraElement = target.closest('[data-obra-id]');
+                    if (obraElement) {
+                      handleObraMouseMove(e);
+                    }
+                  }}
+                  onMouseLeave={handleObraMouseLeave}
                 >
                   {stageObras.length === 0 ? (
                     <div className="p-5 text-center text-xs text-[#B2BEC3] italic border border-dashed border-[#E0E0E0] rounded-xl bg-white/30">
@@ -430,6 +438,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       return (
                         <div
                           key={obra.id}
+                          data-obra-id={obra.id}
                           draggable
                           onDragStart={() => setDraggedObra(obra)}
                           onDragEnd={() => setDraggedObra(null)}
@@ -438,8 +447,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                             console.log('KANBAN - Mouse enter:', obra.codigo);
                             handleObraMouseEnter(obra, e);
                           }}
-                          onMouseMove={handleObraMouseMove}
-                          onMouseLeave={handleObraMouseLeave}
                           className={`bg-white/90 backdrop-blur-md rounded-xl border shadow-2xs transition-all hover:shadow-md relative group cursor-pointer active:cursor-grabbing w-full min-w-0 max-w-full overflow-hidden box-border ${
                             cardViewMode === 'summarized' ? 'p-2.5 space-y-1' : 'p-4 space-y-2.5'
                           } ${
