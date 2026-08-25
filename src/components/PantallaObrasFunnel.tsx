@@ -129,6 +129,42 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   });
   const [hoverTimeoutId, setHoverTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
+  // Setup event delegation for obra cards
+  useEffect(() => {
+    const handleCardMouseEnter = (e: MouseEvent) => {
+      const card = (e.target as HTMLElement).closest('[data-obra-id]');
+      if (!card) return;
+
+      const obraId = card.getAttribute('data-obra-id');
+      const obra = obras.find(o => o.id === obraId);
+      if (!obra) return;
+
+      console.log('💡 Event delegation - Mouse enter:', obra.codigo);
+      handleObraMouseEnter(obra, e as any);
+    };
+
+    const handleCardMouseMove = (e: MouseEvent) => {
+      const card = (e.target as HTMLElement).closest('[data-obra-id]');
+      if (card) {
+        handleObraMouseMove(e as any);
+      }
+    };
+
+    const handleCardMouseLeave = () => {
+      handleObraMouseLeave();
+    };
+
+    document.addEventListener('mouseenter', handleCardMouseEnter, true);
+    document.addEventListener('mousemove', handleCardMouseMove, true);
+    document.addEventListener('mouseleave', handleCardMouseLeave, true);
+
+    return () => {
+      document.removeEventListener('mouseenter', handleCardMouseEnter, true);
+      document.removeEventListener('mousemove', handleCardMouseMove, true);
+      document.removeEventListener('mouseleave', handleCardMouseLeave, true);
+    };
+  }, [obras]);
+
   // Build usuario map for quick lookup
   const usuarioMap = new Map<string, string>();
   usuarios.forEach(u => usuarioMap.set(u.id, u.nombre));
