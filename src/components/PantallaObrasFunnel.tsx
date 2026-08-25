@@ -213,6 +213,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
 
     const timeoutId = setTimeout(() => {
       const lastNota = obra.notas![obra.notas!.length - 1];
+      console.log('Mostrando nota:', lastNota);
 
       setNotaTooltip({
         visible: true,
@@ -232,6 +233,7 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
     setNotaTooltip((prev: any) => ({
       ...prev,
       position: { x: e.clientX, y: e.clientY },
+      visible: prev.visible,
     }));
   };
 
@@ -240,10 +242,11 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
       clearTimeout(hoverTimeoutId);
       setHoverTimeoutId(null);
     }
-    setNotaTooltip((prev: any) => ({
-      ...prev,
+    setNotaTooltip({
       visible: false,
-    }));
+      position: { x: 0, y: 0 },
+      nota: null,
+    });
   };
 
   return (

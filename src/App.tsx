@@ -71,7 +71,7 @@ import {
 import { tieneAlertaTemporal } from './utils/semaforo';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabaseAdapter } from './adapters/supabaseAdapter';
-import { obrasService, clientesService, equiposService, actividadesService } from './services';
+import { obrasService, clientesService, equiposService, actividadesService, notasService } from './services';
 import { configuracionService } from './services/configuracionService';
 import { seedActividades, seedActividadesParaObra } from './utils/seedActividades';
 import { reportarErrorGuardado } from './utils/errorGuardado';
@@ -215,7 +215,18 @@ function AppContent() {
   // "Mis obras asignadas". El responsable vive en la obra, no en la sesión.
   useEffect(() => {
     if (!isLoading && obrasFromSupabase.length > 0) {
-      setObras(obrasFromSupabase);
+      // Load notas for each obra
+      const loadNotas = async () => {
+        const obrasConNotas = await Promise.all(
+          obrasFromSupabase.map(async (obra) => {
+            const notas = await notasService.getNotasByObraId(obra.id);
+            return { ...obra, notas };
+          })
+        );
+        setObras(obrasConNotas);
+      };
+
+      loadNotas();
       setClientes(clientesFromSupabase);
       setEquipos(equiposFromSupabase);
     }
