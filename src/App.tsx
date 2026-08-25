@@ -50,6 +50,7 @@ import { PantallaConfiguracion } from './components/PantallaConfiguracion';
 import { ModalObra } from './components/ModalObra';
 import { ModalActividad } from './components/ModalActividad';
 import { ModalCliente } from './components/ModalCliente';
+import { ModalEquipo } from './components/ModalEquipo';
 
 import {
   Obra,
@@ -242,6 +243,11 @@ function AppContent() {
   const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
   const [isConfiguracionOpen, setIsConfiguracionOpen] = useState<boolean>(false);
 
+  // "Crear equipo y asignarlo" desde ModalObra: crea un equipo nuevo y lo
+  // asigna de una a la obra que se está editando/creando.
+  const [isModalEquipoParaObraOpen, setIsModalEquipoParaObraOpen] = useState<boolean>(false);
+  const [obraIdParaNuevoEquipo, setObraIdParaNuevoEquipo] = useState<string | null>(null);
+
   // Count total obras requiring temporal alert (> 7 days without update)
   const alertaCount = obras.filter((o) => tieneAlertaTemporal(o)).length;
 
@@ -263,7 +269,7 @@ function AppContent() {
     setIsModalObraOpen(true);
   };
 
-  const handleSaveObra = (savedObra: Obra) => {
+  const handleSaveObra = (savedObra: Obra): string => {
     // An obra is "existing" only when its id is a real Supabase UUID. New obras
     // arrive with a placeholder id like `obr-1699...`, which must not be sent to
     // updateObra (that silently matches zero rows and the obra is lost on reload).
@@ -319,6 +325,48 @@ function AppContent() {
         return [obraFinal, ...prev];
       }
     });
+
+    return savedObra.id;
+  };
+
+  // Botón "Crear equipo y asignarlo" dentro de ModalObra: si la obra todavía
+  // no existe (está siendo creada), primero la guarda para tener un id real,
+  // y recién ahí abre ModalEquipo apuntando a esa obra.
+  const handleCrearEquipoParaObra = (obraEnProgreso: Obra) => {
+    const esExistente = !!obraEnProgreso.id && supabaseAdapter.isValidUUID(obraEnProgreso.id);
+    const obraId = esExistente ? obraEnProgreso.id : handleSaveObra(obraEnProgreso);
+
+    if (!esExistente) {
+      // La obra pasó de "nueva" a "existente": sincronizamos editingObra para
+      // que ModalObra (que sigue abierto detrás de ModalEquipo) no la trate
+      // como una obra nueva otra vez si se sigue editando.
+      setEditingObra({ ...obraEnProgreso, id: obraId });
+    }
+
+    setObraIdParaNuevoEquipo(obraId);
+    setIsModalEquipoParaObraOpen(true);
+  };
+
+  // Crea el equipo (igual que handleSaveEquipo) y de una lo asigna a la obra
+  // indicada, en vez de dejarlo sin obra asociada.
+  const handleSaveEquipoParaObra = (equipo: Equipo) => {
+    if (!obraIdParaNuevoEquipo) return;
+
+    const nuevoId = crypto.randomUUID();
+    const equipoFinal: Equipo = { ...equipo, id: nuevoId };
+    const supabaseData = { ...supabaseAdapter.toSupabaseEquipo(equipoFinal, obraIdParaNuevoEquipo), id: nuevoId };
+
+    equiposService.createEquipo(supabaseData as any)
+      .catch(err => reportarErrorGuardado('el equipo', 'crear', err));
+
+    setEquipos((prev) => [...prev, equipoFinal]);
+
+    const obraDestino = obras.find((o) => o.id === obraIdParaNuevoEquipo);
+    const equipoIdsActuales = obraDestino?.equipoIds || [];
+    handleUpdateObraEquipos(obraIdParaNuevoEquipo, [...equipoIdsActuales, nuevoId]);
+
+    setIsModalEquipoParaObraOpen(false);
+    setObraIdParaNuevoEquipo(null);
   };
 
   const handleUpdateObraState = (obraId: string, nuevoEstado: FunnelStage) => {
@@ -798,6 +846,18 @@ function AppContent() {
         proximoCodigoObra={proximoCodigoObra}
         onUpdateProximoCodigo={setProximoCodigoObra}
         onUpdateObraEquipos={handleUpdateObraEquipos}
+        onCrearEquipoParaObra={handleCrearEquipoParaObra}
+      />
+
+      {/* Modal para crear un equipo nuevo y asignarlo directo a una obra
+          (disparado desde el botón "Crear equipo y asignarlo" en ModalObra) */}
+      <ModalEquipo
+        isOpen={isModalEquipoParaObraOpen}
+        onClose={() => {
+          setIsModalEquipoParaObraOpen(false);
+          setObraIdParaNuevoEquipo(null);
+        }}
+        onSaveEquipo={handleSaveEquipoParaObra}
       />
 
       {/* Actividad Modal */}

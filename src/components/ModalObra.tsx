@@ -39,6 +39,7 @@ interface ModalObraProps {
   proximoCodigoObra: string;
   onUpdateProximoCodigo: (codigo: string) => void;
   onUpdateObraEquipos?: (obraId: string, equipoIds: string[]) => void;
+  onCrearEquipoParaObra?: (obraEnProgreso: Obra) => void;
 }
 
 export const ModalObra: React.FC<ModalObraProps> = ({
@@ -51,7 +52,8 @@ export const ModalObra: React.FC<ModalObraProps> = ({
   editingObra,
   proximoCodigoObra,
   onUpdateProximoCodigo,
-  onUpdateObraEquipos
+  onUpdateObraEquipos,
+  onCrearEquipoParaObra
 }) => {
   // Early return BEFORE any hooks - critical for hook ordering
   if (!isOpen) return null;
@@ -305,13 +307,10 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     'Rampa': '♿'
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formObra.nombre) return;
-
+  const buildObraFinal = (): Obra => {
     const hoyISO = new Date().toISOString().split('T')[0];
 
-    const obraFinal: Obra = {
+    return {
       // Preserve every field not covered by this form
       ...(editingObra || {}),
       id: editingObra ? editingObra.id : `obr-${Date.now()}`,
@@ -335,6 +334,13 @@ export const ModalObra: React.FC<ModalObraProps> = ({
       actividadesPorEtapa: formObra.actividadesPorEtapa || editingObra?.actividadesPorEtapa || [],
       historialLog: formObra.historialLog || editingObra?.historialLog || []
     };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formObra.nombre) return;
+
+    const obraFinal = buildObraFinal();
 
     setToast({ message: '💾 Guardando...', type: 'loading' });
 
@@ -354,6 +360,23 @@ export const ModalObra: React.FC<ModalObraProps> = ({
     } catch (error) {
       setToast({ message: '❌ Error al guardar', type: 'error' });
     }
+  };
+
+  const handleCrearEquipoClick = () => {
+    if (!onCrearEquipoParaObra) return;
+    if (!formObra.nombre) {
+      setToast({ message: '⚠️ Completá el nombre de la obra antes de crear un equipo', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    if (!editingObra) {
+      // Obra nueva: se guarda primero para tener un id real antes de abrir
+      // el modal de equipo. App.tsx se encarga de asignar el UUID.
+      onUpdateProximoCodigo(generateNextCodigoObra(proximoCodigoObra));
+    }
+
+    onCrearEquipoParaObra(buildObraFinal());
   };
 
   return (
@@ -481,6 +504,19 @@ export const ModalObra: React.FC<ModalObraProps> = ({
                 ))}
               </select>
             </div>
+
+            {onCrearEquipoParaObra && (
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={handleCrearEquipoClick}
+                  className="w-full p-2.5 rounded-xl font-bold text-[#C8102E] border-2 border-dashed border-[#C8102E]/40 hover:border-[#C8102E] hover:bg-red-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Plus size={16} />
+                  Crear equipo y asignarlo
+                </button>
+              </div>
+            )}
           </div>
 
           <div>
