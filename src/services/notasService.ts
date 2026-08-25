@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabaseClient';
 import type { Nota } from '../types';
 
 class NotasService {
