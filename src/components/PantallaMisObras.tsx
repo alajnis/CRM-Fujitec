@@ -3,6 +3,8 @@ import { Building2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide
 import { Obra } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getDiasSinActualizar } from '../utils/semaforo';
+import { useNotaTooltip } from '../hooks/useNotaTooltip';
+import { NotaTooltip } from './NotaTooltip';
 
 interface PantallaMisObrasProps {
   obras: Obra[];
@@ -16,6 +18,7 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
   getDiasMaximosForEtapa = () => 7
 }) => {
   const { usuarioActual } = useAuth();
+  const notaTooltip = useNotaTooltip(obras);
   const [misObrasFilter, setMisObrasFilter] = useState<'todas' | 'alerta' | 'sin-alerta'>('todas');
   const [sortColumn, setSortColumn] = useState<'codigo' | 'nombre' | 'cliente' | 'estado' | 'dias' | null>('dias');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -209,7 +212,7 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
                       const cliente = obras.find(o => o.id === obra.id)?.clienteId || 'N/A';
 
                       return (
-                        <tr key={obra.id} className="hover:bg-[#F9F9F9] dark:hover:bg-slate-700/50 transition-colors">
+                        <tr key={obra.id} data-obra-id={obra.id} className="hover:bg-[#F9F9F9] dark:hover:bg-slate-700/50 transition-colors">
                           <td className="px-4 py-3 font-mono font-bold text-[#C8102E]">{obra.codigo}</td>
                           <td className="px-4 py-3 font-bold text-[#2D3436] dark:text-slate-100 truncate max-w-xs">{obra.nombre}</td>
                           <td className="px-4 py-3 text-[#636E72] dark:text-slate-400">Cliente</td>
@@ -246,6 +249,13 @@ export const PantallaMisObras: React.FC<PantallaMisObrasProps> = ({
           </div>
         </div>
       )}
+
+      {/* Nota Tooltip */}
+      <NotaTooltip
+        nota={notaTooltip.nota}
+        position={notaTooltip.position}
+        visible={notaTooltip.visible}
+      />
     </div>
   );
 };

@@ -36,6 +36,7 @@ import { ModalAdvertencia } from './ModalAdvertencia';
 import { ComponenteActividades } from './ComponenteActividades';
 import { NotaTooltip } from './NotaTooltip';
 import { useAuth } from '../context/AuthContext';
+import { useNotaTooltip } from '../hooks/useNotaTooltip';
 
 interface PantallaObrasFunnelProps {
   obras: Obra[];
@@ -115,60 +116,8 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
   const [pendingStageChange, setPendingStageChange] = useState<{ obra: Obra; nuevoEstado: FunnelStage } | null>(null);
   const [isAdvertenciaOpen, setIsAdvertenciaOpen] = useState(false);
 
-  // Tooltip state for notas
-  const [notaTooltip, setNotaTooltip] = useState<{
-    visible: boolean;
-    position: { x: number; y: number };
-    nota: { texto: string; fecha: string; autor: string } | null;
-  }>({
-    visible: false,
-    position: { x: 0, y: 0 },
-    nota: null,
-  });
-  const [hoverTimeoutId, setHoverTimeoutId] = useState<NodeJS.Timeout | null>(null);
-
-  // Track which obra is currently hovered
-  const [currentHoveredObraId, setCurrentHoveredObraId] = useState<string | null>(null);
-
-  // Setup event delegation for obra cards
-  useEffect(() => {
-    const handleCardMouseOver = (e: MouseEvent) => {
-      const card = (e.target as HTMLElement).closest('[data-obra-id]');
-      if (!card) return;
-
-      const obraId = card.getAttribute('data-obra-id');
-      const obra = obras.find((o: any) => o.id === obraId);
-      const tieneNotas = (obra?.historialLog || []).some((log: any) => log.tipo === 'nota_agregada');
-      if (!obra || !tieneNotas) return;
-
-      setCurrentHoveredObraId(obraId);
-      handleObraMouseEnter(obra, e as any);
-    };
-
-    const handleCardMouseMove = (e: MouseEvent) => {
-      if (!currentHoveredObraId) return;
-
-      const card = (e.target as HTMLElement).closest('[data-obra-id]');
-      if (card?.getAttribute('data-obra-id') === currentHoveredObraId) {
-        handleObraMouseMove(e as any);
-      }
-    };
-
-    const handleCardMouseOut = () => {
-      setCurrentHoveredObraId(null);
-      handleObraMouseLeave();
-    };
-
-    document.addEventListener('mouseover', handleCardMouseOver, false);
-    document.addEventListener('mousemove', handleCardMouseMove, false);
-    document.addEventListener('mouseout', handleCardMouseOut, false);
-
-    return () => {
-      document.removeEventListener('mouseover', handleCardMouseOver, false);
-      document.removeEventListener('mousemove', handleCardMouseMove, false);
-      document.removeEventListener('mouseout', handleCardMouseOut, false);
-    };
-  }, [obras, currentHoveredObraId]);
+  // Tooltip with the last nota for the hovered obra (appears after 2s of no mouse movement)
+  const notaTooltip = useNotaTooltip(obras);
 
   // Build usuario map for quick lookup
   const usuarioMap = new Map<string, string>();
@@ -246,59 +195,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
       setPendingStageChange(null);
       setIsAdvertenciaOpen(false);
     }
-  };
-
-  // Las "notas" se guardan como entradas tipo 'nota_agregada' dentro del
-  // historialLog de la obra (ver ModalObra), no en una tabla notas separada.
-  const getUltimaNota = (obra: Obra) => {
-    const notasLog = (obra.historialLog || []).filter((log) => log.tipo === 'nota_agregada');
-    if (notasLog.length === 0) return null;
-
-    const ultima = notasLog[notasLog.length - 1];
-    // descripcion tiene el formato: Nota: "contenido"
-    const match = ultima.descripcion.match(/^Nota: "([\s\S]*)"$/);
-    const texto = match ? match[1] : ultima.descripcion;
-
-    return {
-      texto,
-      fecha: ultima.fecha,
-      autor: ultima.usuario,
-    };
-  };
-
-  const handleObraMouseEnter = (obra: Obra, e: React.MouseEvent) => {
-    const ultimaNota = getUltimaNota(obra);
-    if (!ultimaNota) return;
-
-    const timeoutId = setTimeout(() => {
-      setNotaTooltip({
-        visible: true,
-        position: { x: e.clientX, y: e.clientY },
-        nota: ultimaNota,
-      });
-    }, 1000);
-
-    setHoverTimeoutId(timeoutId);
-  };
-
-  const handleObraMouseMove = (e: React.MouseEvent) => {
-    setNotaTooltip((prev: any) => ({
-      ...prev,
-      position: { x: e.clientX, y: e.clientY },
-      visible: prev.visible,
-    }));
-  };
-
-  const handleObraMouseLeave = () => {
-    if (hoverTimeoutId) {
-      clearTimeout(hoverTimeoutId);
-      setHoverTimeoutId(null);
-    }
-    setNotaTooltip({
-      visible: false,
-      position: { x: 0, y: 0 },
-      nota: null,
-    });
   };
 
   return (
@@ -450,14 +346,6 @@ export const PantallaObrasFunnel: React.FC<PantallaObrasFunnelProps> = ({
                       setDraggedObra(null);
                     }
                   }}
-                  onMouseMove={(e: any) => {
-                    const target = e.target as HTMLElement;
-                    const obraElement = target.closest('[data-obra-id]');
-                    if (obraElement) {
-                      handleObraMouseMove(e);
-                    }
-                  }}
-                  onMouseLeave={handleObraMouseLeave}
                 >
                   {stageObras.length === 0 ? (
                     <div className="p-5 text-center text-xs text-[#B2BEC3] italic border border-dashed border-[#E0E0E0] rounded-xl bg-white/30">
