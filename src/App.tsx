@@ -43,7 +43,7 @@ import { PantallaDashboard } from './components/PantallaDashboard';
 import { PantallaMisObras } from './components/PantallaMisObras';
 import { PantallaObrasFunnel } from './components/PantallaObrasFunnel';
 import { PantallaFichaRelacional } from './components/PantallaFichaRelacional';
-import { PantallaCartaOferta } from './components/PantallaCartaOferta';
+import { PantallaPropuesta } from './components/PantallaPropuesta';
 import { PantallaAdmin } from './components/PantallaAdmin';
 import { PantallaEquipos } from './components/PantallaEquipos';
 import { PantallaConfiguracion } from './components/PantallaConfiguracion';
@@ -247,6 +247,10 @@ function AppContent() {
   // asigna de una a la obra que se está editando/creando.
   const [isModalEquipoParaObraOpen, setIsModalEquipoParaObraOpen] = useState<boolean>(false);
   const [obraIdParaNuevoEquipo, setObraIdParaNuevoEquipo] = useState<string | null>(null);
+
+  // Edición de un equipo desde la propuesta, para completar datos faltantes
+  // sin tener que salir del armado del documento.
+  const [equipoParaEditar, setEquipoParaEditar] = useState<Equipo | null>(null);
 
   // Count total obras requiring temporal alert (> 7 days without update)
   const alertaCount = obras.filter((o) => tieneAlertaTemporal(o)).length;
@@ -802,12 +806,12 @@ function AppContent() {
           )}
 
           {activeTab === 'oferta' && (
-            <PantallaCartaOferta
+            <PantallaPropuesta
               obras={obras}
               clientes={clientes}
+              equipos={equipos}
               selectedObraInitial={selectedObraForOffer}
-              searchQuery={searchQuery}
-              onSaveCartaOferta={handleSaveCartaOferta}
+              onEditEquipo={setEquipoParaEditar}
             />
           )}
 
@@ -859,6 +863,19 @@ function AppContent() {
         }}
         onSaveEquipo={handleSaveEquipoParaObra}
       />
+
+      {/* Edición de equipo desde la propuesta (completar datos faltantes) */}
+      {equipoParaEditar && (
+        <ModalEquipo
+          isOpen={!!equipoParaEditar}
+          onClose={() => setEquipoParaEditar(null)}
+          equipo={equipoParaEditar}
+          onSaveEquipo={(equipo) => {
+            handleSaveEquipo(equipo);
+            setEquipoParaEditar(null);
+          }}
+        />
+      )}
 
       {/* Actividad Modal */}
       {selectedObraForActividadLive && (

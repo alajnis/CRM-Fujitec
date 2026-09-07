@@ -286,3 +286,99 @@ export interface LogEntry {
   estadoNuevo?: string; // valor nuevo cuando aplique
   detalles?: Record<string, any>; // información adicional
 }
+
+// ============================================================================
+// PROPUESTA TÉCNICO-ECONÓMICA
+// El documento final es el ensamblado de 5 partes (ver docs de referencia):
+//   1. Carta de presentación   2. Oferta económica   3. Especificaciones
+//   4. Características generales (anexo PDF)   5. Ayuda de gremio (anexo PDF)
+// ============================================================================
+
+/** Destinatario de la propuesta. Se precarga del cliente de la obra. */
+export interface PropuestaDestinatario {
+  empresa: string;
+  direccion: string;
+  localidad: string;
+  atencionA: string; // "Arq. Julián Torresetti"
+  referencia: string; // "Oferta COSTA VIA T2 (A-4550)"
+  numeroFA: string; // "FA 24-0018"
+  fecha: string; // YYYY-MM-DD
+}
+
+/** Desglose económico. Los montos se cargan a mano (el de la obra es referencia). */
+export interface PropuestaPrecios {
+  parteImportadaUSD: number;
+  gastosDespachoUSD: number;
+  instalacionNacionalARS: number;
+  /** Mantenimiento mensual sin IVA, por equipo. */
+  mantenimientoMensual: { equipoId: string; valorUnitarioARS: number }[];
+  /** Base de ajuste UOM declarada en el documento. */
+  baseAjusteUOM: string; // "1 de febrero de 2025"
+  importacionACargoDelCliente: boolean;
+}
+
+/**
+ * Textos y cláusulas. Cada campo puede venir de la plantilla global
+ * (Configuración) o estar sobrescrito puntualmente en esta propuesta.
+ */
+export interface PropuestaClausulas {
+  garantiaAnos: number;
+  validezDias: number;
+  plazoEntrega: string;
+  tareasIncluidas: string[];
+  tareasNoIncluidas: string[];
+  formaPagoImportado: string[];
+  formaPagoNacional: string[];
+  notasPrecio: string[];
+  /** Campos que el usuario editó a mano en esta propuesta (no heredan de la plantilla). */
+  camposSobrescritos: string[];
+}
+
+/**
+ * Opciones de las plantillas que hoy se resuelven borrando a mano las
+ * variantes alternativas del Word (cielorraso, contrapeso, marcos, etc.).
+ */
+export interface PropuestaOpcionesTecnicas {
+  cielorraso: string;
+  senalPasillo: string;
+  marcos: string;
+  contrapeso: string;
+  puertasPasillo: string;
+  revestimientoCabina: string;
+  incluyeElvic: boolean;
+}
+
+/** Una versión ya emitida. El PDF queda archivado para trazabilidad. */
+export interface PropuestaVersion {
+  version: number; // 1, 2, 3...
+  fechaGeneracion: string; // YYYY-MM-DD HH:mm:ss
+  generadaPor: string;
+  nombreArchivo: string; // "COSTA VIA T2 (A-4550) V3.pdf"
+  storagePath?: string; // ruta en Supabase Storage
+  /** Snapshot de los datos usados, para poder auditar qué se envió. */
+  snapshot?: Record<string, any>;
+}
+
+export interface PropuestaTecnicoEconomica {
+  id: string;
+  obraId: string;
+  destinatario: PropuestaDestinatario;
+  precios: PropuestaPrecios;
+  clausulas: PropuestaClausulas;
+  opcionesTecnicas: PropuestaOpcionesTecnicas;
+  /** Equipos incluidos. Si está vacío, se toman todos los de la obra. */
+  equipoIdsIncluidos: string[];
+  versiones: PropuestaVersion[];
+  ultimaVersion: number;
+  fechaCreacion: string;
+  fechaActualizacion: string;
+}
+
+/**
+ * Grupo de equipos con especificaciones idénticas. El documento los presenta
+ * agrupados ("# 1~2 ASCENSORES 800 KG") y desdobla los campos que difieren.
+ */
+export interface GrupoEquipos {
+  etiqueta: string; // "# 1~2" | "# 3"
+  equipos: Equipo[];
+}

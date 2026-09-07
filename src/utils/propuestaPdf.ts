@@ -1,0 +1,719 @@
+/**
+ * Generación del PDF de la propuesta técnico-económica.
+ *
+ * Replica el formato de los documentos Word originales: membrete con logo,
+ * encabezado "Obra: ...", pie institucional y numeración propia por documento
+ * ("1 / 5"), tal como en el PDF de referencia.
+ */
+
+import { jsPDF } from 'jspdf';
+import { Obra, Cliente, Equipo, PropuestaTecnicoEconomica } from '../types';
+import {
+  DATOS_EMPRESA,
+  CARTA_PRESENTACION_PARRAFOS,
+  CARTA_PRESENTACION_HITOS,
+  CARTA_PRESENTACION_CIERRE,
+  ESPECIFICACIONES_TEXTOS,
+  TABLERO_CABINA_ITEMS,
+  TEXTO_ELVIC,
+  VARIANTES_SALA_MAQUINAS,
+  TEXTO_PAGO_IMPORTADO_ALTERNATIVAS,
+  TEXTO_PAGO_DESPACHO,
+  TEXTO_IMPORTACION_CLIENTE
+} from './propuestaTemplates';
+import {
+  agruparEquipos,
+  describirSuministro,
+  etiquetaRangoCompleto,
+  formatearNumero,
+  numeroEnPalabras,
+  velocidadMetrosPorMinuto
+} from './propuestaEquipos';
+
+const MARGEN_X = 25;
+const MARGEN_TOP = 38;
+const MARGEN_BOTTOM = 32;
+const ANCHO_PAGINA = 210;
+const ALTO_PAGINA = 297;
+const ANCHO_UTIL = ANCHO_PAGINA - MARGEN_X * 2;
+
+const ROJO_FUJITEC: [number, number, number] = [200, 16, 46];
+const GRIS_TEXTO: [number, number, number] = [45, 52, 54];
+const GRIS_SUAVE: [number, number, number] = [120, 130, 135];
+
+/** Marca dónde arranca cada documento, para numerar "1 / N" por separado. */
+interface BloqueDocumento {
+  primeraPagina: number;
+  ultimaPagina: number;
+}
+
+class ConstructorPdf {
+  doc: jsPDF;
+  y: number;
+  logo: string | null;
+  tituloObra: string;
+  bloques: BloqueDocumento[] = [];
+  bloqueActual: BloqueDocumento | null = null;
+
+  constructor(tituloObra: string, logo: string | null) {
+    this.doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    this.y = MARGEN_TOP;
+    this.logo = logo;
+    this.tituloObra = tituloObra;
+  }
+
+  /** Inicia un documento nuevo: página nueva y numeración desde 1. */
+  iniciarDocumento() {
+    if (this.bloqueActual) {
+      this.bloqueActual.ultimaPagina = this.doc.getNumberOfPages();
+      this.bloques.push(this.bloqueActual);
+      this.doc.addPage();
+    }
+    this.bloqueActual = {
+      primeraPagina: this.doc.getNumberOfPages(),
+      ultimaPagina: this.doc.getNumberOfPages()
+    };
+    this.y = MARGEN_TOP;
+  }
+
+  cerrarDocumento() {
+    if (this.bloqueActual) {
+      this.bloqueActual.ultimaPagina = this.doc.getNumberOfPages();
+      this.bloques.push(this.bloqueActual);
+      this.bloqueActual = null;
+    }
+  }
+
+  /** Salta de página si no entra `alto` mm en lo que queda. */
+  asegurarEspacio(alto: number) {
+    if (this.y + alto > ALTO_PAGINA - MARGEN_BOTTOM) {
+      this.doc.addPage();
+      this.y = MARGEN_TOP;
+    }
+  }
+
+  texto(
+    contenido: string,
+    opciones: { size?: number; bold?: boolean; color?: [number, number, number]; indent?: number; spacing?: number } = {}
+  ) {
+    const { size = 9.5, bold = false, color = GRIS_TEXTO, indent = 0, spacing = 1.6 } = opciones;
+    this.doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    this.doc.setFontSize(size);
+    this.doc.setTextColor(...color);
+
+    const ancho = ANCHO_UTIL - indent;
+    const lineas = this.doc.splitTextToSize(contenido, ancho);
+    const altoLinea = size * 0.45;
+
+    for (const linea of lineas) {
+      this.asegurarEspacio(altoLinea + 1);
+      this.doc.text(linea, MARGEN_X + indent, this.y);
+      this.y += altoLinea;
+    }
+    this.y += spacing;
+  }
+
+  /** Título de sección numerado, como "1.0.1 VELOCIDAD:" */
+  seccion(numero: string, titulo: string) {
+    this.asegurarEspacio(10);
+    this.y += 1.5;
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFontSize(9.5);
+    this.doc.setTextColor(...GRIS_TEXTO);
+    this.doc.text(`${numero} ${titulo.toUpperCase()}`, MARGEN_X, this.y);
+    this.y += 5;
+  }
+
+  tituloBloque(titulo: string) {
+    this.asegurarEspacio(14);
+    this.y += 2;
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFontSize(12);
+    this.doc.setTextColor(...ROJO_FUJITEC);
+    this.doc.text(titulo.toUpperCase(), MARGEN_X, this.y);
+    this.y += 7;
+  }
+
+  vinieta(contenido: string) {
+    const size = 9.5;
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setFontSize(size);
+    this.doc.setTextColor(...GRIS_TEXTO);
+
+    const lineas = this.doc.splitTextToSize(contenido, ANCHO_UTIL - 6);
+    const altoLinea = size * 0.45;
+
+    lineas.forEach((linea: string, indice: number) => {
+      this.asegurarEspacio(altoLinea + 1);
+      if (indice === 0) this.doc.text('•', MARGEN_X, this.y);
+      this.doc.text(linea, MARGEN_X + 6, this.y);
+      this.y += altoLinea;
+    });
+    this.y += 1.4;
+  }
+
+  espacio(mm: number) {
+    this.y += mm;
+  }
+
+  /**
+   * Membrete, encabezado y pie en todas las páginas. Se corre al final, con
+   * el total de páginas de cada documento ya conocido.
+   */
+  aplicarMembretes() {
+    const total = this.doc.getNumberOfPages();
+
+    for (let pagina = 1; pagina <= total; pagina++) {
+      this.doc.setPage(pagina);
+
+      if (this.logo) {
+        try {
+          this.doc.addImage(this.logo, 'PNG', MARGEN_X, 12, 34, 11);
+        } catch {
+          // Si el logo no se pudo cargar, el documento sigue siendo válido.
+        }
+      }
+
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(8);
+      this.doc.setTextColor(...GRIS_SUAVE);
+      this.doc.text(`Obra: ${this.tituloObra}`, ANCHO_PAGINA - MARGEN_X, 17, { align: 'right' });
+
+      this.doc.setDrawColor(225, 228, 230);
+      this.doc.setLineWidth(0.3);
+      this.doc.line(MARGEN_X, 27, ANCHO_PAGINA - MARGEN_X, 27);
+
+      const bloque = this.bloques.find(
+        (b) => pagina >= b.primeraPagina && pagina <= b.ultimaPagina
+      );
+      const numeroEnBloque = bloque ? pagina - bloque.primeraPagina + 1 : pagina;
+      const totalBloque = bloque ? bloque.ultimaPagina - bloque.primeraPagina + 1 : total;
+
+      const pieY = ALTO_PAGINA - 24;
+      this.doc.setDrawColor(225, 228, 230);
+      this.doc.line(MARGEN_X, pieY - 4, ANCHO_PAGINA - MARGEN_X, pieY - 4);
+
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setFontSize(7.5);
+      this.doc.setTextColor(...GRIS_TEXTO);
+      this.doc.text(DATOS_EMPRESA.razonSocial, MARGEN_X, pieY);
+      this.doc.text(
+        `${numeroEnBloque} / ${totalBloque}`,
+        ANCHO_PAGINA - MARGEN_X,
+        pieY,
+        { align: 'right' }
+      );
+
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(7);
+      this.doc.setTextColor(...GRIS_SUAVE);
+      this.doc.text(DATOS_EMPRESA.direccion, MARGEN_X, pieY + 3.6);
+      this.doc.text(`Tel.: ${DATOS_EMPRESA.telefono}`, MARGEN_X, pieY + 7.2);
+      this.doc.text(`E-mail: ${DATOS_EMPRESA.email}`, MARGEN_X, pieY + 10.8);
+      this.doc.text(`Web: ${DATOS_EMPRESA.web}`, MARGEN_X, pieY + 14.4);
+    }
+  }
+}
+
+const formatearFechaLarga = (iso: string): string => {
+  const meses = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+  const fecha = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(fecha.getTime())) return iso;
+  return `${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`;
+};
+
+const formatearUSD = (valor: number): string =>
+  `USD ${valor.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+const formatearARS = (valor: number): string =>
+  `ARS ${valor.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+/** Encabezado de destinatario, común a la carta y a la oferta económica. */
+const escribirEncabezadoCarta = (pdf: ConstructorPdf, propuesta: PropuestaTecnicoEconomica) => {
+  const { destinatario } = propuesta;
+
+  pdf.texto(destinatario.numeroFA, { bold: true, size: 9.5, spacing: 4 });
+  pdf.texto(`Buenos Aires, ${formatearFechaLarga(destinatario.fecha)}`, { spacing: 5 });
+
+  pdf.texto('Señores:', { spacing: 1 });
+  pdf.texto(destinatario.empresa, { bold: true, spacing: 1 });
+  if (destinatario.direccion) pdf.texto(destinatario.direccion, { spacing: 1 });
+  if (destinatario.localidad) pdf.texto(destinatario.localidad, { spacing: 1 });
+  pdf.texto('PRESENTE', { spacing: 4 });
+
+  if (destinatario.atencionA) pdf.texto(`At.: ${destinatario.atencionA}`, { spacing: 1.5 });
+  pdf.texto(`Ref.: ${destinatario.referencia}`, { spacing: 5 });
+};
+
+/** Documento 1: carta de presentación institucional. */
+const generarCartaPresentacion = (pdf: ConstructorPdf, propuesta: PropuestaTecnicoEconomica) => {
+  pdf.iniciarDocumento();
+  escribirEncabezadoCarta(pdf, propuesta);
+
+  pdf.texto('De nuestra consideración:', { spacing: 4 });
+  CARTA_PRESENTACION_PARRAFOS.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
+  CARTA_PRESENTACION_HITOS.forEach((hito) => pdf.vinieta(hito));
+  pdf.espacio(2);
+  CARTA_PRESENTACION_CIERRE.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
+};
+
+/** Documento 2: oferta económica con precios y cláusulas. */
+const generarOfertaEconomica = (
+  pdf: ConstructorPdf,
+  propuesta: PropuestaTecnicoEconomica,
+  equipos: Equipo[]
+) => {
+  pdf.iniciarDocumento();
+  escribirEncabezadoCarta(pdf, propuesta);
+
+  const { precios, clausulas } = propuesta;
+  const cantidad = equipos.length;
+  const descripcionEquipos = `${numeroEnPalabras(cantidad)} (${cantidad}) ${
+    cantidad === 1 ? 'Ascensor Electromecánico' : 'Ascensores Electromecánicos'
+  } marca Fujitec (Origen Corea/China)`;
+
+  pdf.texto('De nuestra mayor consideración:', { spacing: 3 });
+  pdf.texto(
+    `De acuerdo a lo solicitado en el pliego de referencia, tenemos el agrado de dirigirnos a usted a fin de hacerle llegar la oferta por la provisión e instalación de ${descripcionEquipos} para la obra de referencia, sujeto a los requisitos de vigencia y/u operatividad que se determinarán en el contrato a suscribir, entre ellos -pero no limitado a- que la instalación, mantenimiento y/o reparación de los Equipos sea efectuado por Fujitec Argentina S.A.`,
+    { spacing: 4 }
+  );
+
+  pdf.seccion('1. -', 'Especificaciones técnicas resumidas');
+  pdf.texto('Se adjuntan especificaciones técnicas.', { spacing: 3 });
+
+  pdf.seccion('2. -', 'Garantía');
+  pdf.texto(
+    `Los equipos contarán con una garantía de ${numeroEnPalabras(clausulas.garantiaAnos)} (${clausulas.garantiaAnos}) año${clausulas.garantiaAnos > 1 ? 's' : ''} luego de la recepción provisoria de cada uno de ellos.`,
+    { spacing: 3 }
+  );
+
+  pdf.seccion('3. -', 'Plazo de entrega');
+  pdf.texto(clausulas.plazoEntrega, { spacing: 3 });
+
+  pdf.seccion('4. -', 'Validez de la oferta');
+  pdf.texto(
+    `${numeroEnPalabras(clausulas.validezDias)} (${clausulas.validezDias}) días corridos a partir de la fecha del presente.`,
+    { spacing: 3 }
+  );
+
+  pdf.seccion('5. -', 'Precio (No incluye el I.V.A)');
+  const totalUSD = precios.parteImportadaUSD + precios.gastosDespachoUSD;
+  pdf.texto(
+    `La oferta por la provisión e instalación de ${descripcionEquipos} asciende a la suma de ${formatearUSD(totalUSD)} y ${formatearARS(precios.instalacionNacionalARS)} de acuerdo al siguiente detalle:`,
+    { spacing: 3 }
+  );
+
+  pdf.texto('A) Equipos Importados:', { bold: true, spacing: 1.5 });
+  pdf.texto(
+    `Parte Importada: ${formatearUSD(precios.parteImportadaUSD)} CIF Puerto de Buenos Aires.`,
+    { indent: 5, spacing: 3 }
+  );
+
+  pdf.texto('B) Gastos de Despacho, Nacionalización, Derechos y Transporte a Obra:', {
+    bold: true,
+    spacing: 1.5
+  });
+  pdf.texto(
+    `Gastos de Despacho: ${formatearUSD(precios.gastosDespachoUSD)} CIF Puerto de Buenos Aires.`,
+    { indent: 5, spacing: 3 }
+  );
+
+  pdf.texto('C) Instalación Nacional:', { bold: true, spacing: 1.5 });
+  pdf.texto(
+    `Parte Nacional Instalación: ${formatearARS(precios.instalacionNacionalARS)}.`,
+    { indent: 5, spacing: 3 }
+  );
+
+  pdf.texto(
+    'A los importes precedentemente indicados se le deberá adicionar el IVA correspondiente, el que se devengará al momento de facturación y según la alícuota vigente a dicho momento.',
+    { spacing: 4 }
+  );
+
+  pdf.texto('NOTAS:', { bold: true, spacing: 2 });
+  clausulas.notasPrecio.forEach((nota) => pdf.vinieta(nota));
+
+  pdf.espacio(2);
+  pdf.texto('Se encuentran incluidas en nuestra cotización las siguientes tareas complementarias:', {
+    bold: true,
+    spacing: 2
+  });
+  clausulas.tareasIncluidas.forEach((tarea) => pdf.vinieta(tarea));
+
+  pdf.espacio(2);
+  pdf.texto('No se encuentra incluida dentro de nuestra oferta:', { bold: true, spacing: 2 });
+  clausulas.tareasNoIncluidas.forEach((tarea) => pdf.vinieta(tarea));
+
+  pdf.seccion('6. -', 'Servicio de mantenimiento mensual');
+  const totalMantenimiento = precios.mantenimientoMensual.reduce(
+    (suma, item) => suma + (item.valorUnitarioARS || 0),
+    0
+  );
+
+  if (totalMantenimiento > 0) {
+    pdf.texto(
+      'El mantenimiento mensual sin materiales en horario normal para los ascensores asciende a:',
+      { spacing: 3 }
+    );
+
+    precios.mantenimientoMensual.forEach((item) => {
+      const equipo = equipos.find((e) => e.id === item.equipoId);
+      const nombre = equipo ? equipo.nombre || equipo.codigoUnico : 'Equipo';
+      pdf.texto(`${nombre}: ${formatearARS(item.valorUnitarioARS)} (sin IVA)`, {
+        indent: 5,
+        spacing: 1.2
+      });
+    });
+
+    pdf.espacio(1.5);
+    pdf.texto(`Total mensual (sin IVA): ${formatearARS(totalMantenimiento)}`, {
+      bold: true,
+      indent: 5,
+      spacing: 3
+    });
+  }
+
+  pdf.texto(
+    `Los valores detallados se abonarán en pesos argentinos ajustables por el salario de oficial múltiple del convenio colectivo de trabajo de la UOM (Unión Obrera Metalúrgica), teniendo en cuenta el 100% de la variación de la mano de obra (Base ${precios.baseAjusteUOM}).`,
+    { spacing: 4 }
+  );
+
+  pdf.seccion('7. -', 'Forma de pago');
+  pdf.texto('Equipo importado (en USD) (*)', { bold: true, spacing: 2 });
+  TEXTO_PAGO_IMPORTADO_ALTERNATIVAS.forEach((alternativa) =>
+    pdf.texto(alternativa, { indent: 5, spacing: 2 })
+  );
+
+  pdf.texto('La forma de pago podrá realizarse de acuerdo al siguiente detalle:', { spacing: 2 });
+  clausulas.formaPagoImportado.forEach((item) => pdf.vinieta(item));
+
+  pdf.espacio(1.5);
+  pdf.texto(
+    '(*) Las alternativas de pago mencionadas se encuentran sujetas a las posibilidades de pago al exterior de acuerdo a las regulaciones gubernamentales correspondientes y a la posibilidad de acceso de Fujitec Argentina a la moneda dólar estadounidense.',
+    { size: 8.5, spacing: 4 }
+  );
+
+  if (precios.importacionACargoDelCliente) {
+    pdf.texto('Importación a cargo del Cliente:', { bold: true, spacing: 2 });
+    pdf.texto(TEXTO_IMPORTACION_CLIENTE, { spacing: 4 });
+  } else {
+    pdf.texto('Gastos de despacho (en USD):', { bold: true, spacing: 2 });
+    pdf.texto(TEXTO_PAGO_DESPACHO, { spacing: 4 });
+  }
+
+  pdf.texto('Parte Nacional, materiales e instalación (en $A):', { bold: true, spacing: 2 });
+  pdf.texto(
+    `Se abonará en pesos ajustables por el salario de oficial múltiple del convenio colectivo de trabajo de la UOM (Unión Obrera Metalúrgica), teniendo en cuenta el 100% de la variación de la mano de obra (Base ${precios.baseAjusteUOM}); de acuerdo al siguiente detalle:`,
+    { spacing: 2 }
+  );
+  clausulas.formaPagoNacional.forEach((item) => pdf.vinieta(item));
+
+  pdf.espacio(3);
+  pdf.texto(
+    'Sin otro particular, y quedando a vuestra total disposición para responder cualquier duda, hacemos propicia la oportunidad para saludar a usted muy atentamente.',
+    { spacing: 3 }
+  );
+};
+
+/** Valor de un campo por grupo; si difiere entre grupos, lo desdobla. */
+const escribirCampoPorGrupo = (
+  pdf: ConstructorPdf,
+  grupos: { etiqueta: string; equipos: Equipo[] }[],
+  obtenerValor: (equipo: Equipo) => string
+) => {
+  const valores = grupos.map((grupo) => obtenerValor(grupo.equipos[0]));
+  const todosIguales = valores.every((valor) => valor === valores[0]);
+
+  if (todosIguales) {
+    pdf.texto(valores[0], { indent: 3 });
+    return;
+  }
+
+  grupos.forEach((grupo, indice) => {
+    pdf.texto(`${grupo.etiqueta}:`, { bold: true, indent: 3, spacing: 0.8 });
+    pdf.texto(valores[indice], { indent: 7 });
+  });
+};
+
+/** Documento 3: especificaciones técnicas de los ascensores. */
+const generarEspecificaciones = (
+  pdf: ConstructorPdf,
+  propuesta: PropuestaTecnicoEconomica,
+  obra: Obra,
+  equipos: Equipo[]
+) => {
+  pdf.iniciarDocumento();
+
+  const grupos = agruparEquipos(equipos);
+  const primero = equipos[0];
+  const rangoCompleto = etiquetaRangoCompleto(equipos);
+  const opciones = propuesta.opcionesTecnicas;
+
+  const tipoSala = primero.tipoSalaMaquinas || 'Sin Sala de Máquinas (MRL)';
+  const variante =
+    VARIANTES_SALA_MAQUINAS[tipoSala as keyof typeof VARIANTES_SALA_MAQUINAS] ||
+    VARIANTES_SALA_MAQUINAS['Sin Sala de Máquinas (MRL)'];
+
+  pdf.texto(propuesta.destinatario.numeroFA, { bold: true, spacing: 4 });
+  pdf.tituloBloque('Especificaciones técnicas');
+  pdf.texto(`OBRA: ${obra.nombre} (${obra.codigo})`, { bold: true, spacing: 2 });
+
+  pdf.texto('SUMINISTRO:', { bold: true, spacing: 1.5 });
+  grupos.forEach((grupo) => pdf.texto(describirSuministro(grupo), { indent: 3, spacing: 1 }));
+  pdf.espacio(3);
+
+  pdf.tituloBloque(`1.0 Características de ascensores ${rangoCompleto}`);
+
+  pdf.seccion('1.0.1', 'Velocidad:');
+  escribirCampoPorGrupo(pdf, grupos, (e) => `${velocidadMetrosPorMinuto(e)} m/min.`);
+
+  pdf.seccion('1.0.2', 'Bajo / sobre recorrido:');
+  pdf.texto(
+    `Bajo recorrido: ${formatearNumero(primero.alturaTotal)} mm (según proyecto)`,
+    { indent: 3, spacing: 1 }
+  );
+  pdf.texto(`Sobre recorrido: ${formatearNumero(primero.alturaTotal)} mm (según proyecto)`, {
+    indent: 3
+  });
+
+  pdf.seccion('1.0.3', 'Dimensiones de pasadizo necesario:');
+  escribirCampoPorGrupo(
+    pdf,
+    grupos,
+    (e) =>
+      `${formatearNumero(e.anchoPasadizo)} mm. (ancho) x ${formatearNumero(e.profundidadPasadizo)} mm. (profundidad)`
+  );
+
+  pdf.seccion('1.0.4', 'Capacidad:');
+  escribirCampoPorGrupo(
+    pdf,
+    grupos,
+    (e) => `${formatearNumero(e.capacidadKg)} kg / ${e.capacidadPersonas ?? '__'} personas`
+  );
+
+  pdf.seccion('1.0.5', 'Número de paradas:');
+  escribirCampoPorGrupo(pdf, grupos, (e) => {
+    const paradas = e.paradas ?? 0;
+    const designacion = e.designacionPisos ? ` (${e.designacionPisos})` : '';
+    return `${numeroEnPalabras(paradas)} (${paradas}) paradas y entradas, en todos los casos al mismo lado del pasadizo.${designacion}`;
+  });
+
+  pdf.seccion('1.0.6', 'Recorrido');
+  escribirCampoPorGrupo(pdf, grupos, (e) => `${formatearNumero(e.recorrido)} mm. aprox.`);
+
+  pdf.seccion('1.0.7', 'Máquina de tracción:');
+  pdf.texto(variante.maquinaTraccion, { indent: 3 });
+
+  pdf.seccion('1.0.8', 'Alimentación:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.alimentacion, { indent: 3 });
+
+  pdf.seccion('1.0.9', 'Motores:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.motores, { indent: 3 });
+
+  pdf.seccion('1.0.10', 'Operación:');
+  const maniobra = primero.maniobra || 'ascendente-descendente';
+  const grupoControl = primero.grupo ? `, ${primero.grupo}` : '';
+  pdf.texto(`Operación automática ${maniobra}${grupoControl}.`, { indent: 3 });
+
+  pdf.tituloBloque('1.1 Cabina');
+
+  pdf.seccion('1.1.1', 'Dimensiones interiores aproximadas');
+  escribirCampoPorGrupo(
+    pdf,
+    grupos,
+    (e) =>
+      `${formatearNumero(e.anchoCabina)} mm. (ancho) x ${formatearNumero(e.profundidadCabina)} mm. (profundidad) x ${formatearNumero(e.altoCabina)} mm. a cielorraso.`
+  );
+
+  pdf.seccion('1.1.2', 'Plataforma:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.plataforma, { indent: 3 });
+
+  pdf.seccion('1.1.3', 'Bastidor:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.bastidor, { indent: 3 });
+
+  pdf.seccion('1.1.4', 'Piso:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.piso, { indent: 3 });
+
+  pdf.seccion('1.1.5', 'Techo:');
+  pdf.texto(opciones.cielorraso, { indent: 3 });
+
+  pdf.seccion('1.1.6', 'Puertas:');
+  escribirCampoPorGrupo(pdf, grupos, (e) => {
+    const apertura = e.tipoApertura || 'central';
+    return `Puertas automáticas, de apertura ${apertura}, paso libre de ${formatearNumero(e.doorOP)} mm. (ancho) x ${formatearNumero(e.doorH)} mm. (altura), ejecutadas en acero inoxidable AISI 304.`;
+  });
+
+  pdf.seccion('1.1.7', 'Jamba y frente:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.jambaFrente, { indent: 3 });
+
+  pdf.seccion('1.1.8', 'Revestimiento:');
+  pdf.texto(
+    `Se realizarán con paneles de acero inoxidable AISI 304, ${opciones.revestimientoCabina}. Los mismos se calibran para asegurar su ensamble perfecto y su transporte se realiza en condiciones que garantizan la inalterabilidad de su terminación de fábrica.`,
+    { indent: 3 }
+  );
+
+  pdf.seccion('1.1.9', 'Zócalos:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.zocalos, { indent: 3 });
+
+  pdf.seccion('1.1.10', 'Umbral:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.umbral, { indent: 3 });
+
+  pdf.seccion('1.1.11', 'Ventilación:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.ventilacion, { indent: 3 });
+
+  pdf.seccion('1.1.12', 'Pasamanos:');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.pasamanos, { indent: 3 });
+
+  pdf.tituloBloque('1.2 Dispositivos de seguridad');
+  const seguridad: [string, string, string][] = [
+    ['1.2.1', 'Regulador de velocidad:', ESPECIFICACIONES_TEXTOS.reguladorVelocidad],
+    ['1.2.2', 'Freno:', ESPECIFICACIONES_TEXTOS.freno],
+    ['1.2.3', 'Sensor de peso:', ESPECIFICACIONES_TEXTOS.sensorPeso],
+    ['1.2.4', 'Amortiguador:', ESPECIFICACIONES_TEXTOS.amortiguador],
+    ['1.2.5', 'Interruptor de fin de carrera:', ESPECIFICACIONES_TEXTOS.finCarrera],
+    ['1.2.6', 'Dispositivo de emergencia:', ESPECIFICACIONES_TEXTOS.dispositivoEmergencia],
+    ['1.2.7', 'Cerraduras electromecánicas:', ESPECIFICACIONES_TEXTOS.cerraduras],
+    ['1.2.8', 'Luz de emergencia:', ESPECIFICACIONES_TEXTOS.luzEmergencia],
+    ['1.2.9', 'Paracaídas:', ESPECIFICACIONES_TEXTOS.paracaidas],
+    ['1.2.10', 'Puertas:', ESPECIFICACIONES_TEXTOS.puertasSeguridad]
+  ];
+  seguridad.forEach(([numero, titulo, contenido]) => {
+    pdf.seccion(numero, titulo);
+    pdf.texto(contenido, { indent: 3 });
+  });
+
+  pdf.tituloBloque('1.3 Mando y señalización');
+  pdf.seccion('1.3.1', 'Tablero de comando de cabina:');
+  pdf.texto(
+    'Se instalará una botonera con máscara de acero inoxidable AISI 304 pulido mate sujeta mediante tornillos. Las mismas contendrán:',
+    { indent: 3, spacing: 1.5 }
+  );
+  TABLERO_CABINA_ITEMS.forEach((item, indice) =>
+    pdf.texto(`${indice + 1}) ${item}`, { indent: 7, spacing: 0.8 })
+  );
+  pdf.espacio(1);
+  pdf.texto('Los botones serán tipo micro movimiento con registro de llamada.', { indent: 3 });
+
+  pdf.seccion('1.3.2', 'Señal de pasillo:');
+  pdf.texto(opciones.senalPasillo, { indent: 3 });
+
+  pdf.tituloBloque('1.4 Maniobra');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.maniobra, { indent: 3, spacing: 1 });
+  if (primero.control) pdf.texto(`Control ${primero.control}`, { indent: 3 });
+
+  pdf.tituloBloque('1.5 Puertas de pasillos');
+  pdf.texto('En todos los pisos', { indent: 3, spacing: 1.5 });
+  escribirCampoPorGrupo(pdf, grupos, (e) => {
+    const apertura = e.tipoApertura || 'central';
+    return `Puertas automáticas, de apertura ${apertura}, paso libre de ${formatearNumero(e.doorOP)} mm. (ancho) x ${formatearNumero(e.doorH)} mm. (altura), ${opciones.puertasPasillo}`;
+  });
+
+  pdf.tituloBloque('1.6 Marcos');
+  pdf.texto(opciones.marcos, { indent: 3 });
+
+  pdf.tituloBloque('1.7 Umbrales');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.umbrales, { indent: 3 });
+
+  pdf.tituloBloque('1.8 Contrapesos');
+  pdf.texto(
+    `Armados sobre un bastidor de acero con pasantes de seguridad. Su peso será igual al de la cabina más el 50% de la carga normal. ${opciones.contrapeso}.`,
+    { indent: 3 }
+  );
+
+  pdf.tituloBloque('1.9 Guías');
+  pdf.texto(ESPECIFICACIONES_TEXTOS.guias, { indent: 3 });
+
+  if (opciones.incluyeElvic) {
+    pdf.tituloBloque('1.10 Sistema de control y supervisión (ELVIC)');
+    pdf.texto(TEXTO_ELVIC, { indent: 3, spacing: 2 });
+    pdf.texto(variante.cableadoElvic, { indent: 3 });
+  }
+};
+
+/** Carga el logo como data URL para incrustarlo en el PDF. */
+const cargarLogo = async (): Promise<string | null> => {
+  try {
+    const respuesta = await fetch('/assets/fujitec-logo.png');
+    if (!respuesta.ok) return null;
+    const blob = await respuesta.blob();
+    return await new Promise((resolve) => {
+      const lector = new FileReader();
+      lector.onloadend = () => resolve(lector.result as string);
+      lector.onerror = () => resolve(null);
+      lector.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
+
+export interface ResultadoPdf {
+  blob: Blob;
+  nombreArchivo: string;
+}
+
+/**
+ * Genera el PDF completo: carta de presentación + oferta económica +
+ * especificaciones, y concatena los anexos fijos si están cargados.
+ */
+export const generarPropuestaPdf = async (
+  propuesta: PropuestaTecnicoEconomica,
+  obra: Obra,
+  _cliente: Cliente | undefined,
+  equipos: Equipo[],
+  version: number,
+  anexos: { caracteristicasGenerales?: ArrayBuffer; ayudaGremio?: ArrayBuffer } = {}
+): Promise<ResultadoPdf> => {
+  const logo = await cargarLogo();
+  const tituloObra = `${obra.nombre} (${obra.codigo})`;
+  const pdf = new ConstructorPdf(tituloObra, logo);
+
+  generarCartaPresentacion(pdf, propuesta);
+  generarOfertaEconomica(pdf, propuesta, equipos);
+  if (equipos.length > 0) {
+    generarEspecificaciones(pdf, propuesta, obra, equipos);
+  }
+
+  pdf.cerrarDocumento();
+  pdf.aplicarMembretes();
+
+  let bytesFinales = pdf.doc.output('arraybuffer') as ArrayBuffer;
+
+  // Los anexos institucionales se adjuntan tal cual, para conservar su
+  // maquetación original (imágenes y diagramas incluidos).
+  const anexosACombinar = [anexos.caracteristicasGenerales, anexos.ayudaGremio].filter(
+    (anexo): anexo is ArrayBuffer => !!anexo
+  );
+
+  if (anexosACombinar.length > 0) {
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const documentoFinal = await PDFDocument.load(bytesFinales);
+
+      for (const anexo of anexosACombinar) {
+        const documentoAnexo = await PDFDocument.load(anexo);
+        const paginas = await documentoFinal.copyPages(
+          documentoAnexo,
+          documentoAnexo.getPageIndices()
+        );
+        paginas.forEach((pagina) => documentoFinal.addPage(pagina));
+      }
+
+      const combinado = await documentoFinal.save();
+      bytesFinales = combinado.buffer.slice(
+        combinado.byteOffset,
+        combinado.byteOffset + combinado.byteLength
+      ) as ArrayBuffer;
+    } catch (error) {
+      // Si un anexo está dañado, se emite igual el documento principal.
+      console.error('No se pudieron adjuntar los anexos:', error);
+    }
+  }
+
+  return {
+    blob: new Blob([bytesFinales], { type: 'application/pdf' }),
+    nombreArchivo: `${obra.nombre} (${obra.codigo}) V${version}.pdf`
+  };
+};
