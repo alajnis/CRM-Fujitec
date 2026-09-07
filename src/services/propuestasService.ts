@@ -3,7 +3,15 @@ import { PropuestaTecnicoEconomica, PropuestaVersion } from '../types';
 
 const TABLE_NAME = 'propuestas';
 const BUCKET_NAME = 'propuestas';
+const BUCKET_ANEXOS = 'propuestas-anexos';
 const LOCAL_KEY = 'propuestas-tecnico-economicas';
+
+/** Nombres con los que se suben los anexos institucionales al bucket. */
+export const ARCHIVOS_ANEXOS = {
+  caracteristicasGenerales: 'caracteristicas-generales.pdf',
+  ayudaGremioConSala: 'ayuda-gremio-con-sala.pdf',
+  ayudaGremioSinSala: 'ayuda-gremio-sin-sala.pdf'
+} as const;
 
 /**
  * Espejo local de las propuestas. Mantiene la funcionalidad utilizable si la
@@ -143,5 +151,41 @@ export const propuestasService = {
       versiones: [...propuesta.versiones, version],
       ultimaVersion: version.version
     });
+  },
+
+  /** Descarga un anexo institucional del bucket, o null si no está cargado. */
+  async descargarAnexo(nombreArchivo: string): Promise<ArrayBuffer | null> {
+    try {
+      const { data, error } = await supabase.storage.from(BUCKET_ANEXOS).download(nombreArchivo);
+      if (error) throw error;
+      return data ? await data.arrayBuffer() : null;
+    } catch {
+      // Sin anexo cargado el documento se emite igual, solo sin esa sección.
+      return null;
+    }
+  },
+
+  /** Qué anexos están disponibles, para mostrarlo en la pantalla. */
+  async listarAnexosDisponibles(): Promise<Set<string>> {
+    try {
+      const { data, error } = await supabase.storage.from(BUCKET_ANEXOS).list();
+      if (error) throw error;
+      return new Set((data || []).map((archivo) => archivo.name));
+    } catch {
+      return new Set();
+    }
+  },
+
+  async subirAnexo(nombreArchivo: string, archivo: File): Promise<boolean> {
+    try {
+      const { error } = await supabase.storage
+        .from(BUCKET_ANEXOS)
+        .upload(nombreArchivo, archivo, { contentType: 'application/pdf', upsert: true });
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('No se pudo subir el anexo:', error);
+      return false;
+    }
   }
 };

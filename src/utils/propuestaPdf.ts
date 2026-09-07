@@ -655,8 +655,15 @@ export interface ResultadoPdf {
 }
 
 /**
- * Genera el PDF completo: carta de presentación + oferta económica +
- * especificaciones, y concatena los anexos fijos si están cargados.
+ * Genera el PDF completo. Orden del documento final:
+ *   1. Características generales   (anexo institucional)
+ *   2. Ayuda de gremio             (anexo institucional)
+ *   3. Carta de presentación
+ *   4. Oferta económica
+ *   5. Especificaciones técnicas
+ *
+ * Los anexos van adelante y se adjuntan tal cual, conservando su maquetación
+ * original con imágenes y diagramas.
  */
 export const generarPropuestaPdf = async (
   propuesta: PropuestaTecnicoEconomica,
@@ -679,18 +686,21 @@ export const generarPropuestaPdf = async (
   pdf.cerrarDocumento();
   pdf.aplicarMembretes();
 
-  let bytesFinales = pdf.doc.output('arraybuffer') as ArrayBuffer;
+  const bytesGenerados = pdf.doc.output('arraybuffer') as ArrayBuffer;
 
-  // Los anexos institucionales se adjuntan tal cual, para conservar su
-  // maquetación original (imágenes y diagramas incluidos).
   const anexosACombinar = [anexos.caracteristicasGenerales, anexos.ayudaGremio].filter(
     (anexo): anexo is ArrayBuffer => !!anexo
   );
 
+  let bytesFinales = bytesGenerados;
+
   if (anexosACombinar.length > 0) {
     try {
       const { PDFDocument } = await import('pdf-lib');
-      const documentoFinal = await PDFDocument.load(bytesFinales);
+
+      // Se arranca de un documento vacío y se van agregando en orden: así los
+      // anexos quedan adelante sin depender de la numeración interna de jsPDF.
+      const documentoFinal = await PDFDocument.create();
 
       for (const anexo of anexosACombinar) {
         const documentoAnexo = await PDFDocument.load(anexo);
@@ -701,6 +711,13 @@ export const generarPropuestaPdf = async (
         paginas.forEach((pagina) => documentoFinal.addPage(pagina));
       }
 
+      const documentoGenerado = await PDFDocument.load(bytesGenerados);
+      const paginasGeneradas = await documentoFinal.copyPages(
+        documentoGenerado,
+        documentoGenerado.getPageIndices()
+      );
+      paginasGeneradas.forEach((pagina) => documentoFinal.addPage(pagina));
+
       const combinado = await documentoFinal.save();
       bytesFinales = combinado.buffer.slice(
         combinado.byteOffset,
@@ -709,6 +726,7 @@ export const generarPropuestaPdf = async (
     } catch (error) {
       // Si un anexo está dañado, se emite igual el documento principal.
       console.error('No se pudieron adjuntar los anexos:', error);
+      bytesFinales = bytesGenerados;
     }
   }
 

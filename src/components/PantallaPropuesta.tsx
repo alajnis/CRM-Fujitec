@@ -22,7 +22,7 @@ import {
   PropuestaVersion
 } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { propuestasService } from '../services/propuestasService';
+import { propuestasService, ARCHIVOS_ANEXOS } from '../services/propuestasService';
 import { generarPropuestaPdf } from '../utils/propuestaPdf';
 import {
   CLAUSULAS_DEFAULT,
@@ -104,6 +104,7 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
   const [propuesta, setPropuesta] = useState<PropuestaTecnicoEconomica | null>(null);
   const [cargando, setCargando] = useState(true);
   const [generando, setGenerando] = useState(false);
+  const [anexosDisponibles, setAnexosDisponibles] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'loading' } | null>(null);
 
   const obra = obras.find((o) => o.id === selectedObraId);
@@ -128,6 +129,19 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
     () => detectarCamposFaltantes(equiposIncluidos),
     [equiposIncluidos]
   );
+
+  /**
+   * La ayuda de gremio depende de si los equipos llevan sala de máquinas.
+   * Se decide por el primer equipo, que es el criterio del documento.
+   */
+  const archivoAyudaGremio = useMemo(() => {
+    const conSala = equiposIncluidos[0]?.tipoSalaMaquinas === 'Con Sala de Máquinas';
+    return conSala ? ARCHIVOS_ANEXOS.ayudaGremioConSala : ARCHIVOS_ANEXOS.ayudaGremioSinSala;
+  }, [equiposIncluidos]);
+
+  useEffect(() => {
+    propuestasService.listarAnexosDisponibles().then(setAnexosDisponibles);
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -183,12 +197,23 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
 
     try {
       const version = propuesta.ultimaVersion + 1;
+
+      // Anexos institucionales: van al principio del documento final.
+      const [caracteristicasGenerales, ayudaGremio] = await Promise.all([
+        propuestasService.descargarAnexo(ARCHIVOS_ANEXOS.caracteristicasGenerales),
+        propuestasService.descargarAnexo(archivoAyudaGremio)
+      ]);
+
       const { blob, nombreArchivo } = await generarPropuestaPdf(
         propuesta,
         obra,
         cliente,
         equiposIncluidos,
-        version
+        version,
+        {
+          caracteristicasGenerales: caracteristicasGenerales || undefined,
+          ayudaGremio: ayudaGremio || undefined
+        }
       );
 
       // Descarga inmediata para el usuario.
@@ -409,27 +434,46 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
 
             <div className="space-y-1.5 text-xs">
               {[
-                { nombre: 'Carta de presentación', listo: true },
-                { nombre: 'Oferta económica', listo: propuesta.precios.parteImportadaUSD > 0 },
-                { nombre: 'Especificaciones técnicas', listo: listoParaGenerar },
-                { nombre: 'Características generales', listo: false, anexo: true },
-                { nombre: 'Ayuda de gremio', listo: false, anexo: true }
+                {
+                  nombre: '1. Características generales',
+                  listo: anexosDisponibles.has(ARCHIVOS_ANEXOS.caracteristicasGenerales),
+                  anexo: true
+                },
+                {
+                  nombre: '2. Ayuda de gremio',
+                  listo: anexosDisponibles.has(archivoAyudaGremio),
+                  anexo: true
+                },
+                { nombre: '3. Carta de presentación', listo: true },
+                { nombre: '4. Oferta económica', listo: propuesta.precios.parteImportadaUSD > 0 },
+                { nombre: '5. Especificaciones técnicas', listo: listoParaGenerar }
               ].map((doc) => (
                 <div
                   key={doc.nombre}
-                  className="flex items-center justify-between py-1.5 border-b border-[#F1F3F5] dark:border-slate-700 last:border-0"
+                  className="flex items-center justify-between gap-2 py-1.5 border-b border-[#F1F3F5] dark:border-slate-700 last:border-0"
                 >
                   <span className="text-[#2D3436] dark:text-slate-200">{doc.nombre}</span>
-                  {doc.anexo ? (
-                    <span className="text-[10px] font-bold text-[#B2BEC3]">Anexo pendiente</span>
-                  ) : doc.listo ? (
-                    <Check size={14} className="text-emerald-500" />
+                  {doc.listo ? (
+                    <Check size={14} className="text-emerald-500 shrink-0" />
+                  ) : doc.anexo ? (
+                    <span className="text-[10px] font-bold text-[#B2BEC3] shrink-0">
+                      Sin cargar
+                    </span>
                   ) : (
-                    <AlertTriangle size={14} className="text-amber-500" />
+                    <AlertTriangle size={14} className="text-amber-500 shrink-0" />
                   )}
                 </div>
               ))}
             </div>
+
+            {(!anexosDisponibles.has(ARCHIVOS_ANEXOS.caracteristicasGenerales) ||
+              !anexosDisponibles.has(archivoAyudaGremio)) && (
+              <p className="text-[10px] text-[#B2BEC3] leading-relaxed">
+                Los anexos institucionales se suben una vez desde Supabase Storage
+                (bucket <span className="font-mono">propuestas-anexos</span>). Sin ellos el
+                documento se genera igual, pero sin esas secciones.
+              </p>
+            )}
 
             {camposFaltantes.length > 0 && (
               <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200">
