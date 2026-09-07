@@ -655,6 +655,91 @@ export interface ResultadoPdf {
 }
 
 /**
+ * Encabezado "Obra:" de los anexos institucionales.
+ *
+ * En las plantillas Word ese renglón es un campo que se completaba a mano, y
+ * al exportar a PDF quedó como "Obra: (A - )" — con el texto fijo presente
+ * pero el nombre y el código vacíos. Se tapa el renglón entero y se reescribe
+ * completo, que es más robusto que intentar insertar en los huecos.
+ *
+ * Medido sobre los PDF reales: x=78, y=743.9 en los anexos de ayuda de gremio
+ * y y=737.5 en el de características generales, sobre páginas A4 de 842 pt.
+ * Se usa la distancia al borde superior para no depender del alto de página.
+ */
+const ENCABEZADO_ANEXO = {
+  x: 78,
+  /** 842 - 743.9 ≈ 98 ; 842 - 737.5 ≈ 104. Se cubre el rango completo. */
+  distanciaAlBordeSuperior: 98,
+  altoBanda: 12,
+  /** Ancho generoso: el título de obra es más largo que el placeholder. */
+  anchoTapa: 260,
+  tamanoFuente: 9
+};
+
+/**
+ * Completa el encabezado "Obra:" de un anexo con el nombre y código reales.
+ *
+ * Se escribe en todas las páginas del anexo. Las que no tienen membrete
+ * quedan igual con el renglón, que es el comportamiento correcto: el
+ * documento original también lo repite en cada página con encabezado, y en
+ * las páginas de planos el texto cae en el margen superior en blanco.
+ */
+const estamparObraEnAnexo = async (
+  anexo: ArrayBuffer,
+  tituloObra: string
+): Promise<ArrayBuffer> => {
+  try {
+    const { PDFDocument, rgb } = await import('pdf-lib');
+    const documento = await PDFDocument.load(anexo);
+
+    // Se embebe una fuente propia en vez de usar StandardFonts: sobre estos
+    // PDF exportados desde Word, las fuentes estándar no llegan a resolverse
+    // al re-guardar y el texto termina no dibujándose.
+    const fontkit = (await import('@pdf-lib/fontkit')).default;
+    documento.registerFontkit(fontkit);
+
+    const respuestaFuente = await fetch('/assets/fonts/roboto-400.woff');
+    if (!respuestaFuente.ok) throw new Error('No se pudo cargar la fuente del estampado');
+    const fuente = await documento.embedFont(await respuestaFuente.arrayBuffer(), {
+      subset: true
+    });
+
+    for (const pagina of documento.getPages()) {
+      const { height } = pagina.getSize();
+      const y = height - ENCABEZADO_ANEXO.distanciaAlBordeSuperior;
+
+      // Tapa el renglón viejo antes de reescribirlo.
+      pagina.drawRectangle({
+        x: ENCABEZADO_ANEXO.x - 3,
+        y: y - 3,
+        width: ENCABEZADO_ANEXO.anchoTapa,
+        height: ENCABEZADO_ANEXO.altoBanda,
+        color: rgb(1, 1, 1)
+      });
+
+      pagina.drawText(`Obra: ${tituloObra}`, {
+        x: ENCABEZADO_ANEXO.x,
+        y,
+        size: ENCABEZADO_ANEXO.tamanoFuente,
+        font: fuente,
+        color: rgb(0.42, 0.46, 0.48)
+      });
+    }
+
+    const bytes = await documento.save();
+    return bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+  } catch (error) {
+    // Si falla el estampado se usa el anexo original: es preferible que salga
+    // con el placeholder a que no salga la sección.
+    console.error('No se pudo completar el encabezado del anexo:', error);
+    return anexo;
+  }
+};
+
+/**
  * Genera el PDF completo. Orden del documento final:
  *   1. Características generales   (anexo institucional)
  *   2. Ayuda de gremio             (anexo institucional)
@@ -703,7 +788,10 @@ export const generarPropuestaPdf = async (
       const documentoFinal = await PDFDocument.create();
 
       for (const anexo of anexosACombinar) {
-        const documentoAnexo = await PDFDocument.load(anexo);
+        // Los anexos traen el encabezado "Obra: XXXX (A-XXXX)" sin completar,
+        // porque en el Word se llenaba a mano. Se completa acá.
+        const anexoSellado = await estamparObraEnAnexo(anexo, tituloObra);
+        const documentoAnexo = await PDFDocument.load(anexoSellado);
         const paginas = await documentoFinal.copyPages(
           documentoAnexo,
           documentoAnexo.getPageIndices()
