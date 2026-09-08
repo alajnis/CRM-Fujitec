@@ -667,12 +667,23 @@ export interface ResultadoPdf {
  */
 const ENCABEZADO_ANEXO = {
   x: 78,
-  /** 842 - 743.9 ≈ 98 ; 842 - 737.5 ≈ 104. Se cubre el rango completo. */
-  distanciaAlBordeSuperior: 98,
-  altoBanda: 12,
+  altoBanda: 14,
   /** Ancho generoso: el título de obra es más largo que el placeholder. */
   anchoTapa: 260,
   tamanoFuente: 9
+};
+
+/**
+ * Distancia del renglón "Obra:" al borde superior, por anexo.
+ *
+ * No es la misma en todos: 104.5 pt en características generales y 98.2 pt en
+ * los de ayuda de gremio. Usar un valor único dejaba el placeholder original
+ * sin tapar en uno de los dos.
+ */
+const DISTANCIA_ENCABEZADO: Record<string, number> = {
+  'caracteristicas-generales.pdf': 104.5,
+  'ayuda-gremio-con-sala.pdf': 98.2,
+  'ayuda-gremio-sin-sala.pdf': 98.2
 };
 
 /**
@@ -685,12 +696,18 @@ const ENCABEZADO_ANEXO = {
  */
 const NUMERO_FA_ANEXO = {
   x: 78,
-  distanciaAlBordeSuperior: 124,
   /** Alto holgado: el placeholder viene resaltado en amarillo y hay que
    *  cubrirlo por completo, incluido el borde superior del resaltado. */
   altoBanda: 15,
   anchoTapa: 120,
   tamanoFuente: 9
+};
+
+/** Igual que el encabezado, la posición del FA difiere entre anexos. */
+const DISTANCIA_FA: Record<string, number> = {
+  'caracteristicas-generales.pdf': 123.7,
+  'ayuda-gremio-con-sala.pdf': 122.7,
+  'ayuda-gremio-sin-sala.pdf': 122.7
 };
 
 /**
@@ -709,6 +726,71 @@ const PAGINAS_CON_ENCABEZADO: Record<string, number | 'todas'> = {
   'caracteristicas-generales.pdf': 'todas',
   'ayuda-gremio-con-sala.pdf': 6,
   'ayuda-gremio-sin-sala.pdf': 6
+};
+
+/**
+ * Quita los resaltados de color del cuerpo de un anexo.
+ *
+ * Las plantillas vienen con párrafos marcados en amarillo (y alguno en rojo):
+ * son marcas de trabajo para el que arma la propuesta, no algo que deba llegar
+ * al cliente. Se reemplaza el color de relleno por blanco en el content
+ * stream, que deja el texto intacto y sólo despinta el fondo.
+ *
+ * Sólo toca `rg` (relleno) y no `RG` (trazo), para no alterar líneas ni bordes.
+ */
+const despintarResaltados = async (documento: any): Promise<void> => {
+  const { PDFName, PDFRawStream, PDFArray, decodePDFRawStream } = await import('pdf-lib');
+
+  // Amarillo y rojo puros, en las formas en que Word los escribe.
+  const COLORES_RESALTADO = /(?<![\d.])(?:1|1\.0+)\s+(?:1|1\.0+)\s+(?:0|0\.0+)\s+rg|(?<![\d.])(?:1|1\.0+)\s+(?:0|0\.0+)\s+(?:0|0\.0+)\s+rg/g;
+
+  const limpiarStream = (stream: any, contexto: any): void => {
+    if (!(stream instanceof PDFRawStream)) return;
+
+    let bytes: Uint8Array;
+    try {
+      bytes = decodePDFRawStream(stream).decode();
+    } catch {
+      return; // Stream con filtro que no sabemos decodificar: se deja igual.
+    }
+
+    const contenido = new TextDecoder('latin1').decode(bytes);
+    COLORES_RESALTADO.lastIndex = 0;
+    if (!COLORES_RESALTADO.test(contenido)) return;
+    COLORES_RESALTADO.lastIndex = 0;
+
+    const limpio = contenido.replace(COLORES_RESALTADO, '1 1 1 rg');
+
+    // Se reescribe sin comprimir: el stream nuevo ya no coincide con el
+    // Filter original, así que hay que quitarlo.
+    stream.dict.delete(PDFName.of('Filter'));
+    stream.dict.delete(PDFName.of('DecodeParms'));
+    stream.contents = new TextEncoder().encode(limpio);
+    stream.dict.set(PDFName.of('Length'), contexto.obj(stream.contents.length));
+  };
+
+  for (const pagina of documento.getPages()) {
+    const contexto = pagina.node.context;
+
+    const contents = pagina.node.Contents();
+    if (contents) {
+      const streams =
+        contents instanceof PDFArray
+          ? contents.asArray().map((ref: any) => contexto.lookup(ref))
+          : [contents];
+      streams.forEach((stream: any) => limpiarStream(stream, contexto));
+    }
+
+    // En algunas páginas el resaltado no está en el stream de la página sino
+    // dentro de un XObject de formulario, así que hay que entrar ahí también.
+    const recursos = pagina.node.Resources();
+    const xObjects = recursos?.lookup(PDFName.of('XObject'));
+    if (!xObjects?.entries) continue;
+
+    for (const [, referencia] of xObjects.entries()) {
+      limpiarStream(contexto.lookup(referencia), contexto);
+    }
+  }
 };
 
 /**
@@ -738,13 +820,17 @@ const estamparObraEnAnexo = async (
       subset: true
     });
 
+    // Las marcas de trabajo en amarillo del Word no deben llegar al cliente.
+    await despintarResaltados(documento);
+
     const paginas = documento.getPages();
     const configurado = PAGINAS_CON_ENCABEZADO[nombreArchivoAnexo] ?? 'todas';
     const hasta = configurado === 'todas' ? paginas.length : configurado;
+    const distanciaEncabezado = DISTANCIA_ENCABEZADO[nombreArchivoAnexo] ?? 98.2;
 
     paginas.slice(0, hasta).forEach((pagina) => {
       const { height } = pagina.getSize();
-      const y = height - ENCABEZADO_ANEXO.distanciaAlBordeSuperior;
+      const y = height - distanciaEncabezado;
 
       // Tapa el renglón viejo antes de reescribirlo.
       pagina.drawRectangle({
@@ -768,7 +854,7 @@ const estamparObraEnAnexo = async (
     const [primeraPagina] = paginas;
     if (primeraPagina && numeroFA) {
       const { height } = primeraPagina.getSize();
-      const yFA = height - NUMERO_FA_ANEXO.distanciaAlBordeSuperior;
+      const yFA = height - (DISTANCIA_FA[nombreArchivoAnexo] ?? 122.7);
 
       primeraPagina.drawRectangle({
         x: NUMERO_FA_ANEXO.x - 3,
