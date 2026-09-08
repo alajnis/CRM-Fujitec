@@ -754,19 +754,29 @@ const despintarResaltados = async (documento: any): Promise<void> => {
       return; // Stream con filtro que no sabemos decodificar: se deja igual.
     }
 
-    const contenido = new TextDecoder('latin1').decode(bytes);
+    // El stream es binario: se trabaja byte a byte y se reescribe con la
+    // misma correspondencia 1 byte = 1 código. Decodificar a texto y volver a
+    // codificar con TextEncoder rompería los acentos, porque TextEncoder
+    // siempre emite UTF-8 y convertiría cada byte alto en dos.
+    const contenido = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+
     COLORES_RESALTADO.lastIndex = 0;
     if (!COLORES_RESALTADO.test(contenido)) return;
     COLORES_RESALTADO.lastIndex = 0;
 
     const limpio = contenido.replace(COLORES_RESALTADO, '1 1 1 rg');
 
+    const bytesLimpios = new Uint8Array(limpio.length);
+    for (let i = 0; i < limpio.length; i++) {
+      bytesLimpios[i] = limpio.charCodeAt(i) & 0xff;
+    }
+
     // Se reescribe sin comprimir: el stream nuevo ya no coincide con el
     // Filter original, así que hay que quitarlo.
     stream.dict.delete(PDFName.of('Filter'));
     stream.dict.delete(PDFName.of('DecodeParms'));
-    stream.contents = new TextEncoder().encode(limpio);
-    stream.dict.set(PDFName.of('Length'), contexto.obj(stream.contents.length));
+    stream.contents = bytesLimpios;
+    stream.dict.set(PDFName.of('Length'), contexto.obj(bytesLimpios.length));
   };
 
   for (const pagina of documento.getPages()) {
