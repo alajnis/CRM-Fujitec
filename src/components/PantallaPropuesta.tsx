@@ -27,7 +27,10 @@ import { generarPropuestaPdf } from '../utils/propuestaPdf';
 import {
   CLAUSULAS_DEFAULT,
   OPCIONES_TECNICAS,
-  OPCIONES_TECNICAS_DEFAULT
+  OPCIONES_TECNICAS_DEFAULT,
+  CARTA_PRESENTACION_DEFAULT,
+  TEXTOS_ESPECIFICACIONES_DEFAULT,
+  SECCIONES_ESPECIFICACIONES
 } from '../utils/propuestaTemplates';
 import {
   agruparEquipos,
@@ -80,6 +83,8 @@ const crearPropuestaInicial = (
     importacionACargoDelCliente: false
   },
   clausulas: { ...CLAUSULAS_DEFAULT },
+  cartaPresentacion: structuredClone(CARTA_PRESENTACION_DEFAULT),
+  textosEspecificaciones: structuredClone(TEXTOS_ESPECIFICACIONES_DEFAULT),
   opcionesTecnicas: { ...OPCIONES_TECNICAS_DEFAULT },
   equipoIdsIncluidos: equipoIds,
   versiones: [],
@@ -162,7 +167,13 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
         setPropuesta({
           ...existente,
           clausulas: { ...CLAUSULAS_DEFAULT, ...existente.clausulas },
-          opcionesTecnicas: { ...OPCIONES_TECNICAS_DEFAULT, ...existente.opcionesTecnicas }
+          opcionesTecnicas: { ...OPCIONES_TECNICAS_DEFAULT, ...existente.opcionesTecnicas },
+          cartaPresentacion:
+            existente.cartaPresentacion || structuredClone(CARTA_PRESENTACION_DEFAULT),
+          textosEspecificaciones: {
+            ...TEXTOS_ESPECIFICACIONES_DEFAULT,
+            ...existente.textosEspecificaciones
+          }
         });
       } else {
         setPropuesta(
@@ -821,6 +832,124 @@ const PasoEquipos: React.FC<{
           </span>
         </label>
       </div>
+
+      {/* Párrafos técnicos del documento, por sección. */}
+      <TextosEspecificaciones propuesta={propuesta} onActualizar={onActualizar} />
+    </div>
+  );
+};
+
+/**
+ * Párrafos técnicos de las especificaciones, agrupados por sección del
+ * documento. Van colapsados: son texto estándar que rara vez se toca, pero
+ * tiene que estar disponible.
+ */
+const TextosEspecificaciones: React.FC<{
+  propuesta: PropuestaTecnicoEconomica;
+  onActualizar: (cambios: Partial<PropuestaTecnicoEconomica>) => void;
+}> = ({ propuesta, onActualizar }) => {
+  const [seccionAbierta, setSeccionAbierta] = useState<string | null>(null);
+  const textos = propuesta.textosEspecificaciones || TEXTOS_ESPECIFICACIONES_DEFAULT;
+
+  const setTexto = (campo: string, valor: string | string[]) =>
+    onActualizar({ textosEspecificaciones: { ...textos, [campo]: valor } });
+
+  const restaurar = () =>
+    onActualizar({ textosEspecificaciones: structuredClone(TEXTOS_ESPECIFICACIONES_DEFAULT) });
+
+  return (
+    <div className="pt-4 border-t border-[#F1F3F5] dark:border-slate-700 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-[#2D3436] dark:text-slate-100">
+            Párrafos técnicos
+          </h3>
+          <p className="text-xs text-[#636E72] dark:text-slate-400">
+            Texto estándar de las especificaciones. Editable si hace falta ajustarlo.
+          </p>
+        </div>
+        <button
+          onClick={restaurar}
+          className="flex items-center gap-1 text-[10px] font-bold text-[#636E72] dark:text-slate-400 hover:text-[#C8102E] transition-colors shrink-0"
+        >
+          <RotateCcw size={12} /> Restaurar
+        </button>
+      </div>
+
+      {SECCIONES_ESPECIFICACIONES.map((seccion) => {
+        const abierta = seccionAbierta === seccion.titulo;
+
+        return (
+          <div key={seccion.titulo}>
+            <button
+              onClick={() => setSeccionAbierta(abierta ? null : seccion.titulo)}
+              className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#F1F3F5] dark:bg-slate-700/50 hover:bg-[#E0E0E0] dark:hover:bg-slate-700 transition-colors"
+            >
+              <span className="text-xs font-bold text-[#2D3436] dark:text-slate-100">
+                {seccion.titulo}
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-[#B2BEC3]">{seccion.campos.length}</span>
+                <ChevronRight
+                  size={14}
+                  className={`text-[#636E72] transition-transform ${abierta ? 'rotate-90' : ''}`}
+                />
+              </div>
+            </button>
+
+            {abierta && (
+              <div className="mt-2 mb-1 space-y-3 pl-1">
+                {seccion.campos.map(({ campo, etiqueta }) => (
+                  <div key={campo}>
+                    <label className="block text-[11px] font-bold text-[#2D3436] dark:text-slate-200 mb-1">
+                      {etiqueta}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={(textos as any)[campo] || ''}
+                      onChange={(e) => setTexto(campo, e.target.value)}
+                      className="w-full p-2 bg-white dark:bg-slate-700 border border-[#E0E0E0] dark:border-slate-600 rounded-lg text-[11px] text-[#2D3436] dark:text-slate-100 resize-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* El tablero de cabina es una lista numerada, no un párrafo. */}
+      <div>
+        <button
+          onClick={() =>
+            setSeccionAbierta(seccionAbierta === 'tablero' ? null : 'tablero')
+          }
+          className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#F1F3F5] dark:bg-slate-700/50 hover:bg-[#E0E0E0] dark:hover:bg-slate-700 transition-colors"
+        >
+          <span className="text-xs font-bold text-[#2D3436] dark:text-slate-100">
+            1.3.1 Tablero de comando de cabina
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] text-[#B2BEC3]">{textos.tableroCabina.length}</span>
+            <ChevronRight
+              size={14}
+              className={`text-[#636E72] transition-transform ${
+                seccionAbierta === 'tablero' ? 'rotate-90' : ''
+              }`}
+            />
+          </div>
+        </button>
+
+        {seccionAbierta === 'tablero' && (
+          <div className="mt-2 pl-1">
+            <ListaEditable
+              titulo="Elementos de la botonera"
+              items={textos.tableroCabina}
+              onChange={(items) => setTexto('tableroCabina', items)}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -1038,11 +1167,20 @@ const PasoClausulas: React.FC<{
   onActualizar: (cambios: Partial<PropuestaTecnicoEconomica>) => void;
 }> = ({ propuesta, onActualizar }) => {
   const { clausulas } = propuesta;
+  const carta = propuesta.cartaPresentacion || CARTA_PRESENTACION_DEFAULT;
+  const [mostrarCarta, setMostrarCarta] = useState(false);
 
   const set = (campo: string, valor: any) =>
     onActualizar({ clausulas: { ...clausulas, [campo]: valor } });
 
-  const restaurar = () => onActualizar({ clausulas: { ...CLAUSULAS_DEFAULT } });
+  const setCarta = (campo: string, valor: string[]) =>
+    onActualizar({ cartaPresentacion: { ...carta, [campo]: valor } });
+
+  const restaurar = () =>
+    onActualizar({
+      clausulas: { ...CLAUSULAS_DEFAULT },
+      cartaPresentacion: structuredClone(CARTA_PRESENTACION_DEFAULT)
+    });
 
   return (
     <div className="space-y-4">
@@ -1158,6 +1296,47 @@ const PasoClausulas: React.FC<{
           onChange={(e) => set('saludoFinal', e.target.value)}
           className="w-full p-2.5 bg-white dark:bg-slate-700 border border-[#E0E0E0] dark:border-slate-600 rounded-xl text-[11px] text-[#2D3436] dark:text-slate-100 resize-none"
         />
+      </div>
+
+      {/* Carta de presentación: texto institucional, se toca poco. */}
+      <div className="pt-4 border-t border-[#F1F3F5] dark:border-slate-700">
+        <button
+          onClick={() => setMostrarCarta(!mostrarCarta)}
+          className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F1F3F5] dark:bg-slate-700/50 hover:bg-[#E0E0E0] dark:hover:bg-slate-700 transition-colors"
+        >
+          <div className="text-left">
+            <p className="text-xs font-bold text-[#2D3436] dark:text-slate-100">
+              Carta de presentación
+            </p>
+            <p className="text-[10px] text-[#636E72] dark:text-slate-400">
+              Texto institucional de Fujitec ({carta.parrafos.length + carta.hitos.length + carta.cierre.length} párrafos)
+            </p>
+          </div>
+          <ChevronRight
+            size={16}
+            className={`text-[#636E72] transition-transform ${mostrarCarta ? 'rotate-90' : ''}`}
+          />
+        </button>
+
+        {mostrarCarta && (
+          <div className="mt-3 space-y-4 pl-1">
+            <ListaEditable
+              titulo="Párrafos de apertura"
+              items={carta.parrafos}
+              onChange={(items) => setCarta('parrafos', items)}
+            />
+            <ListaEditable
+              titulo="Hitos destacados (viñetas)"
+              items={carta.hitos}
+              onChange={(items) => setCarta('hitos', items)}
+            />
+            <ListaEditable
+              titulo="Párrafos de cierre"
+              items={carta.cierre}
+              onChange={(items) => setCarta('cierre', items)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

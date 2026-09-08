@@ -338,6 +338,46 @@ export interface PropuestaClausulas {
   camposSobrescritos: string[];
 }
 
+/** Párrafos de la carta de presentación institucional (documento 3). */
+export interface PropuestaCartaPresentacion {
+  parrafos: string[];
+  hitos: string[];
+  cierre: string[];
+}
+
+/**
+ * Párrafos técnicos de las especificaciones (documento 5). Son texto estándar
+ * de Fujitec, pero editables: en el Word el usuario podía ajustarlos.
+ * Las claves espejan las secciones numeradas del documento.
+ */
+export interface PropuestaTextosEspecificaciones {
+  motores: string;
+  plataforma: string;
+  bastidor: string;
+  piso: string;
+  jambaFrente: string;
+  zocalos: string;
+  umbral: string;
+  ventilacion: string;
+  pasamanos: string;
+  reguladorVelocidad: string;
+  freno: string;
+  sensorPeso: string;
+  amortiguador: string;
+  finCarrera: string;
+  dispositivoEmergencia: string;
+  cerraduras: string;
+  luzEmergencia: string;
+  paracaidas: string;
+  puertasSeguridad: string;
+  guias: string;
+  alimentacion: string;
+  maniobra: string;
+  umbrales: string;
+  tableroCabina: string[];
+  textoElvic: string;
+}
+
 /**
  * Opciones de las plantillas que hoy se resuelven borrando a mano las
  * variantes alternativas del Word (cielorraso, contrapeso, marcos, etc.).
@@ -369,6 +409,8 @@ export interface PropuestaTecnicoEconomica {
   destinatario: PropuestaDestinatario;
   precios: PropuestaPrecios;
   clausulas: PropuestaClausulas;
+  cartaPresentacion: PropuestaCartaPresentacion;
+  textosEspecificaciones: PropuestaTextosEspecificaciones;
   opcionesTecnicas: PropuestaOpcionesTecnicas;
   /** Equipos incluidos. Si está vacío, se toman todos los de la obra. */
   equipoIdsIncluidos: string[];

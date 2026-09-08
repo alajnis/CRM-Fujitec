@@ -6,7 +6,12 @@
  * globalmente y cada propuesta puede sobrescribirlos puntualmente.
  */
 
-import { PropuestaClausulas, PropuestaOpcionesTecnicas } from '../types';
+import {
+  PropuestaClausulas,
+  PropuestaOpcionesTecnicas,
+  PropuestaCartaPresentacion,
+  PropuestaTextosEspecificaciones
+} from '../types';
 
 export const DATOS_EMPRESA = {
   razonSocial: 'FUJITEC ARGENTINA S.A.',
@@ -220,3 +225,71 @@ export const VARIANTES_SALA_MAQUINAS = {
       'Se encuentra incluido el cableado de sala de máquinas a panel de control y PC a excepción de canalizaciones para el cableado.'
   }
 };
+
+/** Valores iniciales de la carta de presentación, editables por propuesta. */
+export const CARTA_PRESENTACION_DEFAULT: PropuestaCartaPresentacion = {
+  parrafos: [...CARTA_PRESENTACION_PARRAFOS],
+  hitos: [...CARTA_PRESENTACION_HITOS],
+  cierre: [...CARTA_PRESENTACION_CIERRE]
+};
+
+/** Valores iniciales de los párrafos técnicos, editables por propuesta. */
+export const TEXTOS_ESPECIFICACIONES_DEFAULT: PropuestaTextosEspecificaciones = {
+  ...ESPECIFICACIONES_TEXTOS,
+  tableroCabina: [...TABLERO_CABINA_ITEMS],
+  textoElvic: TEXTO_ELVIC
+};
+
+/**
+ * Agrupación de los párrafos técnicos por sección del documento, para poder
+ * mostrarlos en el mismo orden en que aparecen y no como una lista plana.
+ */
+export const SECCIONES_ESPECIFICACIONES: {
+  titulo: string;
+  campos: { campo: keyof PropuestaTextosEspecificaciones; etiqueta: string }[];
+}[] = [
+  {
+    titulo: '1.0 Características generales',
+    campos: [
+      { campo: 'alimentacion', etiqueta: '1.0.8 Alimentación' },
+      { campo: 'motores', etiqueta: '1.0.9 Motores' }
+    ]
+  },
+  {
+    titulo: '1.1 Cabina',
+    campos: [
+      { campo: 'plataforma', etiqueta: '1.1.2 Plataforma' },
+      { campo: 'bastidor', etiqueta: '1.1.3 Bastidor' },
+      { campo: 'piso', etiqueta: '1.1.4 Piso' },
+      { campo: 'jambaFrente', etiqueta: '1.1.7 Jamba y frente' },
+      { campo: 'zocalos', etiqueta: '1.1.9 Zócalos' },
+      { campo: 'umbral', etiqueta: '1.1.10 Umbral' },
+      { campo: 'ventilacion', etiqueta: '1.1.11 Ventilación' },
+      { campo: 'pasamanos', etiqueta: '1.1.12 Pasamanos' }
+    ]
+  },
+  {
+    titulo: '1.2 Dispositivos de seguridad',
+    campos: [
+      { campo: 'reguladorVelocidad', etiqueta: '1.2.1 Regulador de velocidad' },
+      { campo: 'freno', etiqueta: '1.2.2 Freno' },
+      { campo: 'sensorPeso', etiqueta: '1.2.3 Sensor de peso' },
+      { campo: 'amortiguador', etiqueta: '1.2.4 Amortiguador' },
+      { campo: 'finCarrera', etiqueta: '1.2.5 Interruptor de fin de carrera' },
+      { campo: 'dispositivoEmergencia', etiqueta: '1.2.6 Dispositivo de emergencia' },
+      { campo: 'cerraduras', etiqueta: '1.2.7 Cerraduras electromecánicas' },
+      { campo: 'luzEmergencia', etiqueta: '1.2.8 Luz de emergencia' },
+      { campo: 'paracaidas', etiqueta: '1.2.9 Paracaídas' },
+      { campo: 'puertasSeguridad', etiqueta: '1.2.10 Puertas' }
+    ]
+  },
+  {
+    titulo: '1.4 a 1.9 Maniobra, umbrales y guías',
+    campos: [
+      { campo: 'maniobra', etiqueta: '1.4 Maniobra' },
+      { campo: 'umbrales', etiqueta: '1.7 Umbrales' },
+      { campo: 'guias', etiqueta: '1.9 Guías' },
+      { campo: 'textoElvic', etiqueta: '1.10 Sistema ELVIC' }
+    ]
+  }
+];

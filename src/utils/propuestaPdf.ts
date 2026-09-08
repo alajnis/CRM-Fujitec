@@ -10,12 +10,8 @@ import { jsPDF } from 'jspdf';
 import { Obra, Cliente, Equipo, PropuestaTecnicoEconomica } from '../types';
 import {
   DATOS_EMPRESA,
-  CARTA_PRESENTACION_PARRAFOS,
-  CARTA_PRESENTACION_HITOS,
-  CARTA_PRESENTACION_CIERRE,
-  ESPECIFICACIONES_TEXTOS,
-  TABLERO_CABINA_ITEMS,
-  TEXTO_ELVIC,
+  CARTA_PRESENTACION_DEFAULT,
+  TEXTOS_ESPECIFICACIONES_DEFAULT,
   VARIANTES_SALA_MAQUINAS,
   TEXTO_PAGO_IMPORTADO_ALTERNATIVAS,
   TEXTO_PAGO_DESPACHO,
@@ -255,11 +251,13 @@ const generarCartaPresentacion = (pdf: ConstructorPdf, propuesta: PropuestaTecni
   pdf.iniciarDocumento();
   escribirEncabezadoCarta(pdf, propuesta);
 
+  const carta = propuesta.cartaPresentacion || CARTA_PRESENTACION_DEFAULT;
+
   pdf.texto('De nuestra consideración:', { spacing: 4 });
-  CARTA_PRESENTACION_PARRAFOS.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
-  CARTA_PRESENTACION_HITOS.forEach((hito) => pdf.vinieta(hito));
+  carta.parrafos.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
+  carta.hitos.forEach((hito) => pdf.vinieta(hito));
   pdf.espacio(2);
-  CARTA_PRESENTACION_CIERRE.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
+  carta.cierre.forEach((parrafo) => pdf.texto(parrafo, { spacing: 3 }));
 };
 
 /** Documento 2: oferta económica con precios y cláusulas. */
@@ -449,6 +447,7 @@ const generarEspecificaciones = (
   const primero = equipos[0];
   const rangoCompleto = etiquetaRangoCompleto(equipos);
   const opciones = propuesta.opcionesTecnicas;
+  const textos = propuesta.textosEspecificaciones || TEXTOS_ESPECIFICACIONES_DEFAULT;
 
   const tipoSala = primero.tipoSalaMaquinas || 'Sin Sala de Máquinas (MRL)';
   const variante =
@@ -506,10 +505,10 @@ const generarEspecificaciones = (
   pdf.texto(variante.maquinaTraccion, { indent: 3 });
 
   pdf.seccion('1.0.8', 'Alimentación:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.alimentacion, { indent: 3 });
+  pdf.texto(textos.alimentacion, { indent: 3 });
 
   pdf.seccion('1.0.9', 'Motores:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.motores, { indent: 3 });
+  pdf.texto(textos.motores, { indent: 3 });
 
   pdf.seccion('1.0.10', 'Operación:');
   const maniobra = primero.maniobra || 'ascendente-descendente';
@@ -527,13 +526,13 @@ const generarEspecificaciones = (
   );
 
   pdf.seccion('1.1.2', 'Plataforma:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.plataforma, { indent: 3 });
+  pdf.texto(textos.plataforma, { indent: 3 });
 
   pdf.seccion('1.1.3', 'Bastidor:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.bastidor, { indent: 3 });
+  pdf.texto(textos.bastidor, { indent: 3 });
 
   pdf.seccion('1.1.4', 'Piso:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.piso, { indent: 3 });
+  pdf.texto(textos.piso, { indent: 3 });
 
   pdf.seccion('1.1.5', 'Techo:');
   pdf.texto(opciones.cielorraso, { indent: 3 });
@@ -545,7 +544,7 @@ const generarEspecificaciones = (
   });
 
   pdf.seccion('1.1.7', 'Jamba y frente:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.jambaFrente, { indent: 3 });
+  pdf.texto(textos.jambaFrente, { indent: 3 });
 
   pdf.seccion('1.1.8', 'Revestimiento:');
   pdf.texto(
@@ -554,29 +553,29 @@ const generarEspecificaciones = (
   );
 
   pdf.seccion('1.1.9', 'Zócalos:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.zocalos, { indent: 3 });
+  pdf.texto(textos.zocalos, { indent: 3 });
 
   pdf.seccion('1.1.10', 'Umbral:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.umbral, { indent: 3 });
+  pdf.texto(textos.umbral, { indent: 3 });
 
   pdf.seccion('1.1.11', 'Ventilación:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.ventilacion, { indent: 3 });
+  pdf.texto(textos.ventilacion, { indent: 3 });
 
   pdf.seccion('1.1.12', 'Pasamanos:');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.pasamanos, { indent: 3 });
+  pdf.texto(textos.pasamanos, { indent: 3 });
 
   pdf.tituloBloque('1.2 Dispositivos de seguridad');
   const seguridad: [string, string, string][] = [
-    ['1.2.1', 'Regulador de velocidad:', ESPECIFICACIONES_TEXTOS.reguladorVelocidad],
-    ['1.2.2', 'Freno:', ESPECIFICACIONES_TEXTOS.freno],
-    ['1.2.3', 'Sensor de peso:', ESPECIFICACIONES_TEXTOS.sensorPeso],
-    ['1.2.4', 'Amortiguador:', ESPECIFICACIONES_TEXTOS.amortiguador],
-    ['1.2.5', 'Interruptor de fin de carrera:', ESPECIFICACIONES_TEXTOS.finCarrera],
-    ['1.2.6', 'Dispositivo de emergencia:', ESPECIFICACIONES_TEXTOS.dispositivoEmergencia],
-    ['1.2.7', 'Cerraduras electromecánicas:', ESPECIFICACIONES_TEXTOS.cerraduras],
-    ['1.2.8', 'Luz de emergencia:', ESPECIFICACIONES_TEXTOS.luzEmergencia],
-    ['1.2.9', 'Paracaídas:', ESPECIFICACIONES_TEXTOS.paracaidas],
-    ['1.2.10', 'Puertas:', ESPECIFICACIONES_TEXTOS.puertasSeguridad]
+    ['1.2.1', 'Regulador de velocidad:', textos.reguladorVelocidad],
+    ['1.2.2', 'Freno:', textos.freno],
+    ['1.2.3', 'Sensor de peso:', textos.sensorPeso],
+    ['1.2.4', 'Amortiguador:', textos.amortiguador],
+    ['1.2.5', 'Interruptor de fin de carrera:', textos.finCarrera],
+    ['1.2.6', 'Dispositivo de emergencia:', textos.dispositivoEmergencia],
+    ['1.2.7', 'Cerraduras electromecánicas:', textos.cerraduras],
+    ['1.2.8', 'Luz de emergencia:', textos.luzEmergencia],
+    ['1.2.9', 'Paracaídas:', textos.paracaidas],
+    ['1.2.10', 'Puertas:', textos.puertasSeguridad]
   ];
   seguridad.forEach(([numero, titulo, contenido]) => {
     pdf.seccion(numero, titulo);
@@ -589,7 +588,7 @@ const generarEspecificaciones = (
     'Se instalará una botonera con máscara de acero inoxidable AISI 304 pulido mate sujeta mediante tornillos. Las mismas contendrán:',
     { indent: 3, spacing: 1.5 }
   );
-  TABLERO_CABINA_ITEMS.forEach((item, indice) =>
+  textos.tableroCabina.forEach((item, indice) =>
     pdf.texto(`${indice + 1}) ${item}`, { indent: 7, spacing: 0.8 })
   );
   pdf.espacio(1);
@@ -599,7 +598,7 @@ const generarEspecificaciones = (
   pdf.texto(opciones.senalPasillo, { indent: 3 });
 
   pdf.tituloBloque('1.4 Maniobra');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.maniobra, { indent: 3, spacing: 1 });
+  pdf.texto(textos.maniobra, { indent: 3, spacing: 1 });
   if (primero.control) pdf.texto(`Control ${primero.control}`, { indent: 3 });
 
   pdf.tituloBloque('1.5 Puertas de pasillos');
@@ -613,7 +612,7 @@ const generarEspecificaciones = (
   pdf.texto(opciones.marcos, { indent: 3 });
 
   pdf.tituloBloque('1.7 Umbrales');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.umbrales, { indent: 3 });
+  pdf.texto(textos.umbrales, { indent: 3 });
 
   pdf.tituloBloque('1.8 Contrapesos');
   pdf.texto(
@@ -622,11 +621,11 @@ const generarEspecificaciones = (
   );
 
   pdf.tituloBloque('1.9 Guías');
-  pdf.texto(ESPECIFICACIONES_TEXTOS.guias, { indent: 3 });
+  pdf.texto(textos.guias, { indent: 3 });
 
   if (opciones.incluyeElvic) {
     pdf.tituloBloque('1.10 Sistema de control y supervisión (ELVIC)');
-    pdf.texto(TEXTO_ELVIC, { indent: 3, spacing: 2 });
+    pdf.texto(textos.textoElvic, { indent: 3, spacing: 2 });
     pdf.texto(variante.cableadoElvic, { indent: 3 });
   }
 };
