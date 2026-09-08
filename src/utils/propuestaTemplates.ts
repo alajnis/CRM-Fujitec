@@ -39,8 +39,11 @@ export const CARTA_PRESENTACION_CIERRE = [
 export const CLAUSULAS_DEFAULT: PropuestaClausulas = {
   garantiaAnos: 1,
   validezDias: 30,
+  origenEquipos: 'China',
   plazoEntrega:
     'Los equipos serán entregados de acuerdo al cronograma adjunto, a partir de la firma del contrato, pago de anticipo, y aprobación de los planos respectivos. (Ver cronograma adjunto).',
+  saludoFinal:
+    'Sin otro particular, y quedando a vuestra total disposición para responder cualquier duda, hacemos propicia la oportunidad para saludar a usted muy atentamente.',
 
   notasPrecio: [
     'Para vuestra información señalamos que se encuentran incluidos los derechos de importación de los ascensores, actualmente del 12,6 % sobre el valor CIF.',

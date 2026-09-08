@@ -325,6 +325,10 @@ export interface PropuestaClausulas {
   garantiaAnos: number;
   validezDias: number;
   plazoEntrega: string;
+  /** Procedencia declarada de los equipos: "China", "Corea/China", etc. */
+  origenEquipos: string;
+  /** Cierre de la carta, antes de la firma. */
+  saludoFinal: string;
   tareasIncluidas: string[];
   tareasNoIncluidas: string[];
   formaPagoImportado: string[];

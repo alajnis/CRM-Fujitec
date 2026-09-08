@@ -168,7 +168,9 @@ class ConstructorPdf {
 
       if (this.logo) {
         try {
-          this.doc.addImage(this.logo, 'PNG', MARGEN_X, 12, 34, 11);
+          // 2000x686 del logotipo original: se respeta el ratio 2.92 para
+          // que no salga deformado.
+          this.doc.addImage(this.logo, 'PNG', MARGEN_X, 12, 38, 13);
         } catch {
           // Si el logo no se pudo cargar, el documento sigue siendo válido.
         }
@@ -273,7 +275,7 @@ const generarOfertaEconomica = (
   const cantidad = equipos.length;
   const descripcionEquipos = `${numeroEnPalabras(cantidad)} (${cantidad}) ${
     cantidad === 1 ? 'Ascensor Electromecánico' : 'Ascensores Electromecánicos'
-  } marca Fujitec (Origen Corea/China)`;
+  } marca Fujitec (Origen ${clausulas.origenEquipos})`;
 
   pdf.texto('De nuestra mayor consideración:', { spacing: 3 });
   pdf.texto(
@@ -411,10 +413,7 @@ const generarOfertaEconomica = (
   clausulas.formaPagoNacional.forEach((item) => pdf.vinieta(item));
 
   pdf.espacio(3);
-  pdf.texto(
-    'Sin otro particular, y quedando a vuestra total disposición para responder cualquier duda, hacemos propicia la oportunidad para saludar a usted muy atentamente.',
-    { spacing: 3 }
-  );
+  pdf.texto(clausulas.saludoFinal, { spacing: 3 });
 };
 
 /** Valor de un campo por grupo; si difiere entre grupos, lo desdobla. */
@@ -635,7 +634,8 @@ const generarEspecificaciones = (
 /** Carga el logo como data URL para incrustarlo en el PDF. */
 const cargarLogo = async (): Promise<string | null> => {
   try {
-    const respuesta = await fetch('/assets/fujitec-logo.png');
+    // El logotipo institucional, no la mascota que usa el sidebar de la app.
+    const respuesta = await fetch('/assets/fujitec-logotipo.png');
     if (!respuesta.ok) return null;
     const blob = await respuesta.blob();
     return await new Promise((resolve) => {
@@ -677,16 +677,31 @@ const ENCABEZADO_ANEXO = {
 };
 
 /**
- * Completa el encabezado "Obra:" de un anexo con el nombre y código reales.
+ * Páginas de cada anexo que llevan encabezado "Obra:".
  *
- * Se escribe en todas las páginas del anexo. Las que no tienen membrete
- * quedan igual con el renglón, que es el comportamiento correcto: el
- * documento original también lo repite en cada página con encabezado, y en
- * las páginas de planos el texto cae en el margen superior en blanco.
+ * No todas lo tienen: en los documentos de ayuda de gremio, sólo las primeras
+ * seis páginas llevan membrete; el resto son planos y tablas a página completa.
+ * Escribir ahí superpone el texto sobre el dibujo, así que se estampa
+ * únicamente donde el anexo original ya tiene el renglón.
+ *
+ * Se declara por archivo en vez de detectarlo: los anexos son documentos fijos
+ * y su texto viene con fuentes embebidas de Word cuya codificación no permite
+ * buscar "Obra:" de forma confiable.
+ */
+const PAGINAS_CON_ENCABEZADO: Record<string, number | 'todas'> = {
+  'caracteristicas-generales.pdf': 'todas',
+  'ayuda-gremio-con-sala.pdf': 6,
+  'ayuda-gremio-sin-sala.pdf': 6
+};
+
+/**
+ * Completa el encabezado "Obra:" de un anexo con el nombre y código reales.
+ * Sólo escribe en las páginas que ya tienen ese renglón en el original.
  */
 const estamparObraEnAnexo = async (
   anexo: ArrayBuffer,
-  tituloObra: string
+  tituloObra: string,
+  nombreArchivoAnexo: string
 ): Promise<ArrayBuffer> => {
   try {
     const { PDFDocument, rgb } = await import('pdf-lib');
@@ -704,7 +719,11 @@ const estamparObraEnAnexo = async (
       subset: true
     });
 
-    for (const pagina of documento.getPages()) {
+    const paginas = documento.getPages();
+    const configurado = PAGINAS_CON_ENCABEZADO[nombreArchivoAnexo] ?? 'todas';
+    const hasta = configurado === 'todas' ? paginas.length : configurado;
+
+    paginas.slice(0, hasta).forEach((pagina) => {
       const { height } = pagina.getSize();
       const y = height - ENCABEZADO_ANEXO.distanciaAlBordeSuperior;
 
@@ -724,7 +743,7 @@ const estamparObraEnAnexo = async (
         font: fuente,
         color: rgb(0.42, 0.46, 0.48)
       });
-    }
+    });
 
     const bytes = await documento.save();
     return bytes.buffer.slice(
@@ -756,7 +775,12 @@ export const generarPropuestaPdf = async (
   _cliente: Cliente | undefined,
   equipos: Equipo[],
   version: number,
-  anexos: { caracteristicasGenerales?: ArrayBuffer; ayudaGremio?: ArrayBuffer } = {}
+  anexos: {
+    caracteristicasGenerales?: ArrayBuffer;
+    ayudaGremio?: ArrayBuffer;
+    /** Nombre del archivo de gremio usado: define qué páginas llevan encabezado. */
+    nombreAyudaGremio?: string;
+  } = {}
 ): Promise<ResultadoPdf> => {
   const logo = await cargarLogo();
   const tituloObra = `${obra.nombre} (${obra.codigo})`;
@@ -773,9 +797,10 @@ export const generarPropuestaPdf = async (
 
   const bytesGenerados = pdf.doc.output('arraybuffer') as ArrayBuffer;
 
-  const anexosACombinar = [anexos.caracteristicasGenerales, anexos.ayudaGremio].filter(
-    (anexo): anexo is ArrayBuffer => !!anexo
-  );
+  const anexosACombinar = [
+    { bytes: anexos.caracteristicasGenerales, nombre: 'caracteristicas-generales.pdf' },
+    { bytes: anexos.ayudaGremio, nombre: anexos.nombreAyudaGremio || 'ayuda-gremio-con-sala.pdf' }
+  ].filter((anexo): anexo is { bytes: ArrayBuffer; nombre: string } => !!anexo.bytes);
 
   let bytesFinales = bytesGenerados;
 
@@ -790,7 +815,7 @@ export const generarPropuestaPdf = async (
       for (const anexo of anexosACombinar) {
         // Los anexos traen el encabezado "Obra: XXXX (A-XXXX)" sin completar,
         // porque en el Word se llenaba a mano. Se completa acá.
-        const anexoSellado = await estamparObraEnAnexo(anexo, tituloObra);
+        const anexoSellado = await estamparObraEnAnexo(anexo.bytes, tituloObra, anexo.nombre);
         const documentoAnexo = await PDFDocument.load(anexoSellado);
         const paginas = await documentoFinal.copyPages(
           documentoAnexo,

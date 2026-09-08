@@ -157,7 +157,13 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
       if (cancelado) return;
 
       if (existente) {
-        setPropuesta(existente);
+        // Una propuesta guardada antes de que existieran ciertos campos no
+        // los trae; se completan con la plantilla para no emitirlos vacíos.
+        setPropuesta({
+          ...existente,
+          clausulas: { ...CLAUSULAS_DEFAULT, ...existente.clausulas },
+          opcionesTecnicas: { ...OPCIONES_TECNICAS_DEFAULT, ...existente.opcionesTecnicas }
+        });
       } else {
         setPropuesta(
           crearPropuestaInicial(
@@ -212,7 +218,8 @@ export const PantallaPropuesta: React.FC<PantallaPropuestaProps> = ({
         version,
         {
           caracteristicasGenerales: caracteristicasGenerales || undefined,
-          ayudaGremio: ayudaGremio || undefined
+          ayudaGremio: ayudaGremio || undefined,
+          nombreAyudaGremio: archivoAyudaGremio
         }
       );
 
@@ -1085,6 +1092,22 @@ const PasoClausulas: React.FC<{
 
       <div>
         <label className="block text-xs font-bold text-[#2D3436] dark:text-slate-200 mb-1">
+          Origen de los equipos
+        </label>
+        <input
+          type="text"
+          value={clausulas.origenEquipos}
+          onChange={(e) => set('origenEquipos', e.target.value)}
+          placeholder="China"
+          className="w-full p-2.5 bg-white dark:bg-slate-700 border border-[#E0E0E0] dark:border-slate-600 rounded-xl text-xs font-medium text-[#2D3436] dark:text-slate-100"
+        />
+        <p className="text-[10px] text-[#B2BEC3] mt-1">
+          Aparece como "marca Fujitec (Origen {clausulas.origenEquipos || '...'})"
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-[#2D3436] dark:text-slate-200 mb-1">
           Plazo de entrega
         </label>
         <textarea
@@ -1124,6 +1147,18 @@ const PasoClausulas: React.FC<{
         items={clausulas.notasPrecio}
         onChange={(items) => set('notasPrecio', items)}
       />
+
+      <div>
+        <label className="block text-xs font-bold text-[#2D3436] dark:text-slate-200 mb-1">
+          Saludo final
+        </label>
+        <textarea
+          rows={3}
+          value={clausulas.saludoFinal}
+          onChange={(e) => set('saludoFinal', e.target.value)}
+          className="w-full p-2.5 bg-white dark:bg-slate-700 border border-[#E0E0E0] dark:border-slate-600 rounded-xl text-[11px] text-[#2D3436] dark:text-slate-100 resize-none"
+        />
+      </div>
     </div>
   );
 };
