@@ -677,6 +677,24 @@ const ENCABEZADO_ANEXO = {
 };
 
 /**
+ * Número FA dentro de los anexos: aparece sólo en la primera página, debajo
+ * del encabezado de obra, como "FA 21-0XXX" / "FA 23–0xxx" sin completar.
+ * Es el mismo número de la carátula — hay uno por obra.
+ *
+ * Medido en los PDF reales: x=78, y≈718.3 (características) y y≈719.3
+ * (gremios), sobre páginas A4 de 842 pt.
+ */
+const NUMERO_FA_ANEXO = {
+  x: 78,
+  distanciaAlBordeSuperior: 124,
+  /** Alto holgado: el placeholder viene resaltado en amarillo y hay que
+   *  cubrirlo por completo, incluido el borde superior del resaltado. */
+  altoBanda: 15,
+  anchoTapa: 120,
+  tamanoFuente: 9
+};
+
+/**
  * Páginas de cada anexo que llevan encabezado "Obra:".
  *
  * No todas lo tienen: en los documentos de ayuda de gremio, sólo las primeras
@@ -695,13 +713,15 @@ const PAGINAS_CON_ENCABEZADO: Record<string, number | 'todas'> = {
 };
 
 /**
- * Completa el encabezado "Obra:" de un anexo con el nombre y código reales.
- * Sólo escribe en las páginas que ya tienen ese renglón en el original.
+ * Completa los campos que en las plantillas Word se llenaban a mano: el
+ * encabezado "Obra:" y el número FA. Sólo escribe donde el anexo original
+ * ya tiene esos renglones.
  */
 const estamparObraEnAnexo = async (
   anexo: ArrayBuffer,
   tituloObra: string,
-  nombreArchivoAnexo: string
+  nombreArchivoAnexo: string,
+  numeroFA: string
 ): Promise<ArrayBuffer> => {
   try {
     const { PDFDocument, rgb } = await import('pdf-lib');
@@ -744,6 +764,29 @@ const estamparObraEnAnexo = async (
         color: rgb(0.42, 0.46, 0.48)
       });
     });
+
+    // El número FA figura sólo en la primera página de cada anexo.
+    const [primeraPagina] = paginas;
+    if (primeraPagina && numeroFA) {
+      const { height } = primeraPagina.getSize();
+      const yFA = height - NUMERO_FA_ANEXO.distanciaAlBordeSuperior;
+
+      primeraPagina.drawRectangle({
+        x: NUMERO_FA_ANEXO.x - 3,
+        y: yFA - 3,
+        width: NUMERO_FA_ANEXO.anchoTapa,
+        height: NUMERO_FA_ANEXO.altoBanda,
+        color: rgb(1, 1, 1)
+      });
+
+      primeraPagina.drawText(numeroFA, {
+        x: NUMERO_FA_ANEXO.x,
+        y: yFA,
+        size: NUMERO_FA_ANEXO.tamanoFuente,
+        font: fuente,
+        color: rgb(0.17, 0.2, 0.21)
+      });
+    }
 
     const bytes = await documento.save();
     return bytes.buffer.slice(
@@ -815,7 +858,12 @@ export const generarPropuestaPdf = async (
       for (const anexo of anexosACombinar) {
         // Los anexos traen el encabezado "Obra: XXXX (A-XXXX)" sin completar,
         // porque en el Word se llenaba a mano. Se completa acá.
-        const anexoSellado = await estamparObraEnAnexo(anexo.bytes, tituloObra, anexo.nombre);
+        const anexoSellado = await estamparObraEnAnexo(
+          anexo.bytes,
+          tituloObra,
+          anexo.nombre,
+          propuesta.destinatario.numeroFA
+        );
         const documentoAnexo = await PDFDocument.load(anexoSellado);
         const paginas = await documentoFinal.copyPages(
           documentoAnexo,
